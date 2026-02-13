@@ -47,19 +47,10 @@ echo ""
 
 # Commit with detailed message
 echo "💾 Creating commit..."
-git commit -m "feat: marketing landing page, auth system, Shopify App Bridge, OAuth integrations
+git commit -m "fix: add .npmrc for Vercel build compatibility
 
-Major update transforming Slay Season into a production-ready SaaS:
-
-- Marketing landing page at / with hero, features, pricing, testimonials, FAQ
-- User authentication (login/signup) with JWT tokens and auth wall
-- Dashboard moved behind /dashboard route (protected)
-- Shopify App Bridge session tokens (required since Jan 2025)
-- One-click OAuth for Meta Ads, Google Ads, Klaviyo, GA4
-- GDPR webhooks for Shopify compliance
-- Multi-tenant architecture with encrypted credential storage
-- Security hardening: HMAC, rate limiting, CORS, Helmet
-- Updated README with complete feature documentation
+Add legacy-peer-deps=true to resolve @shopify/polaris peer dependency
+conflict with React 19 during Vercel deployment.
 
 Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 
