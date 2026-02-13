@@ -123,7 +123,7 @@ function computeMetrics(dateRange, fixedCosts) {
   };
 
   const grossRevenueSparkline = getSparklineData(filteredShopify, 'revenue');
-  const netProfitSparkline = filteredShopify.map((item, idx) => {
+  const netProfitSparkline = filteredShopify.map((item) => {
     const refund = item.refundAmount || 0;
     const cogs = item.cogs || 0;
     const shipping = item.shipping || 0;
@@ -145,7 +145,7 @@ function computeMetrics(dateRange, fixedCosts) {
     );
   });
 
-  const roas = filteredMeta.map((item, idx) => {
+  const roas = filteredMeta.map((item) => {
     const metaRev = item.revenue || 0;
     const googleDate = filteredGoogle.find((g) => g.date === item.date);
     const googleRev = googleDate?.conversionValue || 0;
@@ -156,7 +156,7 @@ function computeMetrics(dateRange, fixedCosts) {
     return totalSpend > 0 ? totalRev / totalSpend : 0;
   });
 
-  const adSpendSparkline = filteredMeta.map((item, idx) => {
+  const adSpendSparkline = filteredMeta.map((item) => {
     const metaSpend = item.spend || 0;
     const googleDate = filteredGoogle.find((g) => g.date === item.date);
     const googleSpend = googleDate?.spend || 0;
@@ -171,7 +171,7 @@ function computeMetrics(dateRange, fixedCosts) {
     return adSpend / newCustomers;
   });
 
-  const marginSparkline = filteredShopify.map((item, idx) => {
+  const marginSparkline = filteredShopify.map((item) => {
     const refund = item.refundAmount || 0;
     const cogs = item.cogs || 0;
     const shipping = item.shipping || 0;
@@ -272,7 +272,7 @@ export default function KPIRow() {
     : !!isLoading;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3 sm:gap-4 transition-all duration-300">
       {metrics.map((metric) => (
         <KPICard
           key={metric.title}

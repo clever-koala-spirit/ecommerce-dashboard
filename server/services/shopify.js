@@ -13,15 +13,19 @@ export class ShopifyService {
     return !!(this.storeUrl && this.accessToken);
   }
 
-  async testConnection() {
-    if (!this.connected) {
+  async testConnection(accessToken = null) {
+    // Use provided access token or fall back to instance/env token
+    const token = accessToken || this.accessToken;
+    const storeUrl = this.storeUrl;
+
+    if (!token || !storeUrl) {
       return { connected: false, status: 'red', error: 'Missing credentials' };
     }
 
     try {
       const response = await queueRequest('shopify', () =>
-        fetch(`https://${this.storeUrl}/admin/api/${SHOPIFY_API_VERSION}/shop.json`, {
-          headers: this.getHeaders(),
+        fetch(`https://${storeUrl}/admin/api/${SHOPIFY_API_VERSION}/shop.json`, {
+          headers: this.getHeaders(token),
         })
       );
 
@@ -39,8 +43,12 @@ export class ShopifyService {
     }
   }
 
-  async fetchOrders(dateRange) {
-    if (!this.connected) {
+  async fetchOrders(dateRange, accessToken = null) {
+    // Use provided access token or fall back to instance token
+    const token = accessToken || this.accessToken;
+    const storeUrl = this.storeUrl;
+
+    if (!token || !storeUrl) {
       return { connected: false };
     }
 
@@ -56,10 +64,10 @@ export class ShopifyService {
         const response = await withRetry(() =>
           queueRequest('shopify', () =>
             fetch(
-              `https://${this.storeUrl}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`,
+              `https://${storeUrl}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`,
               {
                 method: 'POST',
-                headers: this.getHeaders(),
+                headers: this.getHeaders(token),
                 body: JSON.stringify({ query }),
               }
             )
@@ -208,9 +216,10 @@ export class ShopifyService {
     }
   }
 
-  getHeaders() {
+  getHeaders(accessToken = null) {
+    const token = accessToken || this.accessToken;
     return {
-      'X-Shopify-Access-Token': this.accessToken,
+      'X-Shopify-Access-Token': token,
       'Content-Type': 'application/json',
     };
   }

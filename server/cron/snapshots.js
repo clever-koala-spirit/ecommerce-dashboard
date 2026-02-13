@@ -4,7 +4,7 @@ import { metaService } from '../services/meta.js';
 import { googleAdsService } from '../services/google.js';
 import { klaviyoService } from '../services/klaviyo.js';
 import { ga4Service } from '../services/ga4.js';
-import { saveSnapshot, logSync } from '../db/database.js';
+import { saveSnapshot, logSync, getAllActiveShops } from '../db/database.js';
 
 const services = {
   shopify: shopifyService,
@@ -14,12 +14,19 @@ const services = {
   ga4: ga4Service,
 };
 
-async function syncSource(sourceName, service) {
+async function syncSource(shopDomain, shopAccessToken, sourceName, service) {
   try {
-    const testResult = await service.testConnection();
+    let testResult;
+
+    // Pass access token for Shopify service
+    if (sourceName === 'shopify') {
+      testResult = await service.testConnection(shopAccessToken);
+    } else {
+      testResult = await service.testConnection();
+    }
 
     if (!testResult.connected) {
-      logSync(sourceName, 'skipped', 0, 'Source not connected');
+      logSync(shopDomain, sourceName, 'skipped', 0, 'Source not connected');
       return { sourceName, status: 'skipped' };
     }
 
@@ -34,12 +41,13 @@ async function syncSource(sourceName, service) {
 
     switch (sourceName) {
       case 'shopify':
-        const shopifyResult = await service.fetchOrders(dateRange);
+        const shopifyResult = await service.fetchOrders(dateRange, shopAccessToken);
         if (shopifyResult.data) {
           data = shopifyResult.data;
           recordCount = data.length;
           data.forEach((day) => {
             saveSnapshot(
+              shopDomain,
               day.date,
               sourceName,
               'revenue',
@@ -57,6 +65,7 @@ async function syncSource(sourceName, service) {
           recordCount = data.length;
           data.forEach((day) => {
             saveSnapshot(
+              shopDomain,
               day.date,
               sourceName,
               'spend',
@@ -74,6 +83,7 @@ async function syncSource(sourceName, service) {
           recordCount = data.length;
           data.forEach((day) => {
             saveSnapshot(
+              shopDomain,
               day.date,
               sourceName,
               'spend',
@@ -99,6 +109,7 @@ async function syncSource(sourceName, service) {
           recordCount = data.length;
           data.forEach((day) => {
             saveSnapshot(
+              shopDomain,
               day.date,
               sourceName,
               'sessions',
@@ -110,17 +121,17 @@ async function syncSource(sourceName, service) {
         break;
     }
 
-    logSync(sourceName, 'completed', recordCount);
+    logSync(shopDomain, sourceName, 'completed', recordCount);
     console.log(
-      `[Cron] Snapshot created for ${sourceName}: ${recordCount} records`
+      `[Cron] Snapshot created for ${shopDomain} - ${sourceName}: ${recordCount} records`
     );
 
     return { sourceName, status: 'completed', recordCount };
   } catch (error) {
     const errorMsg = error.message || 'Unknown error';
-    logSync(sourceName, 'failed', 0, errorMsg);
+    logSync(shopDomain, sourceName, 'failed', 0, errorMsg);
     console.error(
-      `[Cron] Error syncing ${sourceName}:`,
+      `[Cron] Error syncing ${sourceName} for ${shopDomain}:`,
       errorMsg
     );
 
@@ -133,34 +144,63 @@ export function startCronJobs() {
   cron.schedule('0 0 * * *', async () => {
     console.log('[Cron] Starting daily snapshot sync...');
 
-    const results = [];
+    const allResults = [];
+    const shops = getAllActiveShops();
 
-    for (const [sourceName, service] of Object.entries(services)) {
-      const result = await syncSource(sourceName, service);
-      results.push(result);
+    if (shops.length === 0) {
+      console.log('[Cron] No active shops found');
+      return;
     }
 
-    console.log('[Cron] Daily snapshot sync completed:', results);
+    for (const shop of shops) {
+      console.log(`[Cron] Syncing shop: ${shop.shopDomain}`);
+      const results = [];
+
+      for (const [sourceName, service] of Object.entries(services)) {
+        const result = await syncSource(shop.shopDomain, shop.accessToken, sourceName, service);
+        results.push(result);
+      }
+
+      allResults.push({ shop: shop.shopDomain, results });
+    }
+
+    console.log('[Cron] Daily snapshot sync completed:', allResults);
   });
 
   // Also run every 30 minutes for demo/testing purposes
   cron.schedule('*/30 * * * *', async () => {
     console.log('[Cron] Running 30-minute refresh...');
 
-    // Only sync sources that are connected
-    const connectedSources = [];
+    const shops = getAllActiveShops();
 
-    for (const [sourceName, service] of Object.entries(services)) {
-      const testResult = await service.testConnection();
-      if (testResult.connected) {
-        connectedSources.push(sourceName);
-        const result = await syncSource(sourceName, service);
-        console.log(`[Cron] Refreshed ${sourceName}:`, result.status);
-      }
+    if (shops.length === 0) {
+      console.log('[Cron] No active shops found. Using mock data.');
+      return;
     }
 
-    if (connectedSources.length === 0) {
-      console.log('[Cron] No sources connected. Using mock data.');
+    for (const shop of shops) {
+      const connectedSources = [];
+
+      for (const [sourceName, service] of Object.entries(services)) {
+        let testResult;
+
+        // Pass access token for Shopify service
+        if (sourceName === 'shopify') {
+          testResult = await service.testConnection(shop.accessToken);
+        } else {
+          testResult = await service.testConnection();
+        }
+
+        if (testResult.connected) {
+          connectedSources.push(sourceName);
+          const result = await syncSource(shop.shopDomain, shop.accessToken, sourceName, service);
+          console.log(`[Cron] Refreshed ${sourceName} for ${shop.shopDomain}:`, result.status);
+        }
+      }
+
+      if (connectedSources.length === 0) {
+        console.log(`[Cron] No sources connected for ${shop.shopDomain}. Using mock data.`);
+      }
     }
   });
 

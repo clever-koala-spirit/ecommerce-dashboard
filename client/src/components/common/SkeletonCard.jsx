@@ -10,14 +10,14 @@ export default function SkeletonCard({ width = '100%', height = '120px', classNa
 export function SkeletonKPI({ className = '' }) {
   return (
     <div
-      className="kpi-card space-y-2 p-5"
-      style={{ height: '140px' }}
+      className={`kpi-card space-y-3 p-5 animate-fadeIn ${className}`}
+      style={{ height: '140px', animationDuration: '0.5s' }}
     >
       <SkeletonCard width="30%" height="12px" />
-      <SkeletonCard width="50%" height="28px" className="mt-2" />
-      <div className="flex justify-between pt-2">
-        <SkeletonCard width="40%" height="10px" />
-        <SkeletonCard width="30%" height="10px" />
+      <SkeletonCard width="60%" height="28px" className="mt-3" />
+      <div className="flex justify-between items-center gap-2 pt-3">
+        <SkeletonCard width="35%" height="10px" />
+        <SkeletonCard width="40%" height="32px" />
       </div>
     </div>
   );
@@ -26,8 +26,8 @@ export function SkeletonKPI({ className = '' }) {
 export function SkeletonChart({ className = '' }) {
   return (
     <div
-      className={`glass-card p-5 ${className}`}
-      style={{ height: '280px' }}
+      className={`glass-card p-5 animate-fadeIn ${className}`}
+      style={{ height: '280px', animationDuration: '0.6s' }}
     >
       <SkeletonCard width="40%" height="14px" className="mb-4" />
       <div className="space-y-3">
@@ -46,7 +46,7 @@ export function SkeletonChart({ className = '' }) {
 
 export function SkeletonTable({ className = '' }) {
   return (
-    <div className={`glass-card p-5 ${className}`} style={{ minHeight: '200px' }}>
+    <div className={`glass-card p-5 animate-fadeIn ${className}`} style={{ minHeight: '200px', animationDuration: '0.6s' }}>
       {/* Header */}
       <div className="flex gap-4 mb-4">
         <SkeletonCard width="25%" height="14px" />

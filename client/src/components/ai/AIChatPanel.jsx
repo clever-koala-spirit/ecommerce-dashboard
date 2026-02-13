@@ -50,9 +50,15 @@ export default function AIChatPanel() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/ai/chat', {
+      const shopDomain = sessionStorage.getItem('shopDomain');
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(shopDomain && { 'X-Shop-Domain': shopDomain })
+      };
+      const apiUrl = `${import.meta.env.VITE_API_URL || ''}/api/ai/chat`;
+      const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           message: userMessage.text,
           history: messages,

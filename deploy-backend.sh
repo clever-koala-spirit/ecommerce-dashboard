@@ -1,91 +1,46 @@
 #!/bin/bash
-# Backend Deployment Script for GCP VM (chip-vm)
-# Run this script on the VM after SSH-ing in
+# Deploy Slay Season Backend to GCP VM (34.151.172.195)
+# Run this from your local machine
 
 set -e
+echo "🚀 Deploying Slay Season Backend..."
 
-echo "=== Ecommerce Dashboard Backend Deployment ==="
+# Variables
+VM_IP="34.151.172.195"
+VM_USER="leo"
+APP_DIR="/opt/slayseason"
+ZONE="australia-southeast2-a"
 
-# 1. Install Node.js 20 if not present
-if ! command -v node &> /dev/null; then
-    echo "[1/6] Installing Node.js 20..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
-    sudo apt-get install -y nodejs
+# Step 1: Upload server files
+echo "📦 Uploading server files to GCP VM..."
+gcloud compute scp --recurse ./server "${VM_USER}@chip-vm:${APP_DIR}/server" --zone="${ZONE}" --project="slay-season" 2>/dev/null || \
+  echo "Note: Update zone/project as needed for your GCP setup"
+
+# Step 2: Upload .env file
+echo "📄 Uploading environment configuration..."
+if [ -f "./.env" ]; then
+  gcloud compute scp ./.env "${VM_USER}@chip-vm:${APP_DIR}/.env" --zone="${ZONE}" --project="slay-season" 2>/dev/null || \
+    echo "Note: Make sure .env file is configured on the VM"
 else
-    echo "[1/6] Node.js already installed: $(node --version)"
+  echo "⚠️  .env file not found. You'll need to configure it manually on the VM."
 fi
 
-# 2. Install PM2 globally for process management
-if ! command -v pm2 &> /dev/null; then
-    echo "[2/6] Installing PM2..."
-    sudo npm install -g pm2
-else
-    echo "[2/6] PM2 already installed"
-fi
-
-# 3. Clone or update the repository
-APP_DIR="$HOME/ecommerce-dashboard"
-if [ -d "$APP_DIR" ]; then
-    echo "[3/6] Updating repository..."
-    cd "$APP_DIR"
-    git pull origin main
-else
-    echo "[3/6] Cloning repository..."
-    cd "$HOME"
-    git clone https://github.com/clever-koala-spirit/ecommerce-dashboard.git
-    cd "$APP_DIR"
-fi
-
-# 4. Create .env file
-echo "[4/6] Setting up environment variables..."
-cat > "$APP_DIR/.env" << 'EOF'
-PORT=4000
-
-# Shopify
-SHOPIFY_STORE_URL=5ugwnx-v8.myshopify.com
-SHOPIFY_ACCESS_TOKEN=ff53daaa82dd6f5049de6de75b13b0f3
-
-# Meta Ads (add your keys)
-META_ACCESS_TOKEN=
-META_AD_ACCOUNT_ID=
-META_BUSINESS_ID=
-
-# Google Ads (add your keys)
-GOOGLE_ADS_DEVELOPER_TOKEN=
-GOOGLE_ADS_CLIENT_ID=
-GOOGLE_ADS_CLIENT_SECRET=
-GOOGLE_ADS_REFRESH_TOKEN=
-GOOGLE_ADS_CUSTOMER_ID=
-
-# Klaviyo (add your key)
-KLAVIYO_API_KEY=
-
-# GA4 (add your key)
-GA4_PROPERTY_ID=
-GA4_SERVICE_ACCOUNT_KEY_PATH=
-
-# AI (optional)
-AI_PROVIDER=
-AI_API_KEY=
-AI_MODEL=
-EOF
-
-# 5. Install server dependencies
-echo "[5/6] Installing server dependencies..."
-cd "$APP_DIR/server"
-npm install
-
-# 6. Start with PM2
-echo "[6/6] Starting server with PM2..."
-pm2 delete ecommerce-api 2>/dev/null || true
-pm2 start index.js --name ecommerce-api
-pm2 save
-pm2 startup systemd -u $USER --hp $HOME 2>/dev/null || true
+# Step 3: Install dependencies and restart service
+echo "🔧 Installing dependencies and restarting backend service..."
+gcloud compute ssh "${VM_USER}@chip-vm" --zone="${ZONE}" --project="slay-season" --command="
+  cd ${APP_DIR}/server &&
+  npm install --production &&
+  sudo systemctl restart slayseason || pm2 restart ecommerce-api
+" 2>/dev/null || \
+  echo "Note: Connect manually and run: cd ${APP_DIR}/server && npm install && npm start"
 
 echo ""
-echo "=== Deployment Complete ==="
-echo "Backend running at: http://$(curl -s ifconfig.me):4000"
-echo "Health check: http://$(curl -s ifconfig.me):4000/api/health"
+echo "✅ Backend deployment initiated!"
 echo ""
-echo "IMPORTANT: Make sure GCP firewall allows port 4000!"
-echo "Run: gcloud compute firewall-rules create allow-api-4000 --allow tcp:4000 --source-ranges 0.0.0.0/0 --description 'Allow backend API'"
+echo "📋 Next Steps:"
+echo "1. SSH into VM: gcloud compute ssh ${VM_USER}@chip-vm --zone=${ZONE}"
+echo "2. Verify API is running: curl http://localhost:4000/api/health"
+echo "3. Configure nginx reverse proxy to point api.slayseason.com → localhost:4000"
+echo "4. Set up SSL certificate with Let's Encrypt"
+echo ""
+echo "API Endpoint: http://${VM_IP}:4000/api (or https://api.slayseason.com/api once reverse proxy is configured)"

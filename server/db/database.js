@@ -1,15 +1,97 @@
 import initSqlJs from 'sql.js';
+import crypto from 'crypto';
 
 let db = null;
-
 const SQL = await initSqlJs();
 
+// --- Encryption helpers (AES-256-GCM) ---
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || (() => {
+  const key = crypto.randomBytes(32).toString('hex');
+  console.error('[FATAL] ENCRYPTION_KEY not set! Using temporary key. Data will be LOST on restart.');
+  return key;
+})();
+
+function getEncryptionKey() {
+  return Buffer.from(ENCRYPTION_KEY, 'hex');
+}
+
+export function encrypt(text) {
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-gcm', getEncryptionKey(), iv);
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  const authTag = cipher.getAuthTag().toString('hex');
+  return `${iv.toString('hex')}:${authTag}:${encrypted}`;
+}
+
+export function decrypt(encryptedText) {
+  const [ivHex, authTagHex, encrypted] = encryptedText.split(':');
+  const iv = Buffer.from(ivHex, 'hex');
+  const authTag = Buffer.from(authTagHex, 'hex');
+  const decipher = crypto.createDecipheriv('aes-256-gcm', getEncryptionKey(), iv);
+  decipher.setAuthTag(authTag);
+  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+}
+
+// --- Database initialization ---
 export async function initDB() {
   db = new SQL.Database();
 
+  // Shops table — stores each installed Shopify store
+  db.run(`
+    CREATE TABLE IF NOT EXISTS shops (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      shop_domain TEXT NOT NULL UNIQUE,
+      access_token_encrypted TEXT NOT NULL,
+      scope TEXT,
+      shop_name TEXT,
+      shop_email TEXT,
+      plan_name TEXT,
+      installed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      uninstalled_at TIMESTAMP,
+      is_active BOOLEAN DEFAULT 1,
+      nonce TEXT,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Sessions table — Shopify OAuth sessions
+  db.run(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      shop_domain TEXT NOT NULL,
+      state TEXT,
+      is_online BOOLEAN DEFAULT 0,
+      access_token_encrypted TEXT,
+      scope TEXT,
+      expires_at TIMESTAMP,
+      online_access_info TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Platform connections — stores OAuth tokens for Meta, Google, Klaviyo, GA4 per shop
+  db.run(`
+    CREATE TABLE IF NOT EXISTS platform_connections (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      shop_domain TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      credentials_encrypted TEXT NOT NULL,
+      status TEXT DEFAULT 'active',
+      last_sync_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(shop_domain, platform)
+    );
+  `);
+
+  // Metric snapshots — now per-shop
   db.run(`
     CREATE TABLE IF NOT EXISTS metric_snapshots (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      shop_domain TEXT NOT NULL,
       date TEXT NOT NULL,
       source TEXT NOT NULL,
       metric TEXT NOT NULL,
@@ -22,6 +104,7 @@ export async function initDB() {
   db.run(`
     CREATE TABLE IF NOT EXISTS sync_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      shop_domain TEXT NOT NULL,
       source TEXT NOT NULL,
       status TEXT NOT NULL,
       records_synced INTEGER,
@@ -33,6 +116,7 @@ export async function initDB() {
   db.run(`
     CREATE TABLE IF NOT EXISTS forecast_accuracy (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      shop_domain TEXT NOT NULL,
       metric TEXT NOT NULL,
       forecast_date TEXT NOT NULL,
       horizon_days INTEGER NOT NULL,
@@ -46,6 +130,7 @@ export async function initDB() {
   db.run(`
     CREATE TABLE IF NOT EXISTS fixed_costs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      shop_domain TEXT NOT NULL,
       label TEXT NOT NULL,
       monthly_amount REAL NOT NULL,
       category TEXT,
@@ -54,189 +139,372 @@ export async function initDB() {
     );
   `);
 
+  // Webhook log — for audit trail
   db.run(`
-    CREATE TABLE IF NOT EXISTS credentials (
+    CREATE TABLE IF NOT EXISTS webhook_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      source TEXT NOT NULL UNIQUE,
-      encrypted_data TEXT NOT NULL,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      shop_domain TEXT NOT NULL,
+      topic TEXT NOT NULL,
+      payload_hash TEXT,
+      processed BOOLEAN DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
-  db.run(`
-    CREATE INDEX IF NOT EXISTS idx_metric_snapshots_date_source
-    ON metric_snapshots(date, source);
-  `);
-
-  db.run(`
-    CREATE INDEX IF NOT EXISTS idx_sync_log_source
-    ON sync_log(source);
-  `);
+  // Indexes for performance
+  db.run(`CREATE INDEX IF NOT EXISTS idx_shops_domain ON shops(shop_domain);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_sessions_shop ON sessions(shop_domain);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_metric_shop_date ON metric_snapshots(shop_domain, date, source);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_sync_log_shop ON sync_log(shop_domain, source);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_platform_conn ON platform_connections(shop_domain, platform);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_costs_shop ON fixed_costs(shop_domain);`);
 
   return db;
 }
 
 export function getDB() {
-  if (!db) {
-    throw new Error('Database not initialized. Call initDB() first.');
-  }
+  if (!db) throw new Error('Database not initialized. Call initDB() first.');
   return db;
 }
 
-export function saveSnapshot(date, source, metric, value, dimensions = null) {
+// --- Shop management ---
+export function saveShop(shopDomain, accessToken, scope, shopInfo = {}) {
   const db = getDB();
-  const dimensionsJson = dimensions ? JSON.stringify(dimensions) : null;
+  const encrypted = encrypt(accessToken);
 
   db.run(
-    `INSERT INTO metric_snapshots (date, source, metric, value, dimensions)
-     VALUES (?, ?, ?, ?, ?)`,
-    [date, source, metric, value, dimensionsJson]
+    `INSERT INTO shops (shop_domain, access_token_encrypted, scope, shop_name, shop_email, plan_name)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT(shop_domain) DO UPDATE SET
+       access_token_encrypted = excluded.access_token_encrypted,
+       scope = excluded.scope,
+       shop_name = excluded.shop_name,
+       shop_email = excluded.shop_email,
+       is_active = 1,
+       uninstalled_at = NULL,
+       updated_at = CURRENT_TIMESTAMP`,
+    [shopDomain, encrypted, scope, shopInfo.name || null, shopInfo.email || null, shopInfo.plan || null]
   );
 }
 
-export function getHistory(metric, dateRange, granularity = 'daily') {
+export function getShop(shopDomain) {
   const db = getDB();
+  const results = db.exec(
+    `SELECT id, shop_domain, access_token_encrypted, scope, shop_name, shop_email, plan_name, is_active, installed_at
+     FROM shops WHERE shop_domain = ? AND is_active = 1`,
+    [shopDomain]
+  );
 
-  const query = `
-    SELECT date, metric, value, source, dimensions
-    FROM metric_snapshots
-    WHERE metric = ?
-      AND date >= ?
-      AND date <= ?
-    ORDER BY date ASC
-  `;
+  if (results.length === 0 || results[0].values.length === 0) return null;
 
-  const results = db.exec(query, [metric, dateRange.start, dateRange.end]);
+  const row = results[0].values[0];
+  return {
+    id: row[0],
+    shopDomain: row[1],
+    accessToken: decrypt(row[2]),
+    scope: row[3],
+    shopName: row[4],
+    shopEmail: row[5],
+    planName: row[6],
+    isActive: row[7] === 1,
+    installedAt: row[8],
+  };
+}
+
+export function getAllActiveShops() {
+  const db = getDB();
+  const results = db.exec(
+    `SELECT id, shop_domain, access_token_encrypted, scope, shop_name, shop_email, plan_name, is_active, installed_at
+     FROM shops WHERE is_active = 1`,
+    []
+  );
+
+  if (results.length === 0 || results[0].values.length === 0) return [];
+
+  return results[0].values.map(row => ({
+    id: row[0],
+    shopDomain: row[1],
+    accessToken: decrypt(row[2]),
+    scope: row[3],
+    shopName: row[4],
+    shopEmail: row[5],
+    planName: row[6],
+    isActive: row[7] === 1,
+    installedAt: row[8],
+  }));
+}
+
+export function markShopUninstalled(shopDomain) {
+  const db = getDB();
+  db.run(
+    `UPDATE shops SET is_active = 0, uninstalled_at = CURRENT_TIMESTAMP WHERE shop_domain = ?`,
+    [shopDomain]
+  );
+}
+
+export function setShopNonce(shopDomain, nonce) {
+  const db = getDB();
+  db.run(
+    `INSERT INTO shops (shop_domain, access_token_encrypted, nonce) VALUES (?, '', ?)
+     ON CONFLICT(shop_domain) DO UPDATE SET nonce = ?`,
+    [shopDomain, nonce, nonce]
+  );
+}
+
+export function getShopNonce(shopDomain) {
+  const db = getDB();
+  const results = db.exec(`SELECT nonce FROM shops WHERE shop_domain = ?`, [shopDomain]);
+  if (results.length === 0 || results[0].values.length === 0) return null;
+  return results[0].values[0][0];
+}
+
+// --- Platform connections ---
+export function savePlatformConnection(shopDomain, platform, credentials) {
+  const db = getDB();
+  const encrypted = encrypt(JSON.stringify(credentials));
+
+  db.run(
+    `INSERT INTO platform_connections (shop_domain, platform, credentials_encrypted)
+     VALUES (?, ?, ?)
+     ON CONFLICT(shop_domain, platform) DO UPDATE SET
+       credentials_encrypted = excluded.credentials_encrypted,
+       status = 'active',
+       updated_at = CURRENT_TIMESTAMP`,
+    [shopDomain, platform, encrypted]
+  );
+}
+
+export function getPlatformConnection(shopDomain, platform) {
+  const db = getDB();
+  const results = db.exec(
+    `SELECT credentials_encrypted, status, last_sync_at FROM platform_connections
+     WHERE shop_domain = ? AND platform = ? AND status = 'active'`,
+    [shopDomain, platform]
+  );
+
+  if (results.length === 0 || results[0].values.length === 0) return null;
+
+  const row = results[0].values[0];
+  try {
+    return {
+      credentials: JSON.parse(decrypt(row[0])),
+      status: row[1],
+      lastSyncAt: row[2],
+    };
+  } catch (error) {
+    console.error(`[Database] Failed to decrypt credentials for ${platform} at ${shopDomain}:`, error);
+    return null;
+  }
+}
+
+export function getAllPlatformConnections(shopDomain) {
+  const db = getDB();
+  const results = db.exec(
+    `SELECT platform, status, last_sync_at, updated_at FROM platform_connections WHERE shop_domain = ?`,
+    [shopDomain]
+  );
 
   if (results.length === 0) return [];
+  return results[0].values.map(row => ({
+    platform: row[0],
+    status: row[1],
+    lastSyncAt: row[2],
+    updatedAt: row[3],
+  }));
+}
 
-  return results[0].values.map((row) => ({
-    date: row[0],
-    metric: row[1],
-    value: row[2],
-    source: row[3],
+// --- Session management ---
+export function saveSession(session) {
+  const db = getDB();
+  const tokenEncrypted = session.accessToken ? encrypt(session.accessToken) : null;
+
+  db.run(
+    `INSERT INTO sessions (id, shop_domain, state, is_online, access_token_encrypted, scope, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       access_token_encrypted = excluded.access_token_encrypted,
+       scope = excluded.scope,
+       expires_at = excluded.expires_at`,
+    [session.id, session.shop, session.state || null, session.isOnline ? 1 : 0,
+     tokenEncrypted, session.scope || null, session.expires?.toISOString() || null]
+  );
+}
+
+export function loadSession(id) {
+  const db = getDB();
+  const results = db.exec(
+    `SELECT id, shop_domain, state, is_online, access_token_encrypted, scope, expires_at FROM sessions WHERE id = ?`,
+    [id]
+  );
+
+  if (results.length === 0 || results[0].values.length === 0) return null;
+
+  const row = results[0].values[0];
+  return {
+    id: row[0],
+    shop: row[1],
+    state: row[2],
+    isOnline: row[3] === 1,
+    accessToken: row[4] ? decrypt(row[4]) : null,
+    scope: row[5],
+    expires: row[6] ? new Date(row[6]) : null,
+  };
+}
+
+export function deleteSession(id) {
+  const db = getDB();
+  db.run(`DELETE FROM sessions WHERE id = ?`, [id]);
+}
+
+// --- Metric snapshots (now per-shop) ---
+export function saveSnapshot(shopDomain, date, source, metric, value, dimensions = null) {
+  const db = getDB();
+  const dimensionsJson = dimensions ? JSON.stringify(dimensions) : null;
+  db.run(
+    `INSERT INTO metric_snapshots (shop_domain, date, source, metric, value, dimensions)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [shopDomain, date, source, metric, value, dimensionsJson]
+  );
+}
+
+export function getHistory(shopDomain, metric, dateRange, granularity = 'daily') {
+  const db = getDB();
+  const results = db.exec(
+    `SELECT date, metric, value, source, dimensions FROM metric_snapshots
+     WHERE shop_domain = ? AND metric = ? AND date >= ? AND date <= ?
+     ORDER BY date ASC`,
+    [shopDomain, metric, dateRange.start, dateRange.end]
+  );
+
+  if (results.length === 0) return [];
+  return results[0].values.map(row => ({
+    date: row[0], metric: row[1], value: row[2], source: row[3],
     dimensions: row[4] ? JSON.parse(row[4]) : null,
   }));
 }
 
-export function getDataCoverage() {
+export function getDataCoverage(shopDomain) {
   const db = getDB();
-
   const sources = ['shopify', 'meta', 'google', 'klaviyo', 'ga4'];
   const coverage = {};
 
-  sources.forEach((source) => {
+  sources.forEach(source => {
     const result = db.exec(
-      `SELECT MIN(date) as earliest, MAX(date) as latest, COUNT(*) as records
-       FROM metric_snapshots WHERE source = ?`,
-      [source]
+      `SELECT MIN(date), MAX(date), COUNT(*) FROM metric_snapshots WHERE shop_domain = ? AND source = ?`,
+      [shopDomain, source]
     );
-
     if (result.length > 0 && result[0].values.length > 0) {
       const [earliest, latest, records] = result[0].values[0];
-      coverage[source] = {
-        earliest,
-        latest,
-        records,
-        daysOfData: earliest && latest ? calculateDaysDiff(earliest, latest) : 0,
-      };
+      coverage[source] = { earliest, latest, records, daysOfData: earliest && latest ? calculateDaysDiff(earliest, latest) : 0 };
     } else {
       coverage[source] = { earliest: null, latest: null, records: 0, daysOfData: 0 };
     }
   });
-
   return coverage;
 }
 
-export function logSync(source, status, recordsSynced = 0, errorMessage = null) {
+// --- Sync log (per-shop) ---
+export function logSync(shopDomain, source, status, recordsSynced = 0, errorMessage = null) {
   const db = getDB();
-
   db.run(
-    `INSERT INTO sync_log (source, status, records_synced, error_message)
-     VALUES (?, ?, ?, ?)`,
-    [source, status, recordsSynced, errorMessage]
+    `INSERT INTO sync_log (shop_domain, source, status, records_synced, error_message) VALUES (?, ?, ?, ?, ?)`,
+    [shopDomain, source, status, recordsSynced, errorMessage]
   );
 }
 
-export function saveCost(label, monthlyAmount, category = null) {
+export function getLastSyncLog(shopDomain, source) {
   const db = getDB();
-
-  db.run(
-    `INSERT INTO fixed_costs (label, monthly_amount, category)
-     VALUES (?, ?, ?)`,
-    [label, monthlyAmount, category]
-  );
-}
-
-export function getCosts() {
-  const db = getDB();
-
   const results = db.exec(
-    `SELECT id, label, monthly_amount, category, is_active, created_at
-     FROM fixed_costs
-     ORDER BY created_at DESC`
+    `SELECT status, records_synced, error_message, synced_at FROM sync_log
+     WHERE shop_domain = ? AND source = ? ORDER BY synced_at DESC LIMIT 1`,
+    [shopDomain, source]
   );
+  if (results.length === 0 || results[0].values.length === 0) return null;
+  const [status, recordsSynced, errorMessage, syncedAt] = results[0].values[0];
+  return { status, recordsSynced, errorMessage, syncedAt };
+}
 
+// --- Fixed costs (per-shop) ---
+export function saveCost(shopDomain, label, monthlyAmount, category = null) {
+  const db = getDB();
+  db.run(
+    `INSERT INTO fixed_costs (shop_domain, label, monthly_amount, category) VALUES (?, ?, ?, ?)`,
+    [shopDomain, label, monthlyAmount, category]
+  );
+}
+
+export function getCosts(shopDomain) {
+  const db = getDB();
+  const results = db.exec(
+    `SELECT id, label, monthly_amount, category, is_active, created_at FROM fixed_costs
+     WHERE shop_domain = ? ORDER BY created_at DESC`,
+    [shopDomain]
+  );
   if (results.length === 0) return [];
-
-  return results[0].values.map((row) => ({
-    id: row[0],
-    label: row[1],
-    monthlyAmount: row[2],
-    category: row[3],
-    isActive: row[4] === 1,
-    createdAt: row[5],
+  return results[0].values.map(row => ({
+    id: row[0], label: row[1], monthlyAmount: row[2], category: row[3],
+    isActive: row[4] === 1, createdAt: row[5],
   }));
 }
 
 export function updateCost(id, label, monthlyAmount, category) {
   const db = getDB();
-
-  db.run(
-    `UPDATE fixed_costs
-     SET label = ?, monthly_amount = ?, category = ?
-     WHERE id = ?`,
-    [label, monthlyAmount, category, id]
-  );
+  db.run(`UPDATE fixed_costs SET label = ?, monthly_amount = ?, category = ? WHERE id = ?`,
+    [label, monthlyAmount, category, id]);
 }
 
 export function deleteCost(id) {
   const db = getDB();
-
   db.run(`DELETE FROM fixed_costs WHERE id = ?`, [id]);
 }
 
 export function toggleCostActive(id, isActive) {
   const db = getDB();
+  db.run(`UPDATE fixed_costs SET is_active = ? WHERE id = ?`, [isActive ? 1 : 0, id]);
+}
 
+// --- Webhook log ---
+export function logWebhook(shopDomain, topic, payloadHash) {
+  const db = getDB();
   db.run(
-    `UPDATE fixed_costs SET is_active = ? WHERE id = ?`,
-    [isActive ? 1 : 0, id]
+    `INSERT INTO webhook_log (shop_domain, topic, payload_hash) VALUES (?, ?, ?)`,
+    [shopDomain, topic, payloadHash]
   );
 }
 
-export function getLastSyncLog(source) {
+export function isWebhookProcessed(payloadHash) {
   const db = getDB();
-
   const results = db.exec(
-    `SELECT status, records_synced, error_message, synced_at
-     FROM sync_log
-     WHERE source = ?
-     ORDER BY synced_at DESC
-     LIMIT 1`,
-    [source]
+    `SELECT id FROM webhook_log WHERE payload_hash = ? AND processed = 1`,
+    [payloadHash]
   );
+  return results.length > 0 && results[0].values.length > 0;
+}
 
-  if (results.length === 0) return null;
-
-  const [status, recordsSynced, errorMessage, syncedAt] = results[0].values[0];
-  return { status, recordsSynced, errorMessage, syncedAt };
+export function markWebhookProcessed(payloadHash) {
+  const db = getDB();
+  db.run(`UPDATE webhook_log SET processed = 1 WHERE payload_hash = ?`, [payloadHash]);
 }
 
 function calculateDaysDiff(startDate, endDate) {
   const start = new Date(startDate);
   const end = new Date(endDate);
-  const diffTime = Math.abs(end - start);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays;
+  return Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24));
+}
+
+// --- Delete all data for a shop (GDPR compliance) ---
+export function deleteShopData(shopDomain) {
+  const db = getDB();
+
+  // Delete all data associated with the shop
+  db.run(`DELETE FROM platform_connections WHERE shop_domain = ?`, [shopDomain]);
+  db.run(`DELETE FROM metric_snapshots WHERE shop_domain = ?`, [shopDomain]);
+  db.run(`DELETE FROM sync_log WHERE shop_domain = ?`, [shopDomain]);
+  db.run(`DELETE FROM forecast_accuracy WHERE shop_domain = ?`, [shopDomain]);
+  db.run(`DELETE FROM fixed_costs WHERE shop_domain = ?`, [shopDomain]);
+  db.run(`DELETE FROM webhook_log WHERE shop_domain = ?`, [shopDomain]);
+  db.run(`DELETE FROM sessions WHERE shop_domain = ?`, [shopDomain]);
+
+  // Mark shop as uninstalled (soft delete for audit trail)
+  markShopUninstalled(shopDomain);
 }

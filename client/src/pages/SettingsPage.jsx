@@ -1,374 +1,838 @@
-import { useState } from 'react';
-import { Eye, EyeOff, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  Shield,
+  Settings,
+  Link,
+  Check,
+  X,
+  Eye,
+  EyeOff,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  Zap,
+  Database,
+  Mail,
+  BarChart3,
+  AlertCircle,
+  CheckCircle
+} from 'lucide-react';
+import { useShopify } from '../providers/ShopifyProvider';
 import { useStore } from '../store/useStore';
-import { ConnectionsPanel } from '../components/connections/ConnectionsPanel';
 import CostManager from '../components/costs/CostManager';
 
+const PLATFORMS = {
+  meta: {
+    name: 'Meta Ads',
+    emoji: '📘',
+    useOAuth: true,
+    oauthLabel: 'Connect with Meta',
+  },
+  google: {
+    name: 'Google Ads',
+    emoji: '🔍',
+    useOAuth: true,
+    oauthLabel: 'Connect with Google',
+  },
+  klaviyo: {
+    name: 'Klaviyo',
+    emoji: '💌',
+    useOAuth: true,
+    oauthLabel: 'Connect with Klaviyo',
+  },
+  ga4: {
+    name: 'GA4',
+    emoji: '📊',
+    useOAuth: true,
+    oauthLabel: 'Connect with Google',
+  }
+};
+
+const AI_PROVIDERS = [
+  { id: 'openai', name: 'OpenAI', models: ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo'] },
+  { id: 'anthropic', name: 'Anthropic', models: ['claude-opus', 'claude-sonnet', 'claude-haiku'] },
+  { id: 'ollama', name: 'Ollama (Local)', models: ['llama2', 'mistral', 'neural-chat'] }
+];
+
 export default function SettingsPage() {
-  const savedViews = useStore((s) => s.savedViews);
-  const deleteView = useStore((s) => s.deleteView);
+  const { shop } = useShopify();
+  const store = useStore();
 
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [apiKey, setApiKey] = useState('');
-  const [selectedProvider, setSelectedProvider] = useState('openai');
-  const [selectedModel, setSelectedModel] = useState('gpt-4-turbo');
-  const [testResult, setTestResult] = useState(null);
-  const [isTesting, setIsTesting] = useState(false);
+  // State for platform connections
+  const [platformStatus, setPlatformStatus] = useState({
+    meta: false,
+    google: false,
+    klaviyo: false,
+    ga4: false
+  });
+  const [platformAccountInfo, setPlatformAccountInfo] = useState({
+    meta: null,
+    google: null,
+    klaviyo: null,
+    ga4: null
+  });
+  const [connectingPlatform, setConnectingPlatform] = useState(null);
 
-  const aiProviders = [
-    { id: 'openai', name: 'OpenAI', models: ['gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'] },
-    {
-      id: 'anthropic',
-      name: 'Anthropic',
-      models: ['claude-opus-4-6', 'claude-opus', 'claude-sonnet'],
-    },
-    { id: 'ollama', name: 'Ollama (Local)', models: ['llama2', 'mistral', 'neural-chat'] },
-  ];
+  // State for AI settings
+  const [aiProvider, setAiProvider] = useState(store?.aiProvider || 'openai');
+  const [aiModel, setAiModel] = useState(store?.aiModel || 'gpt-4');
+  const [aiApiKey, setAiApiKey] = useState(store?.aiApiKey || '');
+  const [showAiKey, setShowAiKey] = useState(false);
 
-  const handleSaveConfig = async () => {
+  // Initiate OAuth flow for a platform
+  const initiateOAuthFlow = async (platformKey) => {
     try {
-      const response = await fetch('/api/ai/config', {
+      setConnectingPlatform(platformKey);
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+      // Redirect to OAuth start endpoint
+      window.location.href = `${apiUrl}/api/oauth/${platformKey}/start?shop=${shop?.shopifyDomain}`;
+    } catch (error) {
+      console.error(`Failed to initiate ${platformKey} OAuth:`, error);
+      setConnectingPlatform(null);
+    }
+  };
+
+  // Disconnect platform
+  const disconnectPlatform = async (platformKey) => {
+    try {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+      const response = await fetch(`${apiUrl}/api/oauth/${platformKey}/disconnect`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          provider: selectedProvider,
-          model: selectedModel,
-          apiKey,
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shop-Domain': shop?.shopifyDomain,
+        },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to save configuration');
+      if (response.ok) {
+        setPlatformStatus(prev => ({
+          ...prev,
+          [platformKey]: false
+        }));
+        setPlatformAccountInfo(prev => ({
+          ...prev,
+          [platformKey]: null
+        }));
       }
-
-      const data = await response.json();
-      setTestResult({ success: true, message: 'Configuration saved successfully' });
-      setTimeout(() => setTestResult(null), 3000);
     } catch (error) {
-      setTestResult({ success: false, message: error.message });
+      console.error(`Failed to disconnect ${platformKey}:`, error);
     }
   };
 
-  const handleTestConnection = async () => {
-    if (!apiKey || !selectedProvider) {
-      setTestResult({ success: false, message: 'Please enter API key and select provider' });
-      return;
-    }
+  // Check platform connection status on mount
+  React.useEffect(() => {
+    const checkConnections = async () => {
+      try {
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+        const response = await fetch(`${apiUrl}/api/connections`, {
+          headers: {
+            'X-Shop-Domain': shop?.shopifyDomain,
+          },
+        });
 
-    setIsTesting(true);
-    try {
-      const response = await fetch('/api/ai/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          provider: selectedProvider,
-          model: selectedModel,
-          apiKey,
-        }),
-      });
+        if (response.ok) {
+          const data = await response.json();
+          setPlatformStatus({
+            meta: data.meta?.connected || false,
+            google: data.google?.connected || false,
+            klaviyo: data.klaviyo?.connected || false,
+            ga4: data.ga4?.connected || false,
+          });
+          setPlatformAccountInfo({
+            meta: data.meta?.message ? { account: data.meta.message } : null,
+            google: data.google?.message ? { account: data.google.message } : null,
+            klaviyo: data.klaviyo?.message ? { account: data.klaviyo.message } : null,
+            ga4: data.ga4?.message ? { account: data.ga4.message } : null,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to check platform connections:', error);
+      }
+    };
 
-      const data = await response.json();
-      setTestResult(data);
-    } catch (error) {
-      setTestResult({ success: false, message: 'Connection test failed: ' + error.message });
-    } finally {
-      setIsTesting(false);
+    if (shop?.shopifyDomain) {
+      checkConnections();
     }
+  }, [shop?.shopifyDomain]);
+
+  // Check for OAuth callback params
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const platform = params.get('platform');
+    const connected = params.get('connected');
+    const error = params.get('error');
+
+    if (platform && connected === 'true') {
+      setPlatformStatus(prev => ({
+        ...prev,
+        [platform]: true
+      }));
+      // Clear URL params
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (platform && error) {
+      console.error(`OAuth error for ${platform}:`, error);
+      // Clear URL params
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  // Update AI settings
+  const handleAiProviderChange = (provider) => {
+    setAiProvider(provider);
+    const defaultModel = AI_PROVIDERS.find(p => p.id === provider)?.models[0] || '';
+    setAiModel(defaultModel);
+    store?.updateAiSettings?.({ provider, model: defaultModel });
   };
+
+  const handleAiModelChange = (model) => {
+    setAiModel(model);
+    store?.updateAiSettings?.({ provider: aiProvider, model });
+  };
+
+  const handleAiApiKeyChange = (key) => {
+    setAiApiKey(key);
+    store?.updateAiSettings?.({ apiKey: key });
+  };
+
+  const currentAiProvider = AI_PROVIDERS.find(p => p.id === aiProvider);
+  const isShopifyConnected = !!shop?.shopifyDomain;
 
   return (
-    <div className="p-6 space-y-8">
-      {/* Data Connections - Using new ConnectionsPanel */}
-      <section>
-        <h2
-          className="text-2xl font-bold mb-6"
-          style={{ color: 'var(--color-text-primary)' }}
-        >
-          Data Connections
-        </h2>
-        <ConnectionsPanel />
-      </section>
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <h1 style={styles.title}>Settings</h1>
+        <p style={styles.subtitle}>Manage your dashboard, integrations, and preferences</p>
+      </div>
 
-      {/* AI Assistant Settings */}
-      <section>
-        <h2
-          className="text-2xl font-bold mb-6"
-          style={{ color: 'var(--color-text-primary)' }}
-        >
-          AI Assistant
-        </h2>
-        <div className="glass-card p-6 space-y-6 max-w-2xl">
-          {/* Provider Selection */}
-          <div>
-            <label
-              className="block text-sm font-medium mb-3"
-              style={{ color: 'var(--color-text-primary)' }}
-            >
-              AI Provider
-            </label>
-            <div className="grid grid-cols-3 gap-3">
-              {aiProviders.map((provider) => (
-                <button
-                  key={provider.id}
-                  onClick={() => setSelectedProvider(provider.id)}
-                  className={`p-3 rounded-lg border transition-all text-sm font-medium ${
-                    selectedProvider === provider.id ? 'ring-2' : ''
-                  }`}
-                  style={{
-                    background:
-                      selectedProvider === provider.id
-                        ? 'rgba(99, 102, 241, 0.15)'
-                        : 'var(--color-bg-card)',
-                    borderColor:
-                      selectedProvider === provider.id
-                        ? 'var(--color-accent)'
-                        : 'var(--color-border)',
-                    color:
-                      selectedProvider === provider.id
-                        ? 'var(--color-accent)'
-                        : 'var(--color-text-primary)',
-                  }}
-                >
-                  {provider.name}
-                </button>
-              ))}
+      <div style={styles.settingsContainer}>
+        {/* Store Info Section */}
+        <section style={styles.section}>
+          <div style={styles.sectionHeader}>
+            <BarChart3 size={24} style={styles.sectionIcon} />
+            <div>
+              <h2 style={styles.sectionTitle}>Store Information</h2>
+              <p style={styles.sectionDescription}>Your connected Shopify store details</p>
             </div>
           </div>
 
-          {/* Model Selection */}
-          <div>
-            <label
-              className="block text-sm font-medium mb-3"
-              style={{ color: 'var(--color-text-primary)' }}
-            >
-              Model
-            </label>
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border text-sm"
-              style={{
-                background: 'var(--color-bg-card)',
-                color: 'var(--color-text-primary)',
-                borderColor: 'var(--color-border)',
-              }}
-            >
-              {aiProviders
-                .find((p) => p.id === selectedProvider)
-                ?.models.map((model) => (
-                  <option key={model} value={model}>
-                    {model}
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          {/* API Key */}
-          <div>
-            <label
-              className="block text-sm font-medium mb-3"
-              style={{ color: 'var(--color-text-primary)' }}
-            >
-              API Key
-            </label>
-            <div className="relative">
-              <input
-                type={showApiKey ? 'text' : 'password'}
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder={`Enter your ${selectedProvider} API key...`}
-                className="w-full px-4 py-2 pr-10 rounded-lg border text-sm"
-                style={{
-                  background: 'var(--color-bg-card)',
-                  color: 'var(--color-text-primary)',
-                  borderColor: 'var(--color-border)',
-                }}
-              />
-              <button
-                onClick={() => setShowApiKey(!showApiKey)}
-                className="absolute right-3 top-2.5"
-                style={{ color: 'var(--color-text-secondary)' }}
-              >
-                {showApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-            <p
-              className="text-xs mt-2"
-              style={{ color: 'var(--color-text-muted)' }}
-            >
-              Your API key is encrypted and never shared
-            </p>
-          </div>
-
-          {/* Rate Limit */}
-          <div>
-            <label
-              className="block text-sm font-medium mb-3"
-              style={{ color: 'var(--color-text-primary)' }}
-            >
-              Rate Limit (requests per minute)
-            </label>
-            <input
-              type="number"
-              defaultValue="60"
-              className="w-full px-4 py-2 rounded-lg border text-sm"
-              style={{
-                background: 'var(--color-bg-card)',
-                color: 'var(--color-text-primary)',
-                borderColor: 'var(--color-border)',
-              }}
-            />
-          </div>
-
-          {/* Test Result */}
-          {testResult && (
-            <div
-              className="p-3 rounded-lg flex items-center gap-2 text-sm"
-              style={{
-                background: testResult.success
-                  ? 'rgba(34, 197, 94, 0.1)'
-                  : 'rgba(239, 68, 68, 0.1)',
-                color: testResult.success ? '#22c55e' : '#ef4444',
-                border: `1px solid ${testResult.success ? '#22c55e' : '#ef4444'}`,
-              }}
-            >
-              {testResult.success ? (
-                <CheckCircle size={18} />
-              ) : (
-                <AlertCircle size={18} />
-              )}
-              <span>{testResult.message}</span>
-            </div>
-          )}
-
-          {/* Buttons */}
-          <div className="flex gap-3 pt-4">
-            <button
-              onClick={handleTestConnection}
-              disabled={isTesting}
-              className="px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-              style={{
-                background: 'var(--color-accent)',
-                color: 'white',
-              }}
-            >
-              {isTesting ? 'Testing...' : 'Test Connection'}
-            </button>
-            <button
-              onClick={handleSaveConfig}
-              className="px-4 py-2 rounded-lg font-medium transition-colors"
-              style={{
-                background: 'rgba(99, 102, 241, 0.1)',
-                color: 'var(--color-accent)',
-              }}
-            >
-              Save Settings
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Cost Management */}
-      <section>
-        <h2
-          className="text-2xl font-bold mb-6"
-          style={{ color: 'var(--color-text-primary)' }}
-        >
-          Cost Management
-        </h2>
-        <CostManager />
-      </section>
-
-      {/* Saved Views */}
-      <section>
-        <h2
-          className="text-2xl font-bold mb-6"
-          style={{ color: 'var(--color-text-primary)' }}
-        >
-          Saved Views
-        </h2>
-        {savedViews.length > 0 ? (
-          <div className="space-y-2">
-            {savedViews.map((view) => (
-              <div
-                key={view.id}
-                className="glass-card p-4 flex items-center justify-between"
-              >
-                <div>
-                  <h3
-                    className="font-medium"
-                    style={{ color: 'var(--color-text-primary)' }}
-                  >
-                    {view.name}
-                  </h3>
-                  <p
-                    className="text-sm"
-                    style={{ color: 'var(--color-text-secondary)' }}
-                  >
-                    Created {new Date(view.createdAt).toLocaleDateString()}
-                  </p>
+          <div className="glass-card" style={styles.card}>
+            {isShopifyConnected ? (
+              <div style={styles.storeInfo}>
+                <div style={styles.storeInfoRow}>
+                  <span style={styles.storeInfoLabel}>Store Name</span>
+                  <span style={styles.storeInfoValue}>{shop?.shopName || 'N/A'}</span>
                 </div>
-                <button
-                  onClick={() => deleteView(view.id)}
-                  className="p-2 rounded-lg hover:bg-opacity-50 transition-colors"
-                  style={{
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    color: 'var(--color-red)',
-                  }}
+                <div style={styles.storeInfoRow}>
+                  <span style={styles.storeInfoLabel}>Domain</span>
+                  <span style={styles.storeInfoValue}>{shop?.shopifyDomain || 'N/A'}</span>
+                </div>
+                <div style={styles.storeInfoRow}>
+                  <span style={styles.storeInfoLabel}>Plan</span>
+                  <span style={styles.storeInfoValue}>{shop?.plan || 'N/A'}</span>
+                </div>
+                <div style={styles.storeInfoRow}>
+                  <span style={styles.storeInfoLabel}>Status</span>
+                  <div style={styles.statusBadgeConnected}>
+                    <CheckCircle size={16} />
+                    Connected
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={styles.emptyState}>
+                <AlertCircle size={32} style={styles.emptyStateIcon} />
+                <p>No Shopify store connected</p>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Platform Connections Section */}
+        <section style={styles.section}>
+          <div style={styles.sectionHeader}>
+            <Link size={24} style={styles.sectionIcon} />
+            <div>
+              <h2 style={styles.sectionTitle}>Platform Connections</h2>
+              <p style={styles.sectionDescription}>Connect your marketing and analytics platforms</p>
+            </div>
+          </div>
+
+          <div style={styles.platformsGrid}>
+            {Object.entries(PLATFORMS).map(([platformKey, platform]) => {
+              const isConnected = platformStatus[platformKey];
+              const isConnecting = connectingPlatform === platformKey;
+              const accountInfo = platformAccountInfo[platformKey];
+
+              return (
+                <div key={platformKey} className="glass-card" style={styles.platformCard}>
+                  <div style={styles.platformHeader}>
+                    <div style={styles.platformTitle}>
+                      <span style={styles.platformEmoji}>{platform.emoji}</span>
+                      <div>
+                        <h3 style={styles.platformName}>{platform.name}</h3>
+                        <div style={isConnected ? styles.statusBadgeConnected : styles.statusBadgeDisconnected}>
+                          {isConnected ? (
+                            <>
+                              <CheckCircle size={14} />
+                              Connected
+                            </>
+                          ) : (
+                            <>
+                              <X size={14} />
+                              Not Connected
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={styles.platformBody}>
+                    {isConnected && accountInfo ? (
+                      <div style={styles.accountInfoBox}>
+                        <div style={styles.accountInfoItem}>
+                          <span style={styles.accountInfoLabel}>Account</span>
+                          <span style={styles.accountInfoValue}>{accountInfo.account || 'Connected'}</span>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div style={styles.platformActions}>
+                      {!isConnected ? (
+                        <button
+                          style={styles.btnOAuth}
+                          onClick={() => initiateOAuthFlow(platformKey)}
+                          disabled={isConnecting}
+                        >
+                          <Link size={16} />
+                          {isConnecting ? 'Connecting...' : platform.oauthLabel}
+                        </button>
+                      ) : (
+                        <button
+                          style={styles.btnDanger}
+                          onClick={() => disconnectPlatform(platformKey)}
+                          title="Disconnect this platform"
+                        >
+                          <Trash2 size={16} />
+                          Disconnect
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* AI Assistant Section */}
+        <section style={styles.section}>
+          <div style={styles.sectionHeader}>
+            <Zap size={24} style={styles.sectionIcon} />
+            <div>
+              <h2 style={styles.sectionTitle}>AI Assistant</h2>
+              <p style={styles.sectionDescription}>Configure your AI provider and model</p>
+            </div>
+          </div>
+
+          <div className="glass-card" style={styles.card}>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>AI Provider</label>
+              <div style={styles.radioGroup}>
+                {AI_PROVIDERS.map(provider => (
+                  <label key={provider.id} style={styles.radioOption}>
+                    <input
+                      type="radio"
+                      name="ai-provider"
+                      value={provider.id}
+                      checked={aiProvider === provider.id}
+                      onChange={(e) => handleAiProviderChange(e.target.value)}
+                      style={styles.radioInput}
+                    />
+                    <span style={styles.radioLabel}>{provider.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {currentAiProvider && (
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel} htmlFor="ai-model">Model</label>
+                <select
+                  id="ai-model"
+                  value={aiModel}
+                  onChange={(e) => handleAiModelChange(e.target.value)}
+                  style={styles.formSelect}
                 >
-                  <Trash2 size={18} />
+                  {currentAiProvider.models.map(model => (
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel} htmlFor="ai-api-key">API Key</label>
+              <div style={styles.inputWrapper}>
+                <input
+                  id="ai-api-key"
+                  type={showAiKey ? 'text' : 'password'}
+                  value={aiApiKey}
+                  onChange={(e) => handleAiApiKeyChange(e.target.value)}
+                  placeholder="Enter your API key"
+                  style={styles.formInput}
+                />
+                <button
+                  style={styles.visibilityToggle}
+                  onClick={() => setShowAiKey(!showAiKey)}
+                  title={showAiKey ? 'Hide' : 'Show'}
+                >
+                  {showAiKey ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-            ))}
+            </div>
           </div>
-        ) : (
-          <div
-            className="glass-card p-6 text-center"
-            style={{ color: 'var(--color-text-muted)' }}
-          >
-            <p>No saved views yet. Create one from the dashboard filters.</p>
-          </div>
-        )}
-      </section>
+        </section>
 
-      {/* Export & Data */}
-      <section>
-        <h2
-          className="text-2xl font-bold mb-6"
-          style={{ color: 'var(--color-text-primary)' }}
-        >
-          Export & Data
-        </h2>
-        <div className="glass-card p-6 space-y-3">
-          <button
-            className="w-full px-4 py-3 rounded-lg font-medium text-left hover:bg-opacity-50 transition-colors"
-            style={{
-              background: 'rgba(99, 102, 241, 0.1)',
-              color: 'var(--color-accent)',
-            }}
-          >
-            Export All Data (CSV)
-          </button>
-          <button
-            className="w-full px-4 py-3 rounded-lg font-medium text-left hover:bg-opacity-50 transition-colors"
-            style={{
-              background: 'rgba(99, 102, 241, 0.1)',
-              color: 'var(--color-accent)',
-            }}
-          >
-            Export Current View
-          </button>
-          <button
-            className="w-full px-4 py-3 rounded-lg font-medium text-left hover:bg-opacity-50 transition-colors"
-            style={{
-              background: 'rgba(99, 102, 241, 0.1)',
-              color: 'var(--color-accent)',
-            }}
-          >
-            Download Report (PDF)
-          </button>
-        </div>
-      </section>
+        {/* Cost Management Section */}
+        <section style={styles.section}>
+          <div style={styles.sectionHeader}>
+            <Database size={24} style={styles.sectionIcon} />
+            <div>
+              <h2 style={styles.sectionTitle}>Cost Management</h2>
+              <p style={styles.sectionDescription}>Track and manage your integration costs</p>
+            </div>
+          </div>
+
+          <CostManager />
+        </section>
+
+        {/* Export & Data Section */}
+        <section style={styles.section}>
+          <div style={styles.sectionHeader}>
+            <Mail size={24} style={styles.sectionIcon} />
+            <div>
+              <h2 style={styles.sectionTitle}>Export & Data</h2>
+              <p style={styles.sectionDescription}>Export your analytics data</p>
+            </div>
+          </div>
+
+          <div className="glass-card" style={styles.card}>
+            <div style={styles.exportButtons}>
+              <button style={styles.btnSecondary}>
+                <Database size={18} />
+                Export as CSV
+              </button>
+              <button style={styles.btnSecondary}>
+                <Database size={18} />
+                Export as JSON
+              </button>
+              <button style={styles.btnSecondary}>
+                <Mail size={18} />
+                Email Report
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Account & Billing Section */}
+        <section style={styles.section}>
+          <div style={styles.sectionHeader}>
+            <Shield size={24} style={styles.sectionIcon} />
+            <div>
+              <h2 style={styles.sectionTitle}>Account & Billing</h2>
+              <p style={styles.sectionDescription}>Manage your subscription</p>
+            </div>
+          </div>
+
+          <div className="glass-card" style={styles.card}>
+            <div style={styles.billingInfo}>
+              <div style={styles.planCard}>
+                <h3 style={styles.planName}>Current Plan</h3>
+                <p style={styles.planTitle}>Free Plan</p>
+                <p style={styles.planDescription}>
+                  Get started with basic analytics and 1 platform connection
+                </p>
+                <button style={styles.btnPrimaryLarge}>
+                  Upgrade to Pro
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
+
+const styles = {
+  container: {
+    padding: '24px',
+    background: 'var(--color-bg-page)',
+    minHeight: '100vh'
+  },
+  header: {
+    marginBottom: '40px'
+  },
+  title: {
+    fontSize: '32px',
+    fontWeight: '700',
+    color: 'var(--color-text-primary)',
+    margin: '0 0 8px 0'
+  },
+  subtitle: {
+    fontSize: '16px',
+    color: 'var(--color-text-secondary)',
+    margin: 0
+  },
+  settingsContainer: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '40px'
+  },
+  section: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px'
+  },
+  sectionHeader: {
+    display: 'flex',
+    gap: '12px',
+    alignItems: 'flex-start'
+  },
+  sectionIcon: {
+    color: 'var(--color-accent)',
+    marginTop: '4px',
+    flexShrink: 0
+  },
+  sectionTitle: {
+    fontSize: '24px',
+    fontWeight: '600',
+    color: 'var(--color-text-primary)',
+    margin: '0 0 4px 0'
+  },
+  sectionDescription: {
+    fontSize: '14px',
+    color: 'var(--color-text-secondary)',
+    margin: 0
+  },
+  card: {
+    padding: '24px',
+    borderRadius: '12px',
+    background: 'var(--color-bg-card)',
+    border: '1px solid var(--color-border)'
+  },
+  storeInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px'
+  },
+  storeInfoRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: '12px',
+    borderBottom: '1px solid var(--color-border)'
+  },
+  storeInfoLabel: {
+    fontSize: '14px',
+    fontWeight: '500',
+    color: 'var(--color-text-secondary)'
+  },
+  storeInfoValue: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: 'var(--color-text-primary)'
+  },
+  statusBadgeConnected: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '6px 12px',
+    borderRadius: '6px',
+    background: 'rgba(34, 197, 94, 0.1)',
+    color: '#22c55e',
+    fontSize: '12px',
+    fontWeight: '600'
+  },
+  statusBadgeDisconnected: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '6px 12px',
+    borderRadius: '6px',
+    background: 'rgba(107, 114, 128, 0.1)',
+    color: '#6b7280',
+    fontSize: '12px',
+    fontWeight: '600'
+  },
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '40px 24px',
+    textAlign: 'center',
+    color: 'var(--color-text-secondary)'
+  },
+  emptyStateIcon: {
+    color: 'var(--color-text-muted)'
+  },
+  platformsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '16px'
+  },
+  platformCard: {
+    padding: '0',
+    borderRadius: '12px',
+    background: 'var(--color-bg-card)',
+    border: '1px solid var(--color-border)',
+    overflow: 'hidden'
+  },
+  platformHeader: {
+    padding: '16px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    cursor: 'pointer',
+    userSelect: 'none',
+    borderBottom: '1px solid var(--color-border)',
+    transition: 'background-color 0.2s'
+  },
+  platformTitle: {
+    display: 'flex',
+    gap: '12px',
+    alignItems: 'flex-start'
+  },
+  platformEmoji: {
+    fontSize: '24px'
+  },
+  platformName: {
+    fontSize: '16px',
+    fontWeight: '600',
+    color: 'var(--color-text-primary)',
+    margin: '0 0 4px 0'
+  },
+  expandButton: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--color-text-secondary)',
+    cursor: 'pointer',
+    padding: '4px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'color 0.2s'
+  },
+  platformBody: {
+    padding: '16px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px'
+  },
+  accountInfoBox: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    padding: '12px',
+    borderRadius: '8px',
+    background: 'rgba(34, 197, 94, 0.05)',
+    border: '1px solid rgba(34, 197, 94, 0.2)'
+  },
+  accountInfoItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px'
+  },
+  accountInfoLabel: {
+    fontSize: '12px',
+    fontWeight: '600',
+    color: 'var(--color-text-secondary)',
+    textTransform: 'uppercase'
+  },
+  accountInfoValue: {
+    fontSize: '14px',
+    color: 'var(--color-text-primary)',
+    fontWeight: '500'
+  },
+  formGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px'
+  },
+  formLabel: {
+    fontSize: '14px',
+    fontWeight: '500',
+    color: 'var(--color-text-primary)'
+  },
+  inputWrapper: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center'
+  },
+  formInput: {
+    width: '100%',
+    padding: '10px 12px',
+    borderRadius: '8px',
+    border: '1px solid var(--color-border)',
+    background: 'var(--color-bg-input)',
+    color: 'var(--color-text-primary)',
+    fontSize: '14px',
+    fontFamily: 'inherit',
+    boxSizing: 'border-box'
+  },
+  formSelect: {
+    width: '100%',
+    padding: '10px 12px',
+    borderRadius: '8px',
+    border: '1px solid var(--color-border)',
+    background: 'var(--color-bg-input)',
+    color: 'var(--color-text-primary)',
+    fontSize: '14px',
+    fontFamily: 'inherit',
+    boxSizing: 'border-box'
+  },
+  visibilityToggle: {
+    position: 'absolute',
+    right: '10px',
+    background: 'none',
+    border: 'none',
+    color: 'var(--color-text-secondary)',
+    cursor: 'pointer',
+    padding: '4px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  platformActions: {
+    display: 'flex',
+    gap: '8px',
+    flexWrap: 'wrap'
+  },
+  btnPrimary: {
+    padding: '10px 16px',
+    borderRadius: '8px',
+    border: 'none',
+    background: 'var(--color-accent)',
+    color: 'white',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'opacity 0.2s'
+  },
+  btnSecondary: {
+    padding: '10px 16px',
+    borderRadius: '8px',
+    border: '1px solid var(--color-border)',
+    background: 'var(--color-bg-card)',
+    color: 'var(--color-text-primary)',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  btnDanger: {
+    padding: '10px 16px',
+    borderRadius: '8px',
+    border: '1px solid rgba(239, 68, 68, 0.3)',
+    background: 'rgba(239, 68, 68, 0.05)',
+    color: '#ef4444',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  btnOAuth: {
+    padding: '12px 20px',
+    borderRadius: '8px',
+    border: 'none',
+    background: 'var(--color-accent)',
+    color: 'white',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'opacity 0.2s',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    width: '100%',
+    justifyContent: 'center'
+  },
+  radioGroup: {
+    display: 'flex',
+    gap: '12px',
+    flexWrap: 'wrap'
+  },
+  radioOption: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    cursor: 'pointer'
+  },
+  radioInput: {
+    cursor: 'pointer',
+    width: '18px',
+    height: '18px'
+  },
+  radioLabel: {
+    fontSize: '14px',
+    color: 'var(--color-text-primary)',
+    cursor: 'pointer'
+  },
+  exportButtons: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px'
+  },
+  billingInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px'
+  },
+  planCard: {
+    padding: '20px',
+    borderRadius: '8px',
+    background: 'rgba(99, 102, 241, 0.05)',
+    border: '1px solid rgba(99, 102, 241, 0.2)'
+  },
+  planName: {
+    fontSize: '12px',
+    fontWeight: '600',
+    color: 'var(--color-text-secondary)',
+    margin: '0 0 8px 0',
+    textTransform: 'uppercase'
+  },
+  planTitle: {
+    fontSize: '20px',
+    fontWeight: '700',
+    color: 'var(--color-text-primary)',
+    margin: '0 0 8px 0'
+  },
+  planDescription: {
+    fontSize: '14px',
+    color: 'var(--color-text-secondary)',
+    margin: '0 0 16px 0'
+  },
+  btnPrimaryLarge: {
+    padding: '12px 24px',
+    borderRadius: '8px',
+    border: 'none',
+    background: 'var(--color-accent)',
+    color: 'white',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'opacity 0.2s'
+  }
+};

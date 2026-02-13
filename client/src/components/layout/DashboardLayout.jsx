@@ -21,7 +21,7 @@ export default function DashboardLayout() {
 
   return (
     <div
-      className="min-h-screen flex flex-col"
+      className="min-h-screen flex flex-col transition-colors duration-300"
       style={{ background: 'var(--color-bg-primary)' }}
     >
       {/* Top Navigation */}
@@ -31,10 +31,18 @@ export default function DashboardLayout() {
       <FilterBar />
 
       {/* Main Content Area */}
-      <div className="flex flex-1 overflow-hidden pt-32">
+      <div className="flex flex-1 overflow-hidden pt-32 relative">
+        {/* Sidebar overlay for mobile */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 md:hidden z-20 transition-opacity duration-300"
+            onClick={() => {} /* Sidebar toggle button will close it */}
+          />
+        )}
+
         {/* Main Content */}
-        <div className={`flex-1 overflow-y-auto transition-all duration-300 ${
-          sidebarOpen ? 'pr-80' : ''
+        <div className={`flex-1 overflow-y-auto transition-all duration-300 ease-out ${
+          sidebarOpen ? 'md:pr-80' : ''
         }`}>
           <ErrorBoundary>
             <Outlet />

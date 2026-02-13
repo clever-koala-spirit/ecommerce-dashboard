@@ -2,6 +2,35 @@ import { mockData } from '../mock/mockData';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
+// Get shop domain from session (set by ShopifyProvider)
+function getShopDomain() {
+  return sessionStorage.getItem('shopDomain') || null;
+}
+
+// Helper for authenticated API calls — includes session token for embedded, X-Shop-Domain header for standalone
+async function apiFetch(endpoint, options = {}) {
+  const shopDomain = getShopDomain();
+  let token = null;
+
+  // Get session token from Shopify App Bridge if embedded
+  if (window.shopify) {
+    try {
+      token = await window.shopify.idToken();
+    } catch (err) {
+      // Not embedded or token fetch failed — will use X-Shop-Domain header instead
+      console.debug('[apiFetch] Session token not available:', err.message);
+    }
+  }
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(shopDomain && { 'X-Shop-Domain': shopDomain }),
+    ...(token && { 'Authorization': `Bearer ${token}` }),
+    ...options.headers,
+  };
+  return fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
+}
+
 // Utility to check if backend is available
 export async function isBackendAvailable() {
   try {
@@ -32,7 +61,7 @@ export async function fetchDashboardData() {
       };
     }
 
-    const response = await fetch(`${API_BASE_URL}/data/dashboard`);
+    const response = await apiFetch('/data/dashboard');
     if (!response.ok) throw new Error('Failed to fetch dashboard data');
 
     const data = await response.json();
@@ -80,7 +109,7 @@ export async function fetchConnectionStatus() {
       };
     }
 
-    const response = await fetch(`${API_BASE_URL}/connections`);
+    const response = await apiFetch('/connections');
     if (!response.ok) throw new Error('Failed to fetch connection status');
 
     const data = await response.json();
@@ -113,7 +142,7 @@ export async function testConnection(source) {
       return { connected: false, status: 'red', error: 'Backend unavailable' };
     }
 
-    const response = await fetch(`${API_BASE_URL}/connections/${source}/test`, {
+    const response = await apiFetch(`/connections/${source}/test`, {
       method: 'POST',
     });
 
@@ -141,7 +170,7 @@ export async function syncSource(source) {
       return { error: 'Backend unavailable' };
     }
 
-    const response = await fetch(`${API_BASE_URL}/connections/${source}/sync`, {
+    const response = await apiFetch(`/connections/${source}/sync`, {
       method: 'POST',
     });
 
@@ -177,7 +206,7 @@ export async function fetchSourceData(source) {
       };
     }
 
-    const response = await fetch(`${API_BASE_URL}/connections/${source}/data`);
+    const response = await apiFetch(`/connections/${source}/data`);
     if (!response.ok) throw new Error('Failed to fetch source data');
 
     const responseData = await response.json();
@@ -225,7 +254,7 @@ export async function fetchShopifyOrders() {
       return { isLive: false, data: mockData.shopify };
     }
 
-    const response = await fetch(`${API_BASE_URL}/data/shopify/orders`);
+    const response = await apiFetch('/data/shopify/orders');
     if (!response.ok) throw new Error('Failed to fetch Shopify orders');
 
     const data = await response.json();
@@ -246,7 +275,7 @@ export async function fetchMetaCampaigns() {
       return { isLive: false, data: mockData.metaCampaigns };
     }
 
-    const response = await fetch(`${API_BASE_URL}/data/meta/campaigns`);
+    const response = await apiFetch('/data/meta/campaigns');
     if (!response.ok) throw new Error('Failed to fetch Meta campaigns');
 
     const data = await response.json();
@@ -267,7 +296,7 @@ export async function fetchGoogleCampaigns() {
       return { isLive: false, data: mockData.googleCampaigns };
     }
 
-    const response = await fetch(`${API_BASE_URL}/data/google/campaigns`);
+    const response = await apiFetch('/data/google/campaigns');
     if (!response.ok) throw new Error('Failed to fetch Google campaigns');
 
     const data = await response.json();
@@ -288,7 +317,7 @@ export async function fetchKlaviyoFlows() {
       return { isLive: false, data: mockData.klaviyoFlows };
     }
 
-    const response = await fetch(`${API_BASE_URL}/data/klaviyo/flows`);
+    const response = await apiFetch('/data/klaviyo/flows');
     if (!response.ok) throw new Error('Failed to fetch Klaviyo flows');
 
     const data = await response.json();
@@ -309,7 +338,7 @@ export async function fetchGA4Sessions() {
       return { isLive: false, data: mockData.ga4 };
     }
 
-    const response = await fetch(`${API_BASE_URL}/data/ga4/sessions`);
+    const response = await apiFetch('/data/ga4/sessions');
     if (!response.ok) throw new Error('Failed to fetch GA4 sessions');
 
     const data = await response.json();
@@ -329,9 +358,8 @@ export async function invalidateCache(source = null) {
     const available = await isBackendAvailable();
     if (!available) return { message: 'Backend unavailable' };
 
-    const response = await fetch(`${API_BASE_URL}/data/invalidate`, {
+    const response = await apiFetch('/data/invalidate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ source }),
     });
 

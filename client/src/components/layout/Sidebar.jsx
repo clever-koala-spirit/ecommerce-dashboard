@@ -5,7 +5,7 @@ import { useState } from 'react';
 export default function Sidebar() {
   const sidebarOpen = useStore((s) => s.sidebarOpen);
   const toggleSidebar = useStore((s) => s.toggleSidebar);
-  const insights = useStore((s) => s.insights);
+  const insights = useStore((s) => s.insights) || [];
   const dismissInsight = useStore((s) => s.dismissInsight);
   const snoozeInsight = useStore((s) => s.snoozeInsight);
   const unreadCount = insights.filter((i) => !i.dismissed && !i.snoozed).length;
@@ -46,7 +46,7 @@ export default function Sidebar() {
     <>
       {/* Sidebar */}
       <div
-        className={`fixed top-16 right-0 h-[calc(100vh-64px)] w-80 transition-transform duration-300 border-l flex flex-col ${
+        className={`fixed top-16 right-0 h-[calc(100vh-64px)] w-80 md:w-72 transition-transform duration-300 ease-out border-l flex flex-col ${
           sidebarOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         style={{
@@ -57,7 +57,7 @@ export default function Sidebar() {
       >
         {/* Header */}
         <div
-          className="p-4 border-b flex items-center justify-between"
+          className="p-4 border-b flex items-center justify-between transition-colors duration-300"
           style={{ borderColor: 'var(--color-border)' }}
         >
           <div className="flex items-center gap-2">
@@ -67,7 +67,7 @@ export default function Sidebar() {
             </h3>
             {unreadCount > 0 && (
               <span
-                className="px-2 py-0.5 rounded-full text-xs font-bold"
+                className="px-2 py-0.5 rounded-full text-xs font-bold transition-all duration-300"
                 style={{
                   background: 'var(--color-red)',
                   color: 'white',
@@ -79,8 +79,8 @@ export default function Sidebar() {
           </div>
           <button
             onClick={toggleSidebar}
-            className="p-1 hover:opacity-70 transition-opacity"
-            style={{ color: 'var(--color-text-secondary)' }}
+            className="p-1 hover:opacity-70 transition-opacity duration-300 rounded-lg hover:bg-opacity-50"
+            style={{ color: 'var(--color-text-secondary)', background: 'rgba(99, 102, 241, 0.05)' }}
           >
             <X size={18} />
           </button>
@@ -93,9 +93,10 @@ export default function Sidebar() {
               {activeInsights.map((insight) => (
                 <div
                   key={insight.id}
-                  className={`insight-card p-3 text-sm ${getSeverityClass(
+                  className={`insight-card p-3 text-sm transition-all duration-300 ${getSeverityClass(
                     insight.severity
                   )}`}
+                  style={{ animation: 'fadeIn 0.3s ease-out' }}
                 >
                   <div className="flex items-start gap-2 mb-2">
                     <div className="mt-0.5">
@@ -124,10 +125,10 @@ export default function Sidebar() {
                   >
                     <Clock size={12} />
                     <span>
-                      {new Date(insight.timestamp).toLocaleTimeString([], {
+                      {insight.timestamp ? new Date(insight.timestamp).toLocaleTimeString([], {
                         hour: '2-digit',
                         minute: '2-digit',
-                      })}
+                      }) : 'Unknown time'}
                     </span>
                   </div>
 
@@ -180,7 +181,7 @@ export default function Sidebar() {
       {!sidebarOpen && (
         <button
           onClick={toggleSidebar}
-          className="fixed right-4 bottom-20 p-3 rounded-full transition-all hover:scale-110"
+          className="fixed right-4 bottom-20 p-3 rounded-full transition-all duration-300 hover:scale-110 active:scale-95"
           style={{
             background: 'var(--color-accent)',
             color: 'white',
@@ -192,7 +193,7 @@ export default function Sidebar() {
           <Bell size={20} />
           {unreadCount > 0 && (
             <span
-              className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
+              className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold transition-transform duration-300 animate-pulse"
               style={{
                 background: 'var(--color-red)',
               }}
