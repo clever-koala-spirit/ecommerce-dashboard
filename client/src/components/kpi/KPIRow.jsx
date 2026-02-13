@@ -257,7 +257,12 @@ export default function KPIRow() {
   const dateRange = useStore((state) => state.dateRange);
   const fixedCosts = useStore((state) => state.fixedCosts);
   const isLoading = useStore((state) => state.isLoading);
-  const isSyncingAny = useStore((state) => state.isSyncingAny);
+  // isSyncingAny is a getter factory, compute directly instead
+  const isSyncingAny = useStore((state) => {
+    const loading = state.isLoading;
+    if (!loading || typeof loading !== 'object') return false;
+    return Object.values(loading).some((v) => v === true);
+  });
 
   // Compute metrics using memoization to avoid unnecessary recalculations
   const { metrics } = useMemo(() => computeMetrics(dateRange, fixedCosts), [dateRange, fixedCosts]);

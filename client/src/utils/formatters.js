@@ -205,11 +205,22 @@ export const getDateRangeLabel = (preset) => {
 
 // Filter data array by date range
 export const filterDataByDateRange = (data, dateRange) => {
-  if (!Array.isArray(data) || !dateRange) return data;
+  if (!Array.isArray(data) || !dateRange) return data || [];
 
-  const { start, end } = dateRange;
+  let { start, end } = dateRange;
+
+  // If start/end are null, compute them from the preset
+  if (!start || !end) {
+    const computed = getDateRange(dateRange.preset || '30d', dateRange.customStart, dateRange.customEnd);
+    start = computed.start;
+    end = computed.end;
+  }
+
   const startTime = new Date(start).getTime();
   const endTime = new Date(end).getTime();
+
+  // Safety check: if dates are invalid, return all data
+  if (isNaN(startTime) || isNaN(endTime) || endTime < startTime) return data;
 
   return data.filter((item) => {
     if (!item.date) return false;
@@ -363,13 +374,21 @@ export const formatOrdinal = (num) => {
 export const getPreviousPeriod = (dateRange) => {
   if (!dateRange) return null;
 
-  const { start, end } = dateRange;
+  let { start, end } = dateRange;
+
+  // If start/end are null, compute them from the preset
+  if (!start || !end) {
+    const computed = getDateRange(dateRange.preset || '30d', dateRange.customStart, dateRange.customEnd);
+    start = computed.start;
+    end = computed.end;
+  }
+
   const rangeDays = Math.floor(
     (new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24)
   );
 
   const prevEnd = subDays(new Date(start), 1);
-  const prevStart = subDays(prevEnd, rangeDays);
+  const prevStart = subDays(prevEnd, Math.max(rangeDays, 1));
 
   return {
     start: prevStart,

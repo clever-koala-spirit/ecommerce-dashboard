@@ -3,6 +3,7 @@ import TopNav from './TopNav';
 import FilterBar from './FilterBar';
 import Sidebar from './Sidebar';
 import AIChatPanel from '../ai/AIChatPanel';
+import ErrorBoundary from '../common/ErrorBoundary';
 import { useStore } from '../../store/useStore';
 import { useEffect } from 'react';
 
@@ -35,15 +36,21 @@ export default function DashboardLayout() {
         <div className={`flex-1 overflow-y-auto transition-all duration-300 ${
           sidebarOpen ? 'pr-80' : ''
         }`}>
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </div>
 
         {/* Right Sidebar (AI Insights) */}
-        <Sidebar />
+        <ErrorBoundary>
+          <Sidebar />
+        </ErrorBoundary>
       </div>
 
       {/* AI Chat Panel */}
-      <AIChatPanel />
+      <ErrorBoundary>
+        <AIChatPanel />
+      </ErrorBoundary>
     </div>
   );
 }

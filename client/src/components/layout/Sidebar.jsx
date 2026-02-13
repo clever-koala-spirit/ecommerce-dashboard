@@ -8,7 +8,7 @@ export default function Sidebar() {
   const insights = useStore((s) => s.insights);
   const dismissInsight = useStore((s) => s.dismissInsight);
   const snoozeInsight = useStore((s) => s.snoozeInsight);
-  const unreadCount = useStore((s) => s.getUnreadCount());
+  const unreadCount = insights.filter((i) => !i.dismissed && !i.snoozed).length;
 
   const [snoozedInsightId, setSnoozedInsightId] = useState(null);
 
