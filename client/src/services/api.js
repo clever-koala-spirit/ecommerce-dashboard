@@ -1,6 +1,6 @@
 import { mockData } from '../mock/mockData';
 
-const API_BASE_URL = 'http://localhost:4000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 // Utility to check if backend is available
 export async function isBackendAvailable() {
