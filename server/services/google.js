@@ -1,0 +1,266 @@
+import { queueRequest, withRetry } from '../middleware/rateLimiter.js';
+
+export class GoogleAdsService {
+  constructor() {
+    this.developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
+    this.clientId = process.env.GOOGLE_ADS_CLIENT_ID;
+    this.clientSecret = process.env.GOOGLE_ADS_CLIENT_SECRET;
+    this.refreshToken = process.env.GOOGLE_ADS_REFRESH_TOKEN;
+    this.customerId = process.env.GOOGLE_ADS_CUSTOMER_ID;
+    this.accessToken = null;
+    this.tokenExpiry = 0;
+    this.connected = this.validateCredentials();
+  }
+
+  validateCredentials() {
+    return !!(
+      this.developerToken &&
+      this.clientId &&
+      this.clientSecret &&
+      this.refreshToken &&
+      this.customerId
+    );
+  }
+
+  async getAccessToken() {
+    if (this.accessToken && Date.now() < this.tokenExpiry) {
+      return this.accessToken;
+    }
+
+    try {
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: this.clientId,
+          client_secret: this.clientSecret,
+          refresh_token: this.refreshToken,
+          grant_type: 'refresh_token',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to get access token: ${response.status}`);
+      }
+
+      const data = await response.json();
+      this.accessToken = data.access_token;
+      this.tokenExpiry = Date.now() + data.expires_in * 1000 - 60000; // Refresh 1 min before expiry
+
+      return this.accessToken;
+    } catch (error) {
+      console.error('[Google Ads] Error getting access token:', error.message);
+      throw error;
+    }
+  }
+
+  async testConnection() {
+    if (!this.connected) {
+      return { connected: false, status: 'red', error: 'Missing credentials' };
+    }
+
+    try {
+      const accessToken = await this.getAccessToken();
+
+      const response = await withRetry(() =>
+        queueRequest('google', () =>
+          fetch('https://googleads.googleapis.com/v15/customers', {
+            headers: this.getHeaders(accessToken),
+          })
+        )
+      );
+
+      if (!response.ok) {
+        return {
+          connected: false,
+          status: 'red',
+          error: `HTTP ${response.status}`,
+        };
+      }
+
+      return {
+        connected: true,
+        status: 'green',
+        customerId: this.customerId,
+      };
+    } catch (error) {
+      return { connected: false, status: 'red', error: error.message };
+    }
+  }
+
+  async fetchCampaigns(dateRange) {
+    if (!this.connected) {
+      return { connected: false };
+    }
+
+    try {
+      const accessToken = await this.getAccessToken();
+
+      const query = `
+        SELECT
+          campaign.id,
+          campaign.name,
+          campaign.status,
+          metrics.cost_micros,
+          metrics.clicks,
+          metrics.impressions,
+          metrics.conversions,
+          metrics.conversion_value
+        FROM campaign
+        WHERE campaign.status != REMOVED
+          AND segments.date >= '${dateRange.start}'
+          AND segments.date <= '${dateRange.end}'
+      `;
+
+      const customerId = this.customerId.replace(/-/g, '');
+
+      const response = await withRetry(() =>
+        queueRequest('google', () =>
+          fetch(`https://googleads.googleapis.com/v15/customers/${customerId}/googleAds:search`, {
+            method: 'POST',
+            headers: this.getHeaders(accessToken),
+            body: JSON.stringify({ query }),
+          })
+        )
+      );
+
+      if (!response.ok) {
+        throw new Error(`Google Ads API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const campaigns = (data.results || [])
+        .map((result) => this.normalizeCampaign(result.campaign, result.metrics))
+        .sort((a, b) => b.spend - a.spend);
+
+      return {
+        connected: true,
+        data: campaigns,
+      };
+    } catch (error) {
+      console.error('[Google Ads] Error fetching campaigns:', error.message);
+      return { connected: false, error: error.message };
+    }
+  }
+
+  async fetchDailyMetrics(dateRange) {
+    if (!this.connected) {
+      return { connected: false };
+    }
+
+    try {
+      const accessToken = await this.getAccessToken();
+
+      const query = `
+        SELECT
+          segments.date,
+          metrics.cost_micros,
+          metrics.clicks,
+          metrics.impressions,
+          metrics.conversions,
+          metrics.conversion_value
+        FROM campaign
+        WHERE segments.date >= '${dateRange.start}'
+          AND segments.date <= '${dateRange.end}'
+      `;
+
+      const customerId = this.customerId.replace(/-/g, '');
+
+      const response = await withRetry(() =>
+        queueRequest('google', () =>
+          fetch(`https://googleads.googleapis.com/v15/customers/${customerId}/googleAds:search`, {
+            method: 'POST',
+            headers: this.getHeaders(accessToken),
+            body: JSON.stringify({ query }),
+          })
+        )
+      );
+
+      if (!response.ok) {
+        throw new Error(`Google Ads API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const aggregated = {};
+
+      (data.results || []).forEach((result) => {
+        const date = result.segments.date;
+        if (!aggregated[date]) {
+          aggregated[date] = {
+            date,
+            spend: 0,
+            clicks: 0,
+            impressions: 0,
+            conversions: 0,
+            conversionValue: 0,
+          };
+        }
+
+        const metrics = result.metrics;
+        aggregated[date].spend += (metrics.cost_micros || 0) / 1000000;
+        aggregated[date].clicks += metrics.clicks || 0;
+        aggregated[date].impressions += metrics.impressions || 0;
+        aggregated[date].conversions += metrics.conversions || 0;
+        aggregated[date].conversionValue += metrics.conversion_value || 0;
+      });
+
+      return {
+        connected: true,
+        data: Object.values(aggregated)
+          .map((day) => ({
+            date: day.date,
+            spend: Math.round(day.spend * 100) / 100,
+            clicks: day.clicks,
+            impressions: day.impressions,
+            cpc: day.clicks > 0 ? Math.round((day.spend / day.clicks) * 100) / 100 : 0,
+            ctr: day.impressions > 0 ? Math.round(((day.clicks / day.impressions) * 100) * 100) / 100 : 0,
+            conversions: day.conversions,
+            conversionValue: Math.round(day.conversionValue * 100) / 100,
+            roas: day.spend > 0 ? Math.round((day.conversionValue / day.spend) * 100) / 100 : 0,
+            cpa: day.conversions > 0 ? Math.round((day.spend / day.conversions) * 100) / 100 : 0,
+          }))
+          .sort((a, b) => new Date(a.date) - new Date(b.date)),
+      };
+    } catch (error) {
+      console.error('[Google Ads] Error fetching daily metrics:', error.message);
+      return { connected: false, error: error.message };
+    }
+  }
+
+  normalizeCampaign(campaign, metrics) {
+    const spend = (metrics?.cost_micros || 0) / 1000000;
+    const clicks = metrics?.clicks || 0;
+    const impressions = metrics?.impressions || 0;
+    const conversions = metrics?.conversions || 0;
+    const conversionValue = metrics?.conversion_value || 0;
+
+    return {
+      id: campaign.id,
+      name: campaign.name,
+      type: 'Search', // Would need to determine from campaign type
+      status: campaign.status || 'ENABLED',
+      spend: Math.round(spend * 100) / 100,
+      clicks: clicks,
+      impressions: impressions,
+      cpc: clicks > 0 ? Math.round((spend / clicks) * 100) / 100 : 0,
+      ctr: impressions > 0 ? Math.round(((clicks / impressions) * 100) * 100) / 100 : 0,
+      conversions: conversions,
+      conversionValue: Math.round(conversionValue * 100) / 100,
+      roas: spend > 0 ? Math.round((conversionValue / spend) * 100) / 100 : 0,
+      cpa: conversions > 0 ? Math.round((spend / conversions) * 100) / 100 : 0,
+    };
+  }
+
+  getHeaders(accessToken) {
+    return {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      'developer-token': this.developerToken,
+      'login-customer-id': this.customerId,
+    };
+  }
+}
+
+export const googleAdsService = new GoogleAdsService();

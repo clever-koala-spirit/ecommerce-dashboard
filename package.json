@@ -1,0 +1,16 @@
+{
+  "name": "ecommerce-command-center",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Live ecommerce dashboard with AI-powered forecasting and chat assistant",
+  "scripts": {
+    "dev": "npm run dev:client & npm run dev:server",
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "cd server && npm start"
+  },
+  "keywords": ["ecommerce", "dashboard", "analytics", "forecasting"],
+  "author": "Leo",
+  "license": "MIT"
+}
