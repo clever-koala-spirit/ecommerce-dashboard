@@ -1,585 +1,371 @@
 import { subDays, format } from 'date-fns';
 
-// Helper functions for generating realistic mock data
-const generateDateArray = (days = 365) => {
+// ============================================================
+// MOCK DATA: Ecommerce brand started ~11 months ago
+// ============================================================
+// Revenue curve: $3K/mo → $25K/mo over 11 months
+// Current: $1,000-1,500/day
+// Total: ~$120K lifetime
+// AOV: $50 | Margin: 30% | FB: 85% spend | Google: 15% spend
+// Blended ROAS: 3.5
+// ============================================================
+
+// Seed for reproducible randomness
+let seed = 42;
+const seededRandom = () => {
+  seed = (seed * 16807 + 0) % 2147483647;
+  return (seed - 1) / 2147483646;
+};
+
+// Generate 365 days of dates (working backwards from today)
+const generateDates = (days = 365) => {
   const dates = [];
   for (let i = days - 1; i >= 0; i--) {
-    const date = subDays(new Date(), i);
-    dates.push(format(date, 'yyyy-MM-dd'));
+    dates.push(format(subDays(new Date(), i), 'yyyy-MM-dd'));
   }
   return dates;
 };
 
-const getSeasonalMultiplier = (date) => {
-  const month = new Date(date).getMonth();
-  const dayOfWeek = new Date(date).getDay();
+const dates = generateDates(365);
 
-  // Monthly seasonality
-  let monthMultiplier = 1;
-  if (month === 11) monthMultiplier = 2.0; // December (2x)
-  else if (month === 0) monthMultiplier = 0.8; // January (20% dip)
-  else if (month === 1) monthMultiplier = 1.1; // February (10% recovery)
-  else if (month === 10) {
-    // November - check for Black Friday
-    const dayOfMonth = new Date(date).getDate();
-    if (dayOfMonth >= 23 && dayOfMonth <= 30) monthMultiplier = 4.0; // Black Friday spike
-    else monthMultiplier = 1.2;
-  } else {
-    monthMultiplier = 1.0;
+// Monthly revenue targets (index 0 = 12 months ago, index 11 = this month)
+// Brand started ~11 months ago with $3K first month
+// Growth: 3, 5, 8, 10, 10, 12, 11, 12, 14, 23, 12, ~18 (partial)
+const monthlyRevenueTargets = [
+  3000,   // Month 1 (Feb 2025 - just starting)
+  3000,   // Month 2 (Mar 2025 - still ramping)
+  5000,   // Month 3 (Apr 2025)
+  8000,   // Month 4 (May 2025)
+  10000,  // Month 5 (Jun 2025)
+  10000,  // Month 6 (Jul 2025)
+  12000,  // Month 7 (Aug 2025)
+  11000,  // Month 8 (Sep 2025)
+  12000,  // Month 9 (Oct 2025)
+  16000,  // Month 10 (Nov 2025 - Black Friday boost)
+  25000,  // Month 11 (Dec 2025 - holiday peak)
+  13000,  // Month 12 (Jan 2026 - post-holiday dip)
+  18000,  // Month 13 (Feb 2026 - current, partial ~$1000-1500/day)
+];
+
+// Get the monthly target for a given date
+const getMonthlyTarget = (dateStr) => {
+  const date = new Date(dateStr);
+  const today = new Date();
+  const monthsAgo = (today.getFullYear() - date.getFullYear()) * 12 + (today.getMonth() - date.getMonth());
+  const idx = Math.max(0, Math.min(12, 12 - monthsAgo));
+  return monthlyRevenueTargets[idx] || 3000;
+};
+
+// Daily base revenue from monthly target
+const getDailyBaseRevenue = (dateStr) => {
+  const monthlyTarget = getMonthlyTarget(dateStr);
+  return monthlyTarget / 30;
+};
+
+// Seasonality modifiers
+const getSeasonality = (dateStr) => {
+  const date = new Date(dateStr);
+  const month = date.getMonth();
+  const day = date.getDate();
+  const dow = date.getDay();
+
+  let multiplier = 1.0;
+
+  // Black Friday / Cyber Monday (Nov 25-30)
+  if (month === 10 && day >= 25 && day <= 30) {
+    multiplier *= 3.5;
+  }
+  // Pre-Christmas rush (Dec 1-20)
+  else if (month === 11 && day <= 20) {
+    multiplier *= 1.4;
+  }
+  // Christmas week (Dec 21-25) - drops as shipping cutoff passes
+  else if (month === 11 && day >= 21 && day <= 25) {
+    multiplier *= 0.8;
+  }
+  // Post-Christmas sales (Dec 26-31)
+  else if (month === 11 && day >= 26) {
+    multiplier *= 1.2;
   }
 
-  // Weekly seasonality (weekends are 25% higher)
-  const weeklyMultiplier = dayOfWeek === 0 || dayOfWeek === 6 ? 1.25 : 0.95;
+  // Weekend boost (Sat/Sun ~20% higher)
+  if (dow === 0 || dow === 6) {
+    multiplier *= 1.2;
+  }
+  // Tuesday/Wednesday slight dip
+  else if (dow === 2 || dow === 3) {
+    multiplier *= 0.9;
+  }
 
-  return monthMultiplier * weeklyMultiplier;
+  return multiplier;
 };
 
-const addNoise = (value, variance = 0.12) => {
-  const noise = 1 + (Math.random() - 0.5) * variance;
-  return Math.max(0, value * noise);
+// Add realistic noise
+const noise = (value, variance = 0.15) => {
+  const n = 1 + (seededRandom() - 0.5) * variance * 2;
+  return Math.max(0, value * n);
 };
 
-// Generate dates for 365 days (12 months)
-const dates = generateDateArray(365);
+const round2 = (v) => Math.round(v * 100) / 100;
 
+// ============================================================
 // SHOPIFY DATA
-const baseShopifyRevenue = 45000; // Base monthly revenue ~$45k
-
+// ============================================================
 export const generateShopifyData = () => {
-  return dates.map((date, index) => {
-    const daysInPeriod = 30;
-    const growthFactor = 1 + (index / 365) * 0.15; // 15% YoY growth
-    const seasonalMultiplier = getSeasonalMultiplier(date);
-    const dailyRevenue = addNoise(
-      (baseShopifyRevenue / 30) * growthFactor * seasonalMultiplier,
-      0.15
-    );
+  seed = 42;
+  return dates.map((date) => {
+    const baseRevenue = getDailyBaseRevenue(date);
+    const seasonal = getSeasonality(date);
+    const dailyRevenue = noise(baseRevenue * seasonal, 0.18);
 
-    const orders = Math.max(
-      15,
-      Math.floor(addNoise((dailyRevenue / 85) * (1 + Math.random() * 0.1), 0.2))
-    );
-    const aov = dailyRevenue / Math.max(1, orders);
-    const refundRate = 0.03 + Math.random() * 0.02;
-    const refunds = Math.floor(orders * refundRate);
-    const refundAmount = refunds * aov * (0.75 + Math.random() * 0.25);
+    const AOV = noise(50, 0.12);
+    const orders = Math.max(1, Math.round(dailyRevenue / AOV));
+    const actualRevenue = round2(orders * AOV);
 
-    const cogs = dailyRevenue * (0.35 + Math.random() * 0.05);
-    const shipping = orders * (3.5 + Math.random() * 1.5);
-    const transactionFees = dailyRevenue * (0.029 + 0.3 / 100);
+    // Customer split: ~35% new, 65% returning (shifts over time as brand matures)
+    const monthsAgo = Math.max(0, 12 - Math.floor((new Date() - new Date(date)) / (30 * 24 * 60 * 60 * 1000)));
+    const newCustomerRatio = Math.max(0.25, 0.6 - monthsAgo * 0.03); // starts high, decreases
+    const newCustomers = Math.max(1, Math.round(orders * newCustomerRatio));
+    const returningCustomers = Math.max(0, orders - newCustomers);
 
-    const newCustomers = Math.max(
-      2,
-      Math.floor(orders * (0.3 + Math.random() * 0.1))
-    );
-    const returningCustomers = orders - newCustomers;
+    // 30% margin means COGS ~40% of revenue, shipping ~8%, fees ~3%
+    const cogs = round2(actualRevenue * noise(0.40, 0.08));
+    const shipping = round2(actualRevenue * noise(0.08, 0.10));
+    const transactionFees = round2(actualRevenue * noise(0.03, 0.05));
+    const refundRate = noise(0.03, 0.5); // ~3% refund rate
+    const refundAmount = round2(actualRevenue * refundRate);
 
     return {
       date,
+      revenue: actualRevenue,
       orders,
-      revenue: Math.round(dailyRevenue * 100) / 100,
-      refunds,
-      refundAmount: Math.round(refundAmount * 100) / 100,
-      aov: Math.round(aov * 100) / 100,
-      cogs: Math.round(cogs * 100) / 100,
-      shipping: Math.round(shipping * 100) / 100,
-      transactionFees: Math.round(transactionFees * 100) / 100,
       newCustomers,
       returningCustomers,
+      aov: round2(actualRevenue / orders),
+      refundAmount,
+      cogs,
+      shipping,
+      transactionFees,
     };
   });
 };
 
-// Generate top 20 products
-export const generateTopProducts = () => {
-  const productNames = [
-    'Wireless Headphones Pro',
-    'USB-C Charging Cable',
-    'Phone Screen Protector',
-    'Portable Power Bank',
-    'Laptop Stand Adjustable',
-    'Mechanical Keyboard',
-    'Wireless Mouse',
-    'Desk Lamp LED',
-    'Phone Case Premium',
-    'Webcam HD 1080p',
-    'Monitor Arm Mount',
-    'Desk Organizer Set',
-    'Cable Management Kit',
-    'Phone Ring Stand',
-    'Screen Cleaner Bundle',
-    'USB Hub Adapter',
-    'Keyboard Wrist Rest',
-    'Monitor Riser',
-    'Desk Calendar Pad',
-    'Sticky Notes Collection',
-  ];
-
-  const baseRevenue = 45000 * 12; // Annual revenue
-  const productRevenues = [];
-  let totalAllocated = 0;
-
-  // First product gets 15%, then decreasing percentages
-  for (let i = 0; i < productNames.length; i++) {
-    const percentage = Math.pow(0.8, i) * 0.12;
-    productRevenues.push(percentage);
-    totalAllocated += percentage;
-  }
-
-  return productNames.map((name, idx) => {
-    const share = productRevenues[idx] / totalAllocated;
-    const revenue = baseRevenue * share;
-    const avgPrice = 35 + Math.random() * 85;
-    const orders = Math.round(revenue / avgPrice);
-    const cogs = revenue * (0.3 + Math.random() * 0.1);
-
-    return {
-      id: `PROD-${String(idx + 1).padStart(3, '0')}`,
-      title: name,
-      revenue: Math.round(revenue * 100) / 100,
-      orders,
-      aov: Math.round((revenue / orders) * 100) / 100,
-      cogs: Math.round(cogs * 100) / 100,
-      marginPercent: Math.round(((revenue - cogs) / revenue) * 100),
-    };
-  });
-};
-
-// Generate 5 collections
-export const generateCollections = () => {
-  const collections = [
-    { name: 'Audio & Headphones', revenueShare: 0.25 },
-    { name: 'Desk Accessories', revenueShare: 0.35 },
-    { name: 'Mobile Accessories', revenueShare: 0.2 },
-    { name: 'Cables & Adapters', revenueShare: 0.12 },
-    { name: 'Workspace Organization', revenueShare: 0.08 },
-  ];
-
-  const totalAnnualRevenue = 45000 * 12;
-
-  return collections.map((collection) => ({
-    id: `COLL-${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
-    name: collection.name,
-    revenue: Math.round(totalAnnualRevenue * collection.revenueShare * 100) / 100,
-    products: Math.floor(5 + Math.random() * 15),
-    orders: Math.floor((totalAnnualRevenue * collection.revenueShare) / 75),
-  }));
-};
-
-// META ADS DATA
-const baseMetaSpend = 17500; // ~$17.5k monthly
-
+// ============================================================
+// META (FACEBOOK) ADS DATA — 85% of ad spend
+// ============================================================
 export const generateMetaData = () => {
-  return dates.map((date, index) => {
-    const growthFactor = 1 + (index / 365) * 0.15;
-    const seasonalMultiplier = getSeasonalMultiplier(date);
-    const dailySpend = addNoise(
-      (baseMetaSpend / 30) * growthFactor * seasonalMultiplier,
-      0.2
-    );
+  seed = 137;
+  return dates.map((date) => {
+    const baseRevenue = getDailyBaseRevenue(date);
+    const seasonal = getSeasonality(date);
+    const dailyRevenue = noise(baseRevenue * seasonal, 0.18);
 
-    const impressions = Math.floor(
-      addNoise(dailySpend * (450 + Math.random() * 100), 0.15)
-    );
-    const clicks = Math.floor(impressions * (0.01 + Math.random() * 0.02));
-    const cpm = (dailySpend / impressions) * 1000;
-    const ctr = (clicks / impressions) * 100;
+    // Ad-attributed revenue ~65% of total, Meta gets ~75% of that
+    const metaAttributedRevenue = round2(dailyRevenue * 0.65 * 0.75);
 
-    // Purchase conversion (8-12% of clicks)
-    const purchases = Math.max(
-      1,
-      Math.floor(clicks * (0.08 + Math.random() * 0.04))
-    );
-    const purchaseRevenue = purchases * (65 + Math.random() * 40);
-    const roas = purchaseRevenue / dailySpend;
+    // ROAS target 3.5 (varies between 2.8-4.2)
+    const roas = noise(3.5, 0.20);
+    const spend = round2(metaAttributedRevenue / roas);
 
-    return {
-      date,
-      spend: Math.round(dailySpend * 100) / 100,
-      impressions,
-      cpm: Math.round(cpm * 100) / 100,
-      ctr: Math.round(ctr * 100) / 100,
-      clicks,
-      purchases,
-      revenue: Math.round(purchaseRevenue * 100) / 100,
-      roas: Math.round(roas * 100) / 100,
-      cpa: Math.round((dailySpend / Math.max(1, purchases)) * 100) / 100,
-    };
-  });
-};
-
-// Generate 8 Meta campaigns
-export const generateMetaCampaigns = () => {
-  const campaignNames = [
-    'Brand Awareness Q1',
-    'Conversion Focus - Desktop',
-    'Mobile Traffic Driver',
-    'Engagement Booster',
-    'Retargeting Campaign',
-    'Lead Generation',
-    'Product Launch Push',
-    'Seasonal Holiday Sale',
-  ];
-
-  const metaData = generateMetaData();
-  const totalSpend = metaData.reduce((sum, d) => sum + d.spend, 0);
-  const totalRevenue = metaData.reduce((sum, d) => sum + d.revenue, 0);
-
-  return campaignNames.map((name, idx) => {
-    const sharePercentage = 0.08 + Math.random() * 0.07;
-    const campaignSpend = totalSpend * sharePercentage;
-    const campaignRevenue = totalRevenue * sharePercentage;
-
-    return {
-      id: `META-CAM-${String(idx + 1).padStart(3, '0')}`,
-      name,
-      status: Math.random() > 0.15 ? 'active' : 'paused',
-      spend: Math.round(campaignSpend * 100) / 100,
-      revenue: Math.round(campaignRevenue * 100) / 100,
-      roas: Math.round((campaignRevenue / campaignSpend) * 100) / 100,
-      impressions: Math.floor(campaignSpend * 500),
-      cpa: Math.round((campaignSpend / Math.floor(campaignRevenue / 85)) * 100) / 100,
-    };
-  });
-};
-
-// GOOGLE ADS DATA
-const baseGoogleSpend = 10000; // ~$10k monthly
-
-export const generateGoogleData = () => {
-  return dates.map((date, index) => {
-    const growthFactor = 1 + (index / 365) * 0.15;
-    const seasonalMultiplier = getSeasonalMultiplier(date);
-    const dailySpend = addNoise(
-      (baseGoogleSpend / 30) * growthFactor * seasonalMultiplier,
-      0.2
-    );
-
-    const clicks = Math.floor(
-      addNoise(dailySpend * (70 + Math.random() * 30), 0.15)
-    );
-    const impressions = Math.floor(clicks / (0.03 + Math.random() * 0.02));
-    const cpc = clicks > 0 ? dailySpend / clicks : 0;
-    const ctr = (clicks / impressions) * 100;
-
-    // Conversions from Google Ads (10-14% conversion rate)
-    const conversions = Math.max(
-      1,
-      Math.floor(clicks * (0.1 + Math.random() * 0.04))
-    );
-    const conversionValue = conversions * (75 + Math.random() * 45);
-    const roas = conversionValue / dailySpend;
+    // Ad metrics
+    const cpm = noise(12.5, 0.25); // $12.50 CPM average
+    const impressions = Math.round((spend / cpm) * 1000);
+    const ctr = noise(1.8, 0.20); // 1.8% CTR
+    const clicks = Math.max(1, Math.round(impressions * (ctr / 100)));
+    const cpc = round2(spend / clicks);
+    const conversionRate = noise(2.8, 0.20); // 2.8% conversion rate
+    const conversions = Math.max(0, Math.round(clicks * (conversionRate / 100)));
 
     return {
       date,
-      spend: Math.round(dailySpend * 100) / 100,
-      clicks,
+      spend: round2(spend),
       impressions,
-      cpc: Math.round(cpc * 100) / 100,
-      ctr: Math.round(ctr * 100) / 100,
+      clicks,
       conversions,
-      conversionValue: Math.round(conversionValue * 100) / 100,
-      roas: Math.round(roas * 100) / 100,
-      cpa: Math.round((dailySpend / Math.max(1, conversions)) * 100) / 100,
+      revenue: metaAttributedRevenue,
+      ctr: round2(ctr),
+      cpm: round2(cpm),
+      cpc,
+      roas: round2(conversions > 0 ? metaAttributedRevenue / spend : 0),
     };
   });
 };
 
-// Generate 6 Google campaigns by type
-export const generateGoogleCampaigns = () => {
-  const googleData = generateGoogleData();
-  const totalSpend = googleData.reduce((sum, d) => sum + d.spend, 0);
-  const totalValue = googleData.reduce((sum, d) => sum + d.conversionValue, 0);
+// ============================================================
+// GOOGLE ADS DATA — 15% of ad spend
+// ============================================================
+export const generateGoogleData = () => {
+  seed = 256;
+  return dates.map((date) => {
+    const baseRevenue = getDailyBaseRevenue(date);
+    const seasonal = getSeasonality(date);
+    const dailyRevenue = noise(baseRevenue * seasonal, 0.18);
 
-  const campaigns = [
-    { name: 'Search - Brand Keywords', type: 'Search', share: 0.35 },
-    { name: 'Search - Generic Keywords', type: 'Search', share: 0.25 },
-    { name: 'Shopping - All Products', type: 'Shopping', share: 0.2 },
-    { name: 'Performance Max - Multi-Channel', type: 'PMax', share: 0.12 },
-    { name: 'Display Remarketing', type: 'Display', share: 0.05 },
-    { name: 'YouTube Video Ads', type: 'YouTube', share: 0.03 },
-  ];
+    // Google gets ~25% of ad-attributed revenue
+    const googleAttributedRevenue = round2(dailyRevenue * 0.65 * 0.25);
 
-  return campaigns.map((campaign, idx) => {
-    const campaignSpend = totalSpend * campaign.share;
-    const campaignValue = totalValue * campaign.share;
+    // Google ROAS slightly lower than Meta (3.0-3.8)
+    const roas = noise(3.2, 0.22);
+    const spend = round2(googleAttributedRevenue / roas);
 
-    return {
-      id: `GOOGLE-CAM-${String(idx + 1).padStart(3, '0')}`,
-      name: campaign.name,
-      type: campaign.type,
-      status: Math.random() > 0.1 ? 'enabled' : 'disabled',
-      spend: Math.round(campaignSpend * 100) / 100,
-      conversionValue: Math.round(campaignValue * 100) / 100,
-      roas: Math.round((campaignValue / campaignSpend) * 100) / 100,
-      clicks: Math.floor(campaignSpend * 70),
-      cpa: Math.round((campaignSpend / Math.floor(campaignValue / 80)) * 100) / 100,
-    };
-  });
-};
-
-// KLAVIYO DATA
-export const generateKlaviyoFlows = () => {
-  const flows = [
-    { name: 'Welcome Series', type: 'welcome' },
-    { name: 'Abandoned Cart - 1 Hour', type: 'abandoned_cart' },
-    { name: 'Abandoned Cart - 24 Hour', type: 'abandoned_cart' },
-    { name: 'Post Purchase - Thank You', type: 'post_purchase' },
-    { name: 'Post Purchase - Review Request', type: 'post_purchase' },
-    { name: 'Win-back Campaign', type: 'winback' },
-    { name: 'Browse Abandonment - 4 Hour', type: 'browse_abandon' },
-    { name: 'Product Restock Notification', type: 'post_purchase' },
-  ];
-
-  const shopifyData = generateShopifyData();
-  const totalRevenue = shopifyData.reduce((sum, d) => sum + d.revenue, 0);
-
-  return flows.map((flow, idx) => {
-    const flowShare = 0.08 + Math.random() * 0.07;
-    const flowRevenue = totalRevenue * flowShare * 0.18; // Email is 18% of total revenue
-
-    return {
-      id: `FLOW-${String(idx + 1).padStart(3, '0')}`,
-      name: flow.name,
-      type: flow.type,
-      revenue: Math.round(flowRevenue * 100) / 100,
-      sent: Math.floor(flowRevenue / (35 + Math.random() * 25)),
-      opened: Math.floor((flowRevenue / (35 + Math.random() * 25)) * (0.25 + Math.random() * 0.15)),
-      clicked: Math.floor((flowRevenue / (35 + Math.random() * 25)) * (0.05 + Math.random() * 0.05)),
-      converted: Math.floor((flowRevenue / (35 + Math.random() * 25)) * (0.02 + Math.random() * 0.03)),
-      revenuePerRecipient:
-        flowRevenue /
-        Math.max(1, Math.floor(flowRevenue / (35 + Math.random() * 25))),
-    };
-  });
-};
-
-// Generate 20 Klaviyo campaigns
-export const generateKlaviyoCampaigns = () => {
-  const campaigns = [];
-  const today = new Date();
-
-  for (let i = 0; i < 20; i++) {
-    const sentDate = subDays(today, Math.floor(Math.random() * 60));
-    const sent = 5000 + Math.floor(Math.random() * 10000);
-    const opened = Math.floor(sent * (0.2 + Math.random() * 0.15));
-    const clicked = Math.floor(opened * (0.15 + Math.random() * 0.1));
-    const converted = Math.floor(clicked * (0.08 + Math.random() * 0.05));
-
-    campaigns.push({
-      id: `KLAV-CAM-${String(i + 1).padStart(3, '0')}`,
-      name: `Campaign ${format(sentDate, 'MMM d')}`,
-      sentDate: format(sentDate, 'yyyy-MM-dd'),
-      sent,
-      opened,
-      clicked,
-      revenue: Math.round(converted * (45 + Math.random() * 55) * 100) / 100,
-      openRate: Math.round((opened / sent) * 100),
-      clickRate: Math.round((clicked / opened) * 100),
-    });
-  }
-
-  return campaigns;
-};
-
-// Generate Klaviyo daily metrics
-export const generateKlaviyoDailyMetrics = () => {
-  const klayiyoCampaigns = generateKlaviyoCampaigns();
-
-  return dates.map((date, index) => {
-    const growthFactor = 1 + (index / 365) * 0.15;
-    const seasonalMultiplier = getSeasonalMultiplier(date);
-
-    // Flow revenue (18% of Shopify revenue)
-    const shopifyData = generateShopifyData();
-    const shopifyDate = shopifyData.find((d) => d.date === date) || shopifyData[0];
-    const flowRevenue = shopifyDate.revenue * 0.18;
-
-    const campaignDayMetrics = klayiyoCampaigns
-      .filter((c) => c.sentDate === date)
-      .reduce(
-        (sum, c) => sum + c.revenue,
-        0
-      );
-
-    const listGrowth = Math.floor(
-      addNoise(50 + Math.random() * 150, 0.25) * growthFactor
-    );
-    const unsubscribes = Math.max(1, Math.floor(listGrowth * (0.01 + Math.random() * 0.015)));
+    // Google ad metrics (typically higher CPC, lower CPM than Meta)
+    const cpc = noise(1.20, 0.25); // $1.20 avg CPC
+    const clicks = Math.max(1, Math.round(spend / cpc));
+    const ctr = noise(3.5, 0.20); // 3.5% CTR (search is higher)
+    const impressions = Math.round(clicks / (ctr / 100));
+    const conversionRate = noise(3.2, 0.20); // 3.2% conversion rate
+    const conversions = Math.max(0, Math.round(clicks * (conversionRate / 100)));
+    const conversionValue = round2(googleAttributedRevenue);
 
     return {
       date,
-      flowRevenue: Math.round(flowRevenue * 100) / 100,
-      campaignRevenue: Math.round(campaignDayMetrics * 100) / 100,
-      listSize: 15000 + Math.floor(index * 3) + Math.floor(Math.random() * 500),
-      subscriberGrowth: listGrowth,
+      spend: round2(spend),
+      impressions,
+      clicks,
+      conversions,
+      conversionValue,
+      ctr: round2(ctr),
+      cpc: round2(cpc),
+      roas: round2(spend > 0 ? conversionValue / spend : 0),
+    };
+  });
+};
+
+// ============================================================
+// KLAVIYO DATA — Email/SMS marketing
+// ============================================================
+export const generateKlaviyoData = () => {
+  seed = 389;
+  return dates.map((date) => {
+    const baseRevenue = getDailyBaseRevenue(date);
+    const seasonal = getSeasonality(date);
+    const dailyRevenue = noise(baseRevenue * seasonal, 0.18);
+
+    // Email drives ~15% of revenue (flows + campaigns)
+    const emailRevenue = round2(dailyRevenue * noise(0.15, 0.25));
+    const flowRevenue = round2(emailRevenue * noise(0.60, 0.15)); // 60% from flows
+    const campaignRevenue = round2(emailRevenue - flowRevenue);
+
+    // List size grows over time
+    const daysFromStart = Math.max(1, dates.indexOf(date) + 1);
+    const listSize = Math.round(500 + daysFromStart * 15); // starts 500, grows ~15/day
+
+    // Sends: campaigns ~3x/week, flows daily
+    const dow = new Date(date).getDay();
+    const isCampaignDay = dow === 1 || dow === 3 || dow === 5; // Mon, Wed, Fri
+    const campaignSent = isCampaignDay ? Math.round(listSize * noise(0.85, 0.1)) : 0;
+    const flowSent = Math.round(noise(listSize * 0.05, 0.3)); // ~5% of list gets flow emails daily
+    const emailsSent = campaignSent + flowSent;
+
+    // Engagement rates
+    const openRate = noise(0.35, 0.15); // 35% open rate
+    const clickRate = noise(0.045, 0.20); // 4.5% click rate
+    const opens = Math.round(emailsSent * openRate);
+    const clicks = Math.round(emailsSent * clickRate);
+    const unsubscribes = Math.max(0, Math.round(emailsSent * noise(0.002, 0.5)));
+    const bounces = Math.max(0, Math.round(emailsSent * noise(0.008, 0.4)));
+
+    return {
+      date,
+      emailsSent: Math.max(0, emailsSent),
+      opens,
+      clicks,
+      revenue: emailRevenue,
       unsubscribes,
+      bounces,
+      flowRevenue,
+      campaignRevenue,
     };
   });
 };
 
-// GA4 DATA
+// ============================================================
+// GA4 DATA — Website traffic & analytics
+// ============================================================
 export const generateGA4Data = () => {
-  const shopifyData = generateShopifyData();
-  const metaData = generateMetaData();
-  const googleData = generateGoogleData();
+  seed = 512;
+  return dates.map((date) => {
+    const baseRevenue = getDailyBaseRevenue(date);
+    const seasonal = getSeasonality(date);
+    const dailyRevenue = noise(baseRevenue * seasonal, 0.18);
 
-  return dates.map((date, index) => {
-    const shopifyDate = shopifyData.find((d) => d.date === date) || shopifyData[0];
-    const metaDate = metaData.find((d) => d.date === date) || metaData[0];
-    const googleDate = googleData.find((d) => d.date === date) || googleData[0];
+    // Traffic scales roughly with revenue
+    const revenueMultiplier = dailyRevenue / 500; // base 500/day = ~30 sessions
+    const baseSessions = Math.max(20, Math.round(noise(revenueMultiplier * 30, 0.20)));
 
-    // Total sessions based on ad spend and organic
-    const paidSessions = metaDate.clicks + googleDate.clicks;
-    const organicSessions = Math.floor(
-      paidSessions * (0.6 + Math.random() * 0.2)
-    );
-    const directSessions = Math.floor(paidSessions * (0.15 + Math.random() * 0.1));
-    const socialSessions = Math.floor(paidSessions * (0.08 + Math.random() * 0.06));
-    const referralSessions = Math.floor(paidSessions * (0.05 + Math.random() * 0.05));
+    // Session sources
+    const organicPct = noise(0.30, 0.15);  // 30% organic
+    const paidPct = noise(0.35, 0.15);     // 35% paid
+    const directPct = noise(0.15, 0.15);   // 15% direct
+    const socialPct = noise(0.10, 0.20);   // 10% social
+    const emailPct = noise(0.10, 0.20);    // 10% email
+    const totalPct = organicPct + paidPct + directPct + socialPct + emailPct;
 
-    const totalSessions = paidSessions + organicSessions + directSessions + socialSessions + referralSessions;
-    const totalRevenue = shopifyDate.revenue;
-    const conversionRate = (paidSessions / Math.max(1, totalSessions)) * 100;
+    const sessions = baseSessions;
+    const organicSessions = Math.round(sessions * (organicPct / totalPct));
+    const paidSessions = Math.round(sessions * (paidPct / totalPct));
+    const directSessions = Math.round(sessions * (directPct / totalPct));
+    const socialSessions = Math.round(sessions * (socialPct / totalPct));
+
+    // Users (~85% of sessions are unique)
+    const users = Math.round(sessions * noise(0.85, 0.08));
+    const newUsers = Math.round(users * noise(0.55, 0.12));
+
+    // Engagement
+    const bounceRate = round2(noise(0.42, 0.15));
+    const avgSessionDuration = Math.round(noise(165, 0.20)); // ~2:45 avg
+    const pageviews = Math.round(sessions * noise(2.8, 0.15));
 
     return {
       date,
-      sessions: totalSessions,
+      sessions,
+      users,
+      newUsers,
+      bounceRate,
+      avgSessionDuration,
+      pageviews,
       organicSessions,
+      paidSessions,
       directSessions,
       socialSessions,
-      referralSessions,
-      paidSessions,
-      revenue: totalRevenue,
-      conversionRate: Math.round(conversionRate * 100) / 100,
-      revenuePerSession:
-        totalRevenue / Math.max(1, totalSessions),
     };
   });
 };
 
-// CONNECTION STATUS
-export const generateConnectionStatus = () => {
-  return {
-    shopify: {
-      connected: true,
-      status: 'green',
-      lastSynced: new Date(Date.now() - 5 * 60000), // 5 minutes ago
-      config: { store: 'example-store.myshopify.com' },
-    },
-    meta: {
-      connected: true,
-      status: 'green',
-      lastSynced: new Date(Date.now() - 10 * 60000), // 10 minutes ago
-      config: { accountId: 'act_123456789' },
-    },
-    google: {
-      connected: true,
-      status: 'green',
-      lastSynced: new Date(Date.now() - 8 * 60000), // 8 minutes ago
-      config: { customerId: '123-456-7890' },
-    },
-    klaviyo: {
-      connected: true,
-      status: 'green',
-      lastSynced: new Date(Date.now() - 3 * 60000), // 3 minutes ago
-      config: { accountId: 'abc123def456' },
-    },
-    ga4: {
-      connected: true,
-      status: 'yellow',
-      lastSynced: new Date(Date.now() - 30 * 60000), // 30 minutes ago
-      config: { propertyId: '123456789' },
-    },
-  };
-};
+// ============================================================
+// EXPORT ASSEMBLED DATA
+// ============================================================
+const shopifyData = generateShopifyData();
+const metaData = generateMetaData();
+const googleData = generateGoogleData();
+const klaviyoData = generateKlaviyoData();
+const ga4Data = generateGA4Data();
 
-// Mock Insights
-export const generateInsights = () => {
-  return [
-    {
-      id: 'insight-1',
-      severity: 'warning',
-      title: 'Declining Conversion Rate',
-      body: 'Your conversion rate has decreased 12% over the past 7 days compared to the previous period. Consider reviewing your product pages and checkout process.',
-      action: 'Review Performance',
-      timestamp: new Date(Date.now() - 2 * 60 * 60000),
-      dismissed: false,
-      snoozed: false,
-    },
-    {
-      id: 'insight-2',
-      severity: 'success',
-      title: 'Meta ROAS Improvement',
-      body: 'Your Meta Ads ROAS improved to 3.2x, up from 2.8x last week. Your recent campaign optimizations are paying off.',
-      action: 'View Campaign',
-      timestamp: new Date(Date.now() - 4 * 60 * 60000),
-      dismissed: false,
-      snoozed: false,
-    },
-    {
-      id: 'insight-3',
-      severity: 'info',
-      title: 'New Product Trending',
-      body: 'Wireless Headphones Pro is your fastest-growing product this month with 28% week-over-week growth.',
-      action: 'View Product',
-      timestamp: new Date(Date.now() - 6 * 60 * 60000),
-      dismissed: false,
-      snoozed: false,
-    },
-    {
-      id: 'insight-4',
-      severity: 'error',
-      title: 'Shopify Connection Warning',
-      body: 'Data sync took 45 minutes longer than usual. This may indicate connection issues.',
-      action: 'Check Connection',
-      timestamp: new Date(Date.now() - 8 * 60 * 60000),
-      dismissed: false,
-      snoozed: false,
-    },
-    {
-      id: 'insight-5',
-      severity: 'warning',
-      title: 'High Refund Rate Alert',
-      body: 'Refund rate for orders from USA has increased to 4.2%, above your 2-week average of 3.1%.',
-      action: 'Review Refunds',
-      timestamp: new Date(Date.now() - 12 * 60 * 60000),
-      dismissed: false,
-      snoozed: false,
-    },
-  ];
-};
-
-// Export all mock data generators
-export const mockDataGenerators = {
-  shopify: generateShopifyData,
-  shopifyProducts: generateTopProducts,
-  shopifyCollections: generateCollections,
-  meta: generateMetaData,
-  metaCampaigns: generateMetaCampaigns,
-  google: generateGoogleData,
-  googleCampaigns: generateGoogleCampaigns,
-  klaviyo: generateKlaviyoDailyMetrics,
-  klaviyoFlows: generateKlaviyoFlows,
-  klaviyoCampaigns: generateKlaviyoCampaigns,
-  ga4: generateGA4Data,
-  connections: generateConnectionStatus,
-  insights: generateInsights,
-};
-
-// Generate all mock data (eager load)
 export const mockData = {
-  shopify: generateShopifyData(),
-  shopifyProducts: generateTopProducts(),
-  shopifyCollections: generateCollections(),
-  meta: generateMetaData(),
-  metaCampaigns: generateMetaCampaigns(),
-  google: generateGoogleData(),
-  googleCampaigns: generateGoogleCampaigns(),
-  klaviyo: generateKlaviyoDailyMetrics(),
-  klaviyoFlows: generateKlaviyoFlows(),
-  klaviyoCampaigns: generateKlaviyoCampaigns(),
-  ga4: generateGA4Data(),
-  connections: generateConnectionStatus(),
-  insights: generateInsights(),
+  shopify: shopifyData,
+  meta: metaData,
+  google: googleData,
+  klaviyo: klaviyoData,
+  ga4: ga4Data,
 };
+
+// Quick stats (for debugging)
+if (typeof window !== 'undefined' && window.location?.hostname === 'localhost') {
+  const totalRevenue = shopifyData.reduce((s, d) => s + d.revenue, 0);
+  const totalMetaSpend = metaData.reduce((s, d) => s + d.spend, 0);
+  const totalGoogleSpend = googleData.reduce((s, d) => s + d.spend, 0);
+  const totalAdSpend = totalMetaSpend + totalGoogleSpend;
+  const totalAdRevenue = metaData.reduce((s, d) => s + d.revenue, 0) + googleData.reduce((s, d) => s + d.conversionValue, 0);
+  const last7Revenue = shopifyData.slice(-7).reduce((s, d) => s + d.revenue, 0);
+
+  console.log('[MockData] Summary:');
+  console.log(`  Total Revenue: $${Math.round(totalRevenue).toLocaleString()}`);
+  console.log(`  Total Ad Spend: $${Math.round(totalAdSpend).toLocaleString()} (Meta: $${Math.round(totalMetaSpend).toLocaleString()}, Google: $${Math.round(totalGoogleSpend).toLocaleString()})`);
+  console.log(`  Meta % of spend: ${((totalMetaSpend / totalAdSpend) * 100).toFixed(1)}%`);
+  console.log(`  Blended ROAS: ${(totalAdRevenue / totalAdSpend).toFixed(2)}`);
+  console.log(`  Avg AOV: $${(totalRevenue / shopifyData.reduce((s, d) => s + d.orders, 0)).toFixed(2)}`);
+  console.log(`  Last 7 days avg: $${Math.round(last7Revenue / 7).toLocaleString()}/day`);
+  console.log(`  Days of data: ${shopifyData.length}`);
+}
+
+export default mockData;
