@@ -20,11 +20,11 @@ export default function ChannelForecastChart() {
   const dateRange = useStore((state) => state.dateRange);
 
   const chartData = useMemo(() => {
-    const historical = filterDataByDateRange(mockData.shopify, dateRange);
-    const metaData = filterDataByDateRange(mockData.meta, dateRange);
-    const googleData = filterDataByDateRange(mockData.google, dateRange);
-    const klaviyoData = filterDataByDateRange(mockData.klaviyo, dateRange);
-    const ga4Data = filterDataByDateRange(mockData.ga4, dateRange);
+    const historical = filterDataByDateRange(mockData.shopify || [], dateRange);
+    const metaData = filterDataByDateRange(mockData.meta || [], dateRange);
+    const googleData = filterDataByDateRange(mockData.google || [], dateRange);
+    const klaviyoData = filterDataByDateRange(mockData.klaviyo || [], dateRange);
+    const ga4Data = filterDataByDateRange(mockData.ga4 || [], dateRange);
 
     const combined = [];
 

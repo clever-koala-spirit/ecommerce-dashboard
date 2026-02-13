@@ -12,11 +12,11 @@ export default function InsightsEngine() {
     const generatedInsights = [];
 
     // Get all relevant data
-    const shopifyData = filterDataByDateRange(mockData.shopify, dateRange);
-    const metaData = filterDataByDateRange(mockData.meta, dateRange);
-    const googleData = filterDataByDateRange(mockData.google, dateRange);
-    const klaviyoData = filterDataByDateRange(mockData.klaviyo, dateRange);
-    const ga4Data = filterDataByDateRange(mockData.ga4, dateRange);
+    const shopifyData = filterDataByDateRange(mockData.shopify || [], dateRange);
+    const metaData = filterDataByDateRange(mockData.meta || [], dateRange);
+    const googleData = filterDataByDateRange(mockData.google || [], dateRange);
+    const klaviyoData = filterDataByDateRange(mockData.klaviyo || [], dateRange);
+    const ga4Data = filterDataByDateRange(mockData.ga4 || [], dateRange);
 
     if (shopifyData.length === 0) return [];
 

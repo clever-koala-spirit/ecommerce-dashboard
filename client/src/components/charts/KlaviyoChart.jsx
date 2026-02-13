@@ -49,8 +49,8 @@ export default function KlaviyoChart() {
   const dateRange = useStore((state) => state.dateRange);
 
   const { chartData, flowStats } = useMemo(() => {
-    const filteredKlaviyo = filterDataByDateRange(mockData.klaviyo, dateRange);
-    const filteredFlows = mockData.klaviyoFlows;
+    const filteredKlaviyo = filterDataByDateRange(mockData.klaviyo || [], dateRange);
+    const filteredFlows = mockData.klaviyoFlows || [];
 
     const data = filteredKlaviyo.map((d) => ({
       date: formatDateShort(d.date),

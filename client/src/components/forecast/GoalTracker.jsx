@@ -13,7 +13,7 @@ export default function GoalTracker() {
   const [editMode, setEditMode] = useState(false);
 
   const goals = useMemo(() => {
-    const historicalData = filterDataByDateRange(mockData.shopify, dateRange);
+    const historicalData = filterDataByDateRange(mockData.shopify || [], dateRange);
 
     if (historicalData.length === 0) {
       return {

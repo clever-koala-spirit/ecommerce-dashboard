@@ -135,6 +135,8 @@ export const generateShopifyData = () => {
     const refundRate = noise(0.03, 0.5); // ~3% refund rate
     const refundAmount = round2(actualRevenue * refundRate);
 
+    const refunds = Math.max(0, Math.round(orders * refundRate));
+
     return {
       date,
       revenue: actualRevenue,
@@ -142,6 +144,7 @@ export const generateShopifyData = () => {
       newCustomers,
       returningCustomers,
       aov: round2(actualRevenue / orders),
+      refunds,
       refundAmount,
       cogs,
       shipping,
@@ -176,16 +179,21 @@ export const generateMetaData = () => {
     const conversionRate = noise(2.8, 0.20); // 2.8% conversion rate
     const conversions = Math.max(0, Math.round(clicks * (conversionRate / 100)));
 
+    const purchases = conversions;
+    const cpa = purchases > 0 ? round2(spend / purchases) : 0;
+
     return {
       date,
       spend: round2(spend),
       impressions,
       clicks,
       conversions,
+      purchases,
       revenue: metaAttributedRevenue,
       ctr: round2(ctr),
       cpm: round2(cpm),
       cpc,
+      cpa,
       roas: round2(conversions > 0 ? metaAttributedRevenue / spend : 0),
     };
   });
@@ -217,6 +225,8 @@ export const generateGoogleData = () => {
     const conversions = Math.max(0, Math.round(clicks * (conversionRate / 100)));
     const conversionValue = round2(googleAttributedRevenue);
 
+    const cpa = conversions > 0 ? round2(spend / conversions) : 0;
+
     return {
       date,
       spend: round2(spend),
@@ -226,6 +236,7 @@ export const generateGoogleData = () => {
       conversionValue,
       ctr: round2(ctr),
       cpc: round2(cpc),
+      cpa,
       roas: round2(spend > 0 ? conversionValue / spend : 0),
     };
   });
@@ -316,6 +327,14 @@ export const generateGA4Data = () => {
     const avgSessionDuration = Math.round(noise(165, 0.20)); // ~2:45 avg
     const pageviews = Math.round(sessions * noise(2.8, 0.15));
 
+    // Referral sessions (remaining after organic, paid, direct, social)
+    const referralSessions = Math.max(0, sessions - organicSessions - paidSessions - directSessions - socialSessions);
+
+    // Revenue attribution by session (estimate based on conversion rate)
+    const conversionRate = round2(noise(2.5, 0.25)); // ~2.5% site-wide conversion rate
+    const estimatedOrders = Math.max(0, Math.round(sessions * (conversionRate / 100)));
+    const revenue = round2(estimatedOrders * noise(50, 0.12)); // AOV ~$50
+
     return {
       date,
       sessions,
@@ -328,8 +347,183 @@ export const generateGA4Data = () => {
       paidSessions,
       directSessions,
       socialSessions,
+      referralSessions,
+      conversionRate,
+      revenue,
     };
   });
+};
+
+// ============================================================
+// KLAVIYO FLOWS — Aggregate flow performance data
+// ============================================================
+export const generateKlaviyoFlows = () => {
+  seed = 600;
+  const klaviyo = generateKlaviyoData();
+  const totalFlowRevenue = klaviyo.reduce((s, d) => s + (d.flowRevenue || 0), 0);
+  const totalSent = klaviyo.reduce((s, d) => s + (d.emailsSent || 0), 0);
+  const totalOpens = klaviyo.reduce((s, d) => s + (d.opens || 0), 0);
+  const totalClicks = klaviyo.reduce((s, d) => s + (d.clicks || 0), 0);
+
+  // Distribute flow revenue across flow types
+  return [
+    {
+      type: 'welcome',
+      name: 'Welcome Series',
+      revenue: round2(totalFlowRevenue * noise(0.30, 0.05)),
+      sent: Math.round(totalSent * noise(0.12, 0.08)),
+      opened: Math.round(totalOpens * noise(0.14, 0.08)),
+      clicked: Math.round(totalClicks * noise(0.12, 0.08)),
+      converted: Math.round(totalClicks * noise(0.12, 0.08) * noise(0.08, 0.10)),
+    },
+    {
+      type: 'abandoned_cart',
+      name: 'Abandoned Cart',
+      revenue: round2(totalFlowRevenue * noise(0.35, 0.05)),
+      sent: Math.round(totalSent * noise(0.18, 0.08)),
+      opened: Math.round(totalOpens * noise(0.20, 0.08)),
+      clicked: Math.round(totalClicks * noise(0.22, 0.08)),
+      converted: Math.round(totalClicks * noise(0.22, 0.08) * noise(0.12, 0.10)),
+    },
+    {
+      type: 'post_purchase',
+      name: 'Post-Purchase',
+      revenue: round2(totalFlowRevenue * noise(0.20, 0.05)),
+      sent: Math.round(totalSent * noise(0.15, 0.08)),
+      opened: Math.round(totalOpens * noise(0.12, 0.08)),
+      clicked: Math.round(totalClicks * noise(0.10, 0.08)),
+      converted: Math.round(totalClicks * noise(0.10, 0.08) * noise(0.05, 0.10)),
+    },
+    {
+      type: 'winback',
+      name: 'Win-back',
+      revenue: round2(totalFlowRevenue * noise(0.15, 0.05)),
+      sent: Math.round(totalSent * noise(0.10, 0.08)),
+      opened: Math.round(totalOpens * noise(0.08, 0.08)),
+      clicked: Math.round(totalClicks * noise(0.06, 0.08)),
+      converted: Math.round(totalClicks * noise(0.06, 0.08) * noise(0.04, 0.10)),
+    },
+  ];
+};
+
+// ============================================================
+// META CAMPAIGNS — Campaign-level breakdown
+// ============================================================
+export const generateMetaCampaigns = () => {
+  seed = 700;
+  const meta = generateMetaData();
+  const totalSpend = meta.reduce((s, d) => s + d.spend, 0);
+  const totalRevenue = meta.reduce((s, d) => s + d.revenue, 0);
+  const totalImpressions = meta.reduce((s, d) => s + d.impressions, 0);
+  const totalClicks = meta.reduce((s, d) => s + d.clicks, 0);
+  const totalConversions = meta.reduce((s, d) => s + d.conversions, 0);
+
+  return [
+    {
+      id: 'mc-1',
+      name: 'Prospecting - Broad',
+      status: 'active',
+      spend: round2(totalSpend * 0.40),
+      revenue: round2(totalRevenue * 0.35),
+      impressions: Math.round(totalImpressions * 0.45),
+      clicks: Math.round(totalClicks * 0.40),
+      conversions: Math.round(totalConversions * 0.30),
+      roas: round2((totalRevenue * 0.35) / (totalSpend * 0.40)),
+    },
+    {
+      id: 'mc-2',
+      name: 'Retargeting - Website Visitors',
+      status: 'active',
+      spend: round2(totalSpend * 0.25),
+      revenue: round2(totalRevenue * 0.35),
+      impressions: Math.round(totalImpressions * 0.20),
+      clicks: Math.round(totalClicks * 0.25),
+      conversions: Math.round(totalConversions * 0.35),
+      roas: round2((totalRevenue * 0.35) / (totalSpend * 0.25)),
+    },
+    {
+      id: 'mc-3',
+      name: 'Lookalike - Purchasers',
+      status: 'active',
+      spend: round2(totalSpend * 0.20),
+      revenue: round2(totalRevenue * 0.20),
+      impressions: Math.round(totalImpressions * 0.20),
+      clicks: Math.round(totalClicks * 0.20),
+      conversions: Math.round(totalConversions * 0.20),
+      roas: round2((totalRevenue * 0.20) / (totalSpend * 0.20)),
+    },
+    {
+      id: 'mc-4',
+      name: 'DPA - Catalog Sales',
+      status: 'active',
+      spend: round2(totalSpend * 0.15),
+      revenue: round2(totalRevenue * 0.10),
+      impressions: Math.round(totalImpressions * 0.15),
+      clicks: Math.round(totalClicks * 0.15),
+      conversions: Math.round(totalConversions * 0.15),
+      roas: round2((totalRevenue * 0.10) / (totalSpend * 0.15)),
+    },
+  ];
+};
+
+// ============================================================
+// GOOGLE CAMPAIGNS — Campaign-level breakdown
+// ============================================================
+export const generateGoogleCampaigns = () => {
+  seed = 800;
+  const google = generateGoogleData();
+  const totalSpend = google.reduce((s, d) => s + d.spend, 0);
+  const totalRevenue = google.reduce((s, d) => s + d.conversionValue, 0);
+  const totalImpressions = google.reduce((s, d) => s + d.impressions, 0);
+  const totalClicks = google.reduce((s, d) => s + d.clicks, 0);
+  const totalConversions = google.reduce((s, d) => s + d.conversions, 0);
+
+  return [
+    {
+      id: 'gc-1',
+      name: 'Brand Search',
+      status: 'active',
+      spend: round2(totalSpend * 0.25),
+      conversionValue: round2(totalRevenue * 0.35),
+      impressions: Math.round(totalImpressions * 0.15),
+      clicks: Math.round(totalClicks * 0.30),
+      conversions: Math.round(totalConversions * 0.35),
+      roas: round2((totalRevenue * 0.35) / (totalSpend * 0.25)),
+    },
+    {
+      id: 'gc-2',
+      name: 'Non-Brand Search',
+      status: 'active',
+      spend: round2(totalSpend * 0.35),
+      conversionValue: round2(totalRevenue * 0.25),
+      impressions: Math.round(totalImpressions * 0.30),
+      clicks: Math.round(totalClicks * 0.35),
+      conversions: Math.round(totalConversions * 0.25),
+      roas: round2((totalRevenue * 0.25) / (totalSpend * 0.35)),
+    },
+    {
+      id: 'gc-3',
+      name: 'Shopping - Smart',
+      status: 'active',
+      spend: round2(totalSpend * 0.30),
+      conversionValue: round2(totalRevenue * 0.30),
+      impressions: Math.round(totalImpressions * 0.40),
+      clicks: Math.round(totalClicks * 0.25),
+      conversions: Math.round(totalConversions * 0.30),
+      roas: round2((totalRevenue * 0.30) / (totalSpend * 0.30)),
+    },
+    {
+      id: 'gc-4',
+      name: 'Performance Max',
+      status: 'active',
+      spend: round2(totalSpend * 0.10),
+      conversionValue: round2(totalRevenue * 0.10),
+      impressions: Math.round(totalImpressions * 0.15),
+      clicks: Math.round(totalClicks * 0.10),
+      conversions: Math.round(totalConversions * 0.10),
+      roas: round2((totalRevenue * 0.10) / (totalSpend * 0.10)),
+    },
+  ];
 };
 
 // ============================================================
@@ -340,6 +534,9 @@ const metaData = generateMetaData();
 const googleData = generateGoogleData();
 const klaviyoData = generateKlaviyoData();
 const ga4Data = generateGA4Data();
+const klaviyoFlowsData = generateKlaviyoFlows();
+const metaCampaignsData = generateMetaCampaigns();
+const googleCampaignsData = generateGoogleCampaigns();
 
 export const mockData = {
   shopify: shopifyData,
@@ -347,6 +544,9 @@ export const mockData = {
   google: googleData,
   klaviyo: klaviyoData,
   ga4: ga4Data,
+  klaviyoFlows: klaviyoFlowsData,
+  metaCampaigns: metaCampaignsData,
+  googleCampaigns: googleCampaignsData,
 };
 
 // Quick stats (for debugging)

@@ -39,10 +39,10 @@ export default function RevenueByChannel() {
   const dateRange = useStore((state) => state.dateRange);
 
   const chartData = useMemo(() => {
-    const filteredShopify = filterDataByDateRange(mockData.shopify, dateRange);
-    const filteredMeta = filterDataByDateRange(mockData.meta, dateRange);
-    const filteredGoogle = filterDataByDateRange(mockData.google, dateRange);
-    const filteredGA4 = filterDataByDateRange(mockData.ga4, dateRange);
+    const filteredShopify = filterDataByDateRange(mockData.shopify || [], dateRange);
+    const filteredMeta = filterDataByDateRange(mockData.meta || [], dateRange);
+    const filteredGoogle = filterDataByDateRange(mockData.google || [], dateRange);
+    const filteredGA4 = filterDataByDateRange(mockData.ga4 || [], dateRange);
 
     const metaRevenue = filteredMeta.reduce((sum, d) => sum + (d.revenue || 0), 0);
     const googleRevenue = filteredGoogle.reduce((sum, d) => sum + (d.conversionValue || 0), 0);

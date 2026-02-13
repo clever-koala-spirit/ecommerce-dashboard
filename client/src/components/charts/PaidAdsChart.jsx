@@ -52,8 +52,8 @@ export default function PaidAdsChart() {
   const [platform, setPlatform] = useState('all');
 
   const chartData = useMemo(() => {
-    const filteredMeta = filterDataByDateRange(mockData.meta, dateRange);
-    const filteredGoogle = filterDataByDateRange(mockData.google, dateRange);
+    const filteredMeta = filterDataByDateRange(mockData.meta || [], dateRange);
+    const filteredGoogle = filterDataByDateRange(mockData.google || [], dateRange);
 
     let data = [];
 

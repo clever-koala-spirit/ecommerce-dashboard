@@ -9,10 +9,10 @@ export default function ChannelPerformanceTable() {
   const [sortConfig, setSortConfig] = useState({ key: 'revenue', direction: 'desc' });
 
   const channelData = useMemo(() => {
-    const filteredShopify = filterDataByDateRange(mockData.shopify, dateRange);
-    const filteredMeta = filterDataByDateRange(mockData.meta, dateRange);
-    const filteredGoogle = filterDataByDateRange(mockData.google, dateRange);
-    const filteredGA4 = filterDataByDateRange(mockData.ga4, dateRange);
+    const filteredShopify = filterDataByDateRange(mockData.shopify || [], dateRange);
+    const filteredMeta = filterDataByDateRange(mockData.meta || [], dateRange);
+    const filteredGoogle = filterDataByDateRange(mockData.google || [], dateRange);
+    const filteredGA4 = filterDataByDateRange(mockData.ga4 || [], dateRange);
 
     const shopifyTotal = filteredShopify.reduce((sum, d) => sum + (d.revenue || 0), 0);
     const metaSpend = filteredMeta.reduce((sum, d) => sum + (d.spend || 0), 0);

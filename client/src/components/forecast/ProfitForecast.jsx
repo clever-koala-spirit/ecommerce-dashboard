@@ -12,7 +12,7 @@ export default function ProfitForecast() {
   const dateRange = useStore((state) => state.dateRange);
 
   const forecast_data = useMemo(() => {
-    const historicalData = filterDataByDateRange(mockData.shopify, dateRange);
+    const historicalData = filterDataByDateRange(mockData.shopify || [], dateRange);
 
     if (historicalData.length === 0) {
       return {

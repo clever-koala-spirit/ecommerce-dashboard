@@ -18,15 +18,15 @@ import { COLORS } from '../../utils/colors';
  */
 function computeMetrics(dateRange, fixedCosts) {
   // Get current period data
-  const filteredShopify = filterDataByDateRange(mockData.shopify, dateRange);
-  const filteredMeta = filterDataByDateRange(mockData.meta, dateRange);
-  const filteredGoogle = filterDataByDateRange(mockData.google, dateRange);
+  const filteredShopify = filterDataByDateRange(mockData.shopify || [], dateRange);
+  const filteredMeta = filterDataByDateRange(mockData.meta || [], dateRange);
+  const filteredGoogle = filterDataByDateRange(mockData.google || [], dateRange);
 
   // Get previous period for comparison
   const prevDateRange = getPreviousPeriod(dateRange);
-  const prevShopify = filterDataByDateRange(mockData.shopify, prevDateRange);
-  const prevMeta = filterDataByDateRange(mockData.meta, prevDateRange);
-  const prevGoogle = filterDataByDateRange(mockData.google, prevDateRange);
+  const prevShopify = filterDataByDateRange(mockData.shopify || [], prevDateRange);
+  const prevMeta = filterDataByDateRange(mockData.meta || [], prevDateRange);
+  const prevGoogle = filterDataByDateRange(mockData.google || [], prevDateRange);
 
   // Calculate monthly fixed costs
   const monthlyFixedCosts = (fixedCosts || [])

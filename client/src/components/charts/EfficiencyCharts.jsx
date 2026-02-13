@@ -64,9 +64,9 @@ export default function EfficiencyCharts() {
 
   const { merData, ltvCacData, contributionData, merStats, ltvCacStats, contributionStats } =
     useMemo(() => {
-      const filteredShopify = filterDataByDateRange(mockData.shopify, dateRange);
-      const filteredMeta = filterDataByDateRange(mockData.meta, dateRange);
-      const filteredGoogle = filterDataByDateRange(mockData.google, dateRange);
+      const filteredShopify = filterDataByDateRange(mockData.shopify || [], dateRange);
+      const filteredMeta = filterDataByDateRange(mockData.meta || [], dateRange);
+      const filteredGoogle = filterDataByDateRange(mockData.google || [], dateRange);
 
       // MER Chart Data (Marketing Efficiency Ratio = Revenue / Ad Spend)
       const merChartData = filteredShopify.map((shopifyItem) => {

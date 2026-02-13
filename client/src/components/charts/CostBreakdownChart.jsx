@@ -72,9 +72,9 @@ export default function CostBreakdownChart() {
   const dateRange = useStore((state) => state.dateRange);
 
   const { areaChartData, pieChartData, totalCosts } = useMemo(() => {
-    const filteredShopify = filterDataByDateRange(mockData.shopify, dateRange);
-    const filteredMeta = filterDataByDateRange(mockData.meta, dateRange);
-    const filteredGoogle = filterDataByDateRange(mockData.google, dateRange);
+    const filteredShopify = filterDataByDateRange(mockData.shopify || [], dateRange);
+    const filteredMeta = filterDataByDateRange(mockData.meta || [], dateRange);
+    const filteredGoogle = filterDataByDateRange(mockData.google || [], dateRange);
 
     // Prepare area chart data (daily costs)
     const areaData = filteredShopify.map((shopifyItem) => {
@@ -109,7 +109,7 @@ export default function CostBreakdownChart() {
 
     return {
       areaChartData: areaData,
-      pieChartData,
+      pieChartData: pieData,
       totalCosts: grandTotal,
     };
   }, [dateRange]);

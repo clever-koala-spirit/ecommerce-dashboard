@@ -24,7 +24,7 @@ export default function RevenueForecastChart() {
 
   const chartData = useMemo(() => {
     // Get historical revenue data
-    const historicalData = filterDataByDateRange(mockData.shopify, dateRange);
+    const historicalData = filterDataByDateRange(mockData.shopify || [], dateRange);
 
     // Prepare data for forecast function
     const dataForForecast = historicalData.map((d) => ({

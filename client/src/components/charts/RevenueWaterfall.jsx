@@ -45,9 +45,9 @@ export default function RevenueWaterfall() {
   const dateRange = useStore((state) => state.dateRange);
 
   const chartData = useMemo(() => {
-    const filteredShopify = filterDataByDateRange(mockData.shopify, dateRange);
-    const filteredMeta = filterDataByDateRange(mockData.meta, dateRange);
-    const filteredGoogle = filterDataByDateRange(mockData.google, dateRange);
+    const filteredShopify = filterDataByDateRange(mockData.shopify || [], dateRange);
+    const filteredMeta = filterDataByDateRange(mockData.meta || [], dateRange);
+    const filteredGoogle = filterDataByDateRange(mockData.google || [], dateRange);
 
     const grossRevenue = filteredShopify.reduce((sum, d) => sum + (d.revenue || 0), 0);
     const refunds = filteredShopify.reduce((sum, d) => sum + (d.refundAmount || 0), 0);
