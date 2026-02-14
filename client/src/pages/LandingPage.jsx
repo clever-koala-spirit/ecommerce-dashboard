@@ -18,6 +18,7 @@ import {
   Clock,
   Globe,
   Lock,
+  Award,
   Mail,
   MessageSquare,
   Play,
@@ -723,7 +724,7 @@ const LandingPage = () => {
 
           <div className="text-center mt-12">
             <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-[#22c55e]/20 border border-[#22c55e]/40">
-              <Crown className="w-4 h-4 text-[#22c55e]" />
+              <Award className="w-4 h-4 text-[#22c55e]" />
               <span className="text-sm font-semibold text-[#22c55e]">Winner: Slay Season</span>
             </div>
             <p className="text-lg text-[#8b92b0] mb-6">
