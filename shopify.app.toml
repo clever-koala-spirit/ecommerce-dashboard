@@ -1,0 +1,15 @@
+name = "slayseason"
+client_id = "99d59e211a3d5de70d462211eade9d39"
+application_url = "https://slayseason.com"
+embedded = false
+
+[auth]
+redirect_urls = [
+  "https://slayseason.com/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2026-01"
+
+[access_scopes]
+scopes = "read_products,read_orders,read_customers,read_analytics"
