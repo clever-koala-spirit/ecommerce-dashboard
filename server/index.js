@@ -1,10 +1,18 @@
-import express from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { initDB } from './db/database.js';
+
+// Load environment variables FIRST
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, '../.env') });
+
+import express from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import { initDB, getDB } from './db/database.js';
 import { startCronJobs } from './cron/snapshots.js';
+import { log, requestLogger, errorLogger } from './utils/logger.js';
+import { sanitizeAllInputs } from './middleware/validation.js';
 import {
   securityHeaders,
   apiRateLimiter,
@@ -26,9 +34,7 @@ import connectionsRouter from './routes/connections.js';
 import dataRouter from './routes/data.js';
 import aiRouter from './routes/ai.js';
 import oauthRouter from './routes/oauth.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, '../.env') });
+import billingRouter from './routes/billing.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -43,9 +49,11 @@ app.use('/api/webhooks', express.raw({ type: 'application/json', limit: '5mb' })
 // --- Global middleware ---
 app.use(securityHeaders);
 app.use(addRequestId);
-app.use(auditLog);
+app.use(requestLogger);
 app.use(sanitizeRequest);
+app.use(sanitizeAllInputs);
 app.use(cors(getCorsConfig()));
+app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 
 // --- Session token verification (for embedded Shopify apps) ---
@@ -57,12 +65,42 @@ app.use(verifySessionToken);
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    version: '2.0.0',
-    security: 'enabled',
-  });
+  try {
+    // Check database connection
+    const db = getDB();
+    const dbStatus = db.exec('SELECT 1')[0]?.values ? 'connected' : 'error';
+    
+    // Check if required environment variables are set
+    const envCheck = {
+      encryption: !!process.env.ENCRYPTION_KEY,
+      jwt: !!process.env.JWT_SECRET,
+      stripe: !!process.env.STRIPE_SECRET_KEY,
+      email: !!process.env.SENDGRID_API_KEY
+    };
+
+    const overall = dbStatus === 'connected' && envCheck.encryption && envCheck.jwt ? 'ok' : 'degraded';
+    
+    res.json({
+      status: overall,
+      timestamp: new Date().toISOString(),
+      version: '2.0.0',
+      database: dbStatus,
+      environment: envCheck,
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      services: {
+        billing: !!process.env.STRIPE_SECRET_KEY ? 'configured' : 'not_configured',
+        email: !!process.env.SENDGRID_API_KEY ? 'configured' : 'not_configured'
+      }
+    });
+  } catch (error) {
+    log.error('Health check failed', error);
+    res.status(500).json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      error: 'Health check failed'
+    });
+  }
 });
 
 // Root endpoint — serve SPA if frontend is built, otherwise API info
@@ -107,6 +145,7 @@ app.use('/api/connections', apiRateLimiter, requireShopAuth, connectionsRouter);
 app.use('/api/data', apiRateLimiter, requireShopAuth, dataRouter);
 app.use('/api/ai', apiRateLimiter, requireShopAuth, aiRouter);
 app.use('/api/oauth', apiRateLimiter, requireShopAuth, oauthRouter);
+app.use('/api/billing', apiRateLimiter, requireShopAuth, billingRouter);
 
 // Forecast endpoint placeholder
 app.post('/api/forecast', apiRateLimiter, requireShopAuth, (req, res) => {
@@ -134,15 +173,23 @@ app.use((req, res) => {
 });
 
 // --- Error handling middleware ---
+app.use(errorLogger);
 app.use((err, req, res, next) => {
   // Don't leak error details in production
   const isDev = process.env.NODE_ENV !== 'production';
 
-  console.error(`[Error] ${req.requestId}:`, isDev ? err : err.message);
-
   // CORS errors
   if (err.message === 'Not allowed by CORS') {
     return res.status(403).json({ error: 'Origin not allowed' });
+  }
+
+  // Validation errors
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({
+      error: 'Validation failed',
+      details: err.details || err.message,
+      requestId: req.requestId
+    });
   }
 
   res.status(err.status || 500).json({
@@ -154,11 +201,23 @@ app.use((err, req, res, next) => {
 // --- Start server ---
 async function startServer() {
   try {
+    // Validate required environment variables
+    const requiredEnvVars = ['ENCRYPTION_KEY', 'JWT_SECRET'];
+    const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+    
+    if (missingVars.length > 0) {
+      log.error('Required environment variables are missing', null, { 
+        missingVars,
+        message: 'Please set these in your .env file. See .env.example for guidance.'
+      });
+      process.exit(1);
+    }
+
     await initDB();
-    console.log('[Database] Initialized with encrypted storage');
+    log.info('Database initialized with encrypted storage');
 
     startCronJobs();
-    console.log('[Cron] Jobs started');
+    log.info('Cron jobs started');
 
     // Security status
     const hasApiKey = !!process.env.SHOPIFY_API_KEY;
@@ -166,16 +225,43 @@ async function startServer() {
     const hasEncryptionKey = !!process.env.ENCRYPTION_KEY;
 
     app.listen(PORT, () => {
-      console.log(`\n[Server] Slay Season API v2.0.0 running on port ${PORT}`);
-      console.log(`[Security] Helmet: ✅ | Rate limiting: ✅ | HMAC: ✅ | AES-256-GCM: ✅`);
-      console.log(`[Shopify] API Key: ${hasApiKey ? '✅' : '⚠️ missing'} | Secret: ${hasSecret ? '✅' : '⚠️ missing'}`);
-      console.log(`[Crypto] Encryption key: ${hasEncryptionKey ? '✅ (from env)' : '⚠️ auto-generated (set ENCRYPTION_KEY for persistence)'}`);
-      console.log(`\n  Health: GET http://localhost:${PORT}/api/health`);
-      console.log(`  Auth:   GET http://localhost:${PORT}/api/auth?shop=yourstore.myshopify.com`);
-      console.log(`  Data:   GET http://localhost:${PORT}/api/data/dashboard (requires auth)\n`);
+      log.info('Server started', {
+        version: '2.0.0',
+        port: PORT,
+        environment: process.env.NODE_ENV || 'development',
+        security: {
+          helmet: true,
+          rateLimiting: true,
+          hmac: true,
+          encryption: 'AES-256-GCM'
+        },
+        services: {
+          shopifyApiKey: hasApiKey,
+          shopifySecret: hasSecret,
+          encryptionKey: hasEncryptionKey,
+          stripe: !!process.env.STRIPE_SECRET_KEY,
+          email: !!process.env.SENDGRID_API_KEY
+        },
+        endpoints: {
+          health: `http://localhost:${PORT}/api/health`,
+          auth: `http://localhost:${PORT}/api/auth`,
+          dashboard: `http://localhost:${PORT}/api/data/dashboard`
+        }
+      });
+      
+      // Still output to console for development
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`\n🚀 Slay Season API v2.0.0 running on port ${PORT}`);
+        console.log(`🔒 Security: Helmet ✅ | Rate limiting ✅ | HMAC ✅ | AES-256-GCM ✅`);
+        console.log(`🏪 Shopify: API Key ${hasApiKey ? '✅' : '⚠️'} | Secret ${hasSecret ? '✅' : '⚠️'}`);
+        console.log(`💳 Stripe: ${process.env.STRIPE_SECRET_KEY ? '✅' : '⚠️'} | Email: ${process.env.SENDGRID_API_KEY ? '✅' : '⚠️'}`);
+        console.log(`\n📊 Health: http://localhost:${PORT}/api/health`);
+        console.log(`🔐 Auth: http://localhost:${PORT}/api/auth?shop=yourstore.myshopify.com`);
+        console.log(`📈 Data: http://localhost:${PORT}/api/data/dashboard\n`);
+      }
     });
   } catch (error) {
-    console.error('[Server] Startup error:', error);
+    log.error('Server startup failed', error);
     process.exit(1);
   }
 }

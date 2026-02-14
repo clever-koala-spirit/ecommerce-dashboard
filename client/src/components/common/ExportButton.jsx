@@ -3,7 +3,9 @@ import { Download, ChevronDown } from 'lucide-react';
 
 export function exportAsCSV(data, filename = 'export.csv') {
   if (!Array.isArray(data) || data.length === 0) {
-    console.warn('No data to export');
+    if (import.meta.env.DEV) {
+      console.warn('No data to export');
+    }
     return;
   }
 
@@ -31,7 +33,9 @@ export function exportAsCSV(data, filename = 'export.csv') {
 
 export function exportAsJSON(data, filename = 'export.json') {
   if (!data) {
-    console.warn('No data to export');
+    if (import.meta.env.DEV) {
+      console.warn('No data to export');
+    }
     return;
   }
 

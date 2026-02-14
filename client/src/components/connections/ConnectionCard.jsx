@@ -76,7 +76,9 @@ export function ConnectionCard({ source, status, onStatusChange }) {
         }
       }, 2000);
     } catch (error) {
-      console.error('Sync error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Sync error:', error);
+      }
     } finally {
       setIsSyncing(false);
     }

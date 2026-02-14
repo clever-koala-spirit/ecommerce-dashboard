@@ -18,7 +18,9 @@ async function apiFetch(endpoint, options = {}) {
       token = await window.shopify.idToken();
     } catch (err) {
       // Not embedded or token fetch failed — will use X-Shop-Domain header instead
-      console.debug('[apiFetch] Session token not available:', err.message);
+      if (import.meta.env.DEV) {
+        console.debug('[apiFetch] Session token not available:', err.message);
+      }
     }
   }
 
@@ -77,7 +79,9 @@ export async function fetchDashboardData() {
       timestamp: data.timestamp,
     };
   } catch (error) {
-    console.error('[API] Error fetching dashboard data:', error);
+    if (import.meta.env.DEV) {
+      console.error('[API] Error fetching dashboard data:', error);
+    }
     return {
       isLive: false,
       data: {
@@ -119,7 +123,9 @@ export async function fetchConnectionStatus() {
       timestamp: new Date().toISOString(),
     };
   } catch (error) {
-    console.error('[API] Error fetching connection status:', error);
+    if (import.meta.env.DEV) {
+      console.error('[API] Error fetching connection status:', error);
+    }
     return {
       isLive: false,
       data: {
@@ -152,7 +158,9 @@ export async function testConnection(source) {
 
     return await response.json();
   } catch (error) {
-    console.error(`[API] Error testing connection for ${source}:`, error);
+    if (import.meta.env.DEV) {
+      console.error(`[API] Error testing connection for ${source}:`, error);
+    }
     return {
       source,
       connected: false,
@@ -180,7 +188,9 @@ export async function syncSource(source) {
 
     return await response.json();
   } catch (error) {
-    console.error(`[API] Error syncing ${source}:`, error);
+    if (import.meta.env.DEV) {
+      console.error(`[API] Error syncing ${source}:`, error);
+    }
     return {
       source,
       error: error.message,
@@ -230,7 +240,9 @@ export async function fetchSourceData(source) {
       data: responseData.data || [],
     };
   } catch (error) {
-    console.error(`[API] Error fetching data for ${source}:`, error);
+    if (import.meta.env.DEV) {
+      console.error(`[API] Error fetching data for ${source}:`, error);
+    }
     const mockDataMap = {
       shopify: mockData.shopify,
       meta: mockData.meta,
@@ -263,7 +275,9 @@ export async function fetchShopifyOrders() {
       data: data.data || mockData.shopify,
     };
   } catch (error) {
-    console.error('[API] Error fetching Shopify orders:', error);
+    if (import.meta.env.DEV) {
+      console.error('[API] Error fetching Shopify orders:', error);
+    }
     return { isLive: false, data: mockData.shopify, error: error.message };
   }
 }
@@ -284,7 +298,9 @@ export async function fetchMetaCampaigns() {
       data: data.data || mockData.metaCampaigns,
     };
   } catch (error) {
-    console.error('[API] Error fetching Meta campaigns:', error);
+    if (import.meta.env.DEV) {
+      console.error('[API] Error fetching Meta campaigns:', error);
+    }
     return { isLive: false, data: mockData.metaCampaigns, error: error.message };
   }
 }
@@ -305,7 +321,9 @@ export async function fetchGoogleCampaigns() {
       data: data.data || mockData.googleCampaigns,
     };
   } catch (error) {
-    console.error('[API] Error fetching Google campaigns:', error);
+    if (import.meta.env.DEV) {
+      console.error('[API] Error fetching Google campaigns:', error);
+    }
     return { isLive: false, data: mockData.googleCampaigns, error: error.message };
   }
 }
@@ -326,7 +344,9 @@ export async function fetchKlaviyoFlows() {
       data: data.data || mockData.klaviyoFlows,
     };
   } catch (error) {
-    console.error('[API] Error fetching Klaviyo flows:', error);
+    if (import.meta.env.DEV) {
+      console.error('[API] Error fetching Klaviyo flows:', error);
+    }
     return { isLive: false, data: mockData.klaviyoFlows, error: error.message };
   }
 }
@@ -347,7 +367,9 @@ export async function fetchGA4Sessions() {
       data: data.data || mockData.ga4,
     };
   } catch (error) {
-    console.error('[API] Error fetching GA4 sessions:', error);
+    if (import.meta.env.DEV) {
+      console.error('[API] Error fetching GA4 sessions:', error);
+    }
     return { isLive: false, data: mockData.ga4, error: error.message };
   }
 }
@@ -367,7 +389,9 @@ export async function invalidateCache(source = null) {
 
     return await response.json();
   } catch (error) {
-    console.error('[API] Error invalidating cache:', error);
+    if (import.meta.env.DEV) {
+      console.error('[API] Error invalidating cache:', error);
+    }
     return { error: error.message };
   }
 }

@@ -20,7 +20,9 @@ export function ConnectionsPanel() {
         setLastChecked(new Date());
       }
     } catch (error) {
-      console.error('Error fetching connection status:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching connection status:', error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -49,7 +51,9 @@ export function ConnectionsPanel() {
       // Refresh status after syncing
       await fetchStatus();
     } catch (error) {
-      console.error('Error syncing all sources:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error syncing all sources:', error);
+      }
     } finally {
       setIsSyncingAll(false);
     }

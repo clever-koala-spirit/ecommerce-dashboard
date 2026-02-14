@@ -48,7 +48,9 @@ export function ShopifyProvider({ children }) {
       try {
         token = await window.shopify.idToken();
       } catch (err) {
-        console.warn('[ShopifyProvider] Failed to get session token:', err.message);
+        if (import.meta.env.DEV) {
+          console.warn('[ShopifyProvider] Failed to get session token:', err.message);
+        }
         // Continue without token — will fall back to X-Shop-Domain header
       }
     }
@@ -104,7 +106,9 @@ export function ShopifyProvider({ children }) {
           try {
             token = await window.shopify.idToken();
           } catch (err) {
-            console.warn('[ShopifyProvider] Failed to get session token during auth check:', err.message);
+            if (import.meta.env.DEV) {
+              console.warn('[ShopifyProvider] Failed to get session token during auth check:', err.message);
+            }
           }
         }
 
@@ -125,7 +129,9 @@ export function ShopifyProvider({ children }) {
           }
         }
       } catch (err) {
-        console.error('[ShopifyProvider] Auth check failed:', err);
+        if (import.meta.env.DEV) {
+          console.error('[ShopifyProvider] Auth check failed:', err);
+        }
         setError('Failed to verify authentication');
       } finally {
         setIsLoading(false);

@@ -1,15 +1,19 @@
 import initSqlJs from 'sql.js';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 let db = null;
 const SQL = await initSqlJs();
 
+// Database file path
+const DB_PATH = path.join(process.cwd(), 'data', 'ecommerce.db');
+
 // --- Encryption helpers (AES-256-GCM) ---
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || (() => {
-  const key = crypto.randomBytes(32).toString('hex');
-  console.error('[FATAL] ENCRYPTION_KEY not set! Using temporary key. Data will be LOST on restart.');
-  return key;
-})();
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+if (!ENCRYPTION_KEY) {
+  throw new Error('ENCRYPTION_KEY environment variable is required but not set');
+}
 
 function getEncryptionKey() {
   return Buffer.from(ENCRYPTION_KEY, 'hex');
@@ -35,9 +39,104 @@ export function decrypt(encryptedText) {
   return decrypted;
 }
 
+// --- Database file operations ---
+function ensureDataDirectory() {
+  const dataDir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+}
+
+function saveDatabaseToFile() {
+  try {
+    ensureDataDirectory();
+    const data = db.export();
+    fs.writeFileSync(DB_PATH, Buffer.from(data));
+  } catch (error) {
+    console.error('[Database] Error saving to file:', error);
+  }
+}
+
+function loadDatabaseFromFile() {
+  try {
+    if (fs.existsSync(DB_PATH)) {
+      const data = fs.readFileSync(DB_PATH);
+      return new SQL.Database(data);
+    }
+    return new SQL.Database();
+  } catch (error) {
+    console.error('[Database] Error loading from file:', error);
+    return new SQL.Database();
+  }
+}
+
+// Auto-save every 30 seconds
+let saveInterval;
+function startAutoSave() {
+  if (saveInterval) clearInterval(saveInterval);
+  saveInterval = setInterval(() => {
+    if (db) saveDatabaseToFile();
+  }, 30000);
+}
+
+// Save on process exit
+process.on('exit', () => {
+  if (db) saveDatabaseToFile();
+});
+
+process.on('SIGINT', () => {
+  if (db) saveDatabaseToFile();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  if (db) saveDatabaseToFile();
+  process.exit(0);
+});
+
 // --- Database initialization ---
 export async function initDB() {
-  db = new SQL.Database();
+  db = loadDatabaseFromFile();
+
+  // Users table — stores dashboard user accounts
+  db.run(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      hashed_password TEXT NOT NULL,
+      salt TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      last_login_at TIMESTAMP
+    );
+  `);
+
+  // Reset tokens table — stores password reset tokens
+  db.run(`
+    CREATE TABLE IF NOT EXISTS reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      token TEXT NOT NULL UNIQUE,
+      expires_at TIMESTAMP NOT NULL,
+      used BOOLEAN DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    );
+  `);
+
+  // OAuth states table — stores OAuth state and PKCE verifiers
+  db.run(`
+    CREATE TABLE IF NOT EXISTS oauth_states (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      platform TEXT NOT NULL,
+      state TEXT NOT NULL,
+      verifier TEXT,
+      shop_domain TEXT NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(platform, state)
+    );
+  `);
 
   // Shops table — stores each installed Shopify store
   db.run(`
@@ -152,6 +251,11 @@ export async function initDB() {
   `);
 
   // Indexes for performance
+  db.run(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_reset_tokens_token ON reset_tokens(token);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_reset_tokens_user ON reset_tokens(user_id);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_oauth_states_state ON oauth_states(platform, state);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_oauth_states_expires ON oauth_states(expires_at);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_shops_domain ON shops(shop_domain);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_sessions_shop ON sessions(shop_domain);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_metric_shop_date ON metric_snapshots(shop_domain, date, source);`);
@@ -159,12 +263,24 @@ export async function initDB() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_platform_conn ON platform_connections(shop_domain, platform);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_costs_shop ON fixed_costs(shop_domain);`);
 
+  // Save initial schema to file and start auto-save
+  saveDatabaseToFile();
+  startAutoSave();
+
   return db;
 }
 
 export function getDB() {
   if (!db) throw new Error('Database not initialized. Call initDB() first.');
   return db;
+}
+
+// Helper to execute a write operation and save to file
+function executeAndSave(query, params = []) {
+  const db = getDB();
+  const result = db.run(query, params);
+  saveDatabaseToFile();
+  return result;
 }
 
 // --- Shop management ---
@@ -256,6 +372,181 @@ export function getShopNonce(shopDomain) {
   const results = db.exec(`SELECT nonce FROM shops WHERE shop_domain = ?`, [shopDomain]);
   if (results.length === 0 || results[0].values.length === 0) return null;
   return results[0].values[0][0];
+}
+
+// --- User management ---
+export function createUser(id, name, email, hashedPassword, salt) {
+  const db = getDB();
+  const createdAt = new Date().toISOString();
+  
+  db.run(
+    `INSERT INTO users (id, name, email, hashed_password, salt, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [id, name, email.toLowerCase().trim(), hashedPassword, salt, createdAt]
+  );
+}
+
+export function getUserByEmail(email) {
+  const db = getDB();
+  const results = db.exec(
+    `SELECT id, name, email, hashed_password, salt, created_at, last_login_at
+     FROM users WHERE email = ?`,
+    [email.toLowerCase().trim()]
+  );
+
+  if (results.length === 0 || results[0].values.length === 0) return null;
+
+  const row = results[0].values[0];
+  return {
+    id: row[0],
+    name: row[1],
+    email: row[2],
+    hashedPassword: row[3],
+    salt: row[4],
+    createdAt: row[5],
+    lastLoginAt: row[6],
+  };
+}
+
+export function getUserById(id) {
+  const db = getDB();
+  const results = db.exec(
+    `SELECT id, name, email, hashed_password, salt, created_at, last_login_at
+     FROM users WHERE id = ?`,
+    [id]
+  );
+
+  if (results.length === 0 || results[0].values.length === 0) return null;
+
+  const row = results[0].values[0];
+  return {
+    id: row[0],
+    name: row[1],
+    email: row[2],
+    hashedPassword: row[3],
+    salt: row[4],
+    createdAt: row[5],
+    lastLoginAt: row[6],
+  };
+}
+
+export function updateUserLastLogin(id) {
+  const db = getDB();
+  const lastLoginAt = new Date().toISOString();
+  
+  db.run(
+    `UPDATE users SET last_login_at = ? WHERE id = ?`,
+    [lastLoginAt, id]
+  );
+}
+
+export function updateUserPassword(id, hashedPassword, salt) {
+  const db = getDB();
+  
+  db.run(
+    `UPDATE users SET hashed_password = ?, salt = ? WHERE id = ?`,
+    [hashedPassword, salt, id]
+  );
+}
+
+// --- Reset token management ---
+export function createResetToken(userId, token, expiresAt) {
+  const db = getDB();
+  
+  db.run(
+    `INSERT INTO reset_tokens (user_id, token, expires_at)
+     VALUES (?, ?, ?)`,
+    [userId, token, expiresAt]
+  );
+}
+
+export function getResetToken(token) {
+  const db = getDB();
+  const results = db.exec(
+    `SELECT rt.id, rt.user_id, rt.token, rt.expires_at, rt.used, rt.created_at,
+            u.id as user_id, u.name, u.email
+     FROM reset_tokens rt
+     JOIN users u ON rt.user_id = u.id
+     WHERE rt.token = ? AND rt.used = 0 AND rt.expires_at > datetime('now')`,
+    [token]
+  );
+
+  if (results.length === 0 || results[0].values.length === 0) return null;
+
+  const row = results[0].values[0];
+  return {
+    id: row[0],
+    userId: row[1],
+    token: row[2],
+    expiresAt: row[3],
+    used: row[4] === 1,
+    createdAt: row[5],
+    user: {
+      id: row[6],
+      name: row[7],
+      email: row[8]
+    }
+  };
+}
+
+export function markResetTokenUsed(tokenId) {
+  const db = getDB();
+  
+  db.run(
+    `UPDATE reset_tokens SET used = 1 WHERE id = ?`,
+    [tokenId]
+  );
+}
+
+export function deleteExpiredResetTokens() {
+  const db = getDB();
+  
+  db.run(
+    `DELETE FROM reset_tokens WHERE expires_at < datetime('now') OR used = 1`
+  );
+}
+
+// --- OAuth state management ---
+export function saveOAuthState(platform, state, verifier, shopDomain) {
+  const db = getDB();
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 minutes
+  
+  db.run(
+    `INSERT INTO oauth_states (platform, state, verifier, shop_domain, expires_at) 
+     VALUES (?, ?, ?, ?, ?)`,
+    [platform, state, verifier, shopDomain, expiresAt]
+  );
+}
+
+export function getOAuthState(platform, state) {
+  const db = getDB();
+  const results = db.exec(
+    `SELECT verifier, shop_domain FROM oauth_states 
+     WHERE platform = ? AND state = ? AND expires_at > datetime('now')`,
+    [platform, state]
+  );
+  
+  if (results.length === 0 || results[0].values.length === 0) return null;
+  
+  const [verifier, shopDomain] = results[0].values[0];
+  return { verifier, shopDomain };
+}
+
+export function deleteOAuthState(platform, state) {
+  const db = getDB();
+  
+  db.run(
+    `DELETE FROM oauth_states WHERE platform = ? AND state = ?`,
+    [platform, state]
+  );
+}
+
+export function cleanupExpiredOAuthStates() {
+  const db = getDB();
+  
+  db.run(
+    `DELETE FROM oauth_states WHERE expires_at < datetime('now')`
+  );
 }
 
 // --- Platform connections ---

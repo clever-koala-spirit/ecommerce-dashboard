@@ -87,7 +87,9 @@ export default function AIChatPanel() {
         handleAIActions(aiMessage.actions);
       }
     } catch (error) {
-      console.error('[Chat Error]', error);
+      if (import.meta.env.DEV) {
+        console.error('[Chat Error]', error);
+      }
       const errorMessage = {
         id: Date.now() + 1,
         text: error.message === 'Failed to get AI response'
@@ -105,7 +107,9 @@ export default function AIChatPanel() {
   const handleAIActions = (actions) => {
     // Handle actions like showChart, highlightMetric, etc.
     actions.forEach((action) => {
-      console.log('[AI Action]', action);
+      if (import.meta.env.DEV) {
+        console.log('[AI Action]', action);
+      }
       // Future: implement action handlers
     });
   };

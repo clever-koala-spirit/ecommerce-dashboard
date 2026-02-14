@@ -9,23 +9,14 @@
 
 import express from 'express';
 import crypto from 'crypto';
-import { savePlatformConnection, getPlatformConnection } from '../db/database.js';
+import { savePlatformConnection, getPlatformConnection, saveOAuthState, getOAuthState, deleteOAuthState } from '../db/database.js';
+import { log } from '../utils/logger.js';
+import { validateOAuthInitiate, validateOAuthCallback } from '../middleware/validation.js';
 
 const router = express.Router();
 
-// Store for OAuth state and PKCE verifiers (in production, use Redis or DB)
-// Key: `${platform}:${state}`, Value: { verifier, shopDomain, timestamp }
-const oauthStore = new Map();
-
-// Cleanup expired entries every 15 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, value] of oauthStore.entries()) {
-    if (now - value.timestamp > 15 * 60 * 1000) {
-      oauthStore.delete(key);
-    }
-  }
-}, 15 * 60 * 1000);
+// OAuth state is now stored in the database (oauth_states table)
+// This was previously stored in memory which was a security vulnerability
 
 // --- Helper Functions ---
 
@@ -93,17 +84,27 @@ function getOAuthConfig(platform) {
 router.get('/:platform/start', (req, res) => {
   try {
     const { platform } = req.params;
-    const { shop } = req.query;
     const { shopDomain } = req;
 
     // Validate platform
+    const validPlatforms = ['meta', 'google', 'klaviyo', 'ga4'];
+    if (!validPlatforms.includes(platform)) {
+      log.security('oauth_invalid_platform_attempt', {
+        platform,
+        shopDomain,
+        ip: req.ip
+      });
+      return res.status(400).json({ error: 'Unknown platform' });
+    }
+
     const config = getOAuthConfig(platform);
     if (!config) {
-      return res.status(400).json({ error: 'Unknown platform' });
+      return res.status(400).json({ error: 'Platform configuration missing' });
     }
 
     // Validate credentials are configured
     if (!config.clientId || !config.clientSecret) {
+      log.error('OAuth credentials not configured', null, { platform });
       return res.status(500).json({
         error: `OAuth not configured for ${platform}. Contact support.`,
       });
@@ -118,12 +119,13 @@ router.get('/:platform/start', (req, res) => {
       pkce = generatePKCE();
     }
 
-    // Store state for verification in callback
-    const storeKey = `${platform}:${state}`;
-    oauthStore.set(storeKey, {
-      verifier: pkce?.verifier || null,
+    // Store state in database for verification in callback (replaces in-memory store)
+    saveOAuthState(platform, state, pkce?.verifier || null, shopDomain);
+
+    log.oauth(platform, 'flow_started', {
       shopDomain,
-      timestamp: Date.now(),
+      state: state.substring(0, 8) + '...',
+      usesPKCE: !!config.usesPKCE
     });
 
     // Build OAuth authorization URL
@@ -150,7 +152,10 @@ router.get('/:platform/start', (req, res) => {
 
     res.redirect(authUrl);
   } catch (error) {
-    console.error(`[OAuth] Error starting ${req.params.platform} flow:`, error);
+    log.error('OAuth flow initialization failed', error, { 
+      platform: req.params.platform,
+      shopDomain: req.shopDomain
+    });
     res.status(500).json({ error: 'OAuth initialization failed' });
   }
 });
@@ -159,13 +164,18 @@ router.get('/:platform/start', (req, res) => {
  * GET /api/oauth/:platform/callback
  * Handles OAuth callback — exchanges authorization code for access token
  */
-router.get('/:platform/callback', async (req, res) => {
+router.get('/:platform/callback', validateOAuthCallback, async (req, res) => {
   try {
     const { platform } = req.params;
     const { code, state, error, error_description } = req.query;
 
     // Check for OAuth errors from the platform
     if (error) {
+      log.oauth(platform, 'callback_error', {
+        error,
+        error_description,
+        ip: req.ip
+      });
       return res.status(400).json({
         error: 'OAuth authorization denied',
         details: error_description || error,
@@ -173,6 +183,12 @@ router.get('/:platform/callback', async (req, res) => {
     }
 
     if (!code || !state) {
+      log.security('oauth_callback_missing_params', {
+        platform,
+        hasCode: !!code,
+        hasState: !!state,
+        ip: req.ip
+      });
       return res.status(400).json({ error: 'Missing authorization code or state' });
     }
 
@@ -181,16 +197,20 @@ router.get('/:platform/callback', async (req, res) => {
       return res.status(400).json({ error: 'Unknown platform' });
     }
 
-    // Verify state for CSRF protection
-    const storeKey = `${platform}:${state}`;
-    const storedData = oauthStore.get(storeKey);
+    // Verify state for CSRF protection using database
+    const storedData = getOAuthState(platform, state);
 
     if (!storedData) {
+      log.security('oauth_invalid_state', {
+        platform,
+        state: state.substring(0, 8) + '...',
+        ip: req.ip
+      });
       return res.status(400).json({ error: 'Invalid or expired state parameter' });
     }
 
     const { verifier: pkceVerifier, shopDomain } = storedData;
-    oauthStore.delete(storeKey); // Clean up state
+    deleteOAuthState(platform, state); // Clean up state
 
     // Exchange authorization code for access token
     const tokenPayload = {
@@ -231,7 +251,12 @@ router.get('/:platform/callback', async (req, res) => {
     }/settings?platform=${platform}&connected=true`;
     return res.redirect(redirectUrl);
   } catch (error) {
-    console.error(`[OAuth] Error handling ${req.params.platform} callback:`, error);
+    log.error('OAuth callback processing failed', error, {
+      platform: req.params.platform,
+      shopDomain,
+      hasCode: !!code,
+      hasState: !!state
+    });
 
     // Redirect to settings with error
     const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings?platform=${req.params.platform}&error=${encodeURIComponent(error.message)}`;
@@ -273,7 +298,11 @@ async function fetchPlatformInfo(platform, tokenData) {
       credentials.scope = tokenData.scope || 'campaigns:read flows:read metrics:read';
     }
   } catch (error) {
-    console.warn(`[OAuth] Warning: Could not fetch account info for ${platform}:`, error.message);
+    log.warn('Could not fetch platform account info', {
+      platform,
+      error: error.message,
+      message: 'Continuing with token only'
+    });
     // Continue with token only if account info fetch fails
   }
 

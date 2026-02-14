@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './providers/AuthProvider';
 import { useShopify } from './providers/ShopifyProvider';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import DashboardLayout from './components/layout/DashboardLayout';
 import DashboardPage from './pages/DashboardPage';
 import ForecastPage from './pages/ForecastPage';
@@ -10,6 +11,8 @@ import ConnectPage from './pages/ConnectPage';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 // Lazy load legal pages
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
@@ -46,35 +49,88 @@ function ProtectedRoute({ children }) {
 
 function App() {
   return (
-    <Suspense fallback={<LoadingScreen />}>
-      <Routes>
-        {/* === PUBLIC ROUTES === */}
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingScreen />}>
+        <Routes>
+          {/* === PUBLIC ROUTES === */}
 
-        {/* Marketing landing page */}
-        <Route path="/" element={<LandingPage />} />
+          {/* Marketing landing page */}
+          <Route path="/" element={
+            <ErrorBoundary>
+              <LandingPage />
+            </ErrorBoundary>
+          } />
 
-        {/* Auth pages */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
+          {/* Auth pages */}
+          <Route path="/login" element={
+            <ErrorBoundary>
+              <LoginPage />
+            </ErrorBoundary>
+          } />
+          <Route path="/signup" element={
+            <ErrorBoundary>
+              <SignupPage />
+            </ErrorBoundary>
+          } />
+          <Route path="/forgot-password" element={
+            <ErrorBoundary>
+              <ForgotPasswordPage />
+            </ErrorBoundary>
+          } />
 
-        {/* Legal pages */}
-        <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/terms" element={<TermsPage />} />
+          {/* Legal pages */}
+          <Route path="/privacy" element={
+            <ErrorBoundary>
+              <PrivacyPage />
+            </ErrorBoundary>
+          } />
+          <Route path="/terms" element={
+            <ErrorBoundary>
+              <TermsPage />
+            </ErrorBoundary>
+          } />
 
-        {/* Shopify connect page (for embedded app flow) */}
-        <Route path="/connect" element={<ConnectPage />} />
+          {/* Shopify connect page (for embedded app flow) */}
+          <Route path="/connect" element={
+            <ErrorBoundary>
+              <ConnectPage />
+            </ErrorBoundary>
+          } />
 
-        {/* === PROTECTED ROUTES (require login) === */}
-        <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/forecast" element={<ForecastPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Route>
+          {/* === PROTECTED ROUTES (require login) === */}
+          <Route element={
+            <ErrorBoundary>
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          }>
+            <Route path="/dashboard" element={
+              <ErrorBoundary>
+                <DashboardPage />
+              </ErrorBoundary>
+            } />
+            <Route path="/forecast" element={
+              <ErrorBoundary>
+                <ForecastPage />
+              </ErrorBoundary>
+            } />
+            <Route path="/settings" element={
+              <ErrorBoundary>
+                <SettingsPage />
+              </ErrorBoundary>
+            } />
+          </Route>
 
-        {/* Catch-all: redirect to landing */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
+          {/* 404 page for unknown routes */}
+          <Route path="*" element={
+            <ErrorBoundary>
+              <NotFoundPage />
+            </ErrorBoundary>
+          } />
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 

@@ -11,7 +11,11 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('[ErrorBoundary]', error, errorInfo);
+    if (import.meta.env.DEV) {
+      console.error('[ErrorBoundary]', error, errorInfo);
+    }
+    // In production, send to error reporting service like Sentry
+    // window.Sentry?.captureException(error, { extra: errorInfo });
   }
 
   render() {

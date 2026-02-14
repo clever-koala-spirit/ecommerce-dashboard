@@ -6,14 +6,24 @@
 import express from 'express';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import { createUser, getUserByEmail, getUserById, updateUserLastLogin, updateUserPassword, createResetToken, getResetToken, markResetTokenUsed } from '../db/database.js';
+import emailService from '../services/email.js';
+import { log } from '../utils/logger.js';
+import { 
+  validateSignup, 
+  validateLogin, 
+  validateChangePassword, 
+  validateForgotPassword, 
+  validateResetPassword 
+} from '../middleware/validation.js';
 
 const router = express.Router();
 
-// In-memory user store (replace with real DB in production)
-// In production, use a proper database like PostgreSQL with hashed passwords
-const users = new Map();
-
-const JWT_SECRET = process.env.JWT_SECRET || process.env.ENCRYPTION_KEY || 'slay-season-secret-key-change-me';
+// Validate JWT_SECRET is properly set
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required but not set');
+}
 
 /**
  * Hash password using PBKDF2
@@ -29,7 +39,7 @@ function hashPassword(password, salt) {
  * POST /api/auth/signup
  * Register a new user account
  */
-router.post('/signup', (req, res) => {
+router.post('/signup', validateSignup, (req, res) => {
   try {
     const { name, email, password } = req.body;
 
@@ -45,7 +55,8 @@ router.post('/signup', (req, res) => {
     const emailLower = email.toLowerCase().trim();
 
     // Check if email already exists
-    if (users.has(emailLower)) {
+    const existingUser = getUserByEmail(emailLower);
+    if (existingUser) {
       return res.status(409).json({ error: 'An account with this email already exists' });
     }
 
@@ -60,34 +71,24 @@ router.post('/signup', (req, res) => {
     const hashedPassword = hashPassword(password, salt);
     const userId = crypto.randomUUID();
 
-    const user = {
-      id: userId,
-      name: name.trim(),
-      email: emailLower,
-      hashedPassword,
-      salt,
-      createdAt: new Date().toISOString(),
-      lastLoginAt: null,
-    };
-
-    users.set(emailLower, user);
+    createUser(userId, name.trim(), emailLower, hashedPassword, salt);
 
     // Create JWT token
     const token = jwt.sign(
-      { userId, email: user.email, name: user.name },
+      { userId, email: emailLower, name: name.trim() },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
 
     // Update last login
-    user.lastLoginAt = new Date().toISOString();
+    updateUserLastLogin(userId);
 
     res.status(201).json({
       token,
-      user: { id: userId, name: user.name, email: user.email },
+      user: { id: userId, name: name.trim(), email: emailLower },
     });
   } catch (err) {
-    console.error('[Auth] Signup error:', err);
+    log.error('Signup error', err, { email: req.body.email?.replace(/(..).*(@.*)/, '$1***$2') });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -96,7 +97,7 @@ router.post('/signup', (req, res) => {
  * POST /api/auth/login
  * Authenticate user with email and password
  */
-router.post('/login', (req, res) => {
+router.post('/login', validateLogin, (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -106,7 +107,7 @@ router.post('/login', (req, res) => {
     }
 
     const emailLower = email.toLowerCase().trim();
-    const user = users.get(emailLower);
+    const user = getUserByEmail(emailLower);
 
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
@@ -126,14 +127,14 @@ router.post('/login', (req, res) => {
     );
 
     // Update last login
-    user.lastLoginAt = new Date().toISOString();
+    updateUserLastLogin(user.id);
 
     res.json({
       token,
       user: { id: user.id, name: user.name, email: user.email },
     });
   } catch (err) {
-    console.error('[Auth] Login error:', err);
+    log.error('Login error', err, { email: req.body.email?.replace(/(..).*(@.*)/, '$1***$2') });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -162,7 +163,7 @@ router.get('/me', (req, res) => {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    const user = users.get(decoded.email);
+    const user = getUserByEmail(decoded.email);
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
     }
@@ -171,7 +172,7 @@ router.get('/me', (req, res) => {
       user: { id: user.id, name: user.name, email: user.email },
     });
   } catch (err) {
-    console.error('[Auth] Me error:', err);
+    log.error('Get user info error', err, { requestId: req.requestId });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -186,7 +187,7 @@ router.post('/logout', (req, res) => {
     // For now, client just removes the token from localStorage
     res.json({ success: true, message: 'Logged out successfully' });
   } catch (err) {
-    console.error('[Auth] Logout error:', err);
+    log.error('Logout error', err, { requestId: req.requestId });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -223,7 +224,7 @@ router.post('/refresh', (req, res) => {
       }
     }
 
-    const user = users.get(decoded.email);
+    const user = getUserByEmail(decoded.email);
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
     }
@@ -240,7 +241,7 @@ router.post('/refresh', (req, res) => {
       user: { id: user.id, name: user.name, email: user.email },
     });
   } catch (err) {
-    console.error('[Auth] Refresh error:', err);
+    log.error('Token refresh error', err, { requestId: req.requestId });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -249,7 +250,7 @@ router.post('/refresh', (req, res) => {
  * POST /api/auth/change-password
  * Change user password
  */
-router.post('/change-password', (req, res) => {
+router.post('/change-password', validateChangePassword, (req, res) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -275,7 +276,7 @@ router.post('/change-password', (req, res) => {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
-    const user = users.get(decoded.email);
+    const user = getUserByEmail(decoded.email);
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
     }
@@ -290,12 +291,118 @@ router.post('/change-password', (req, res) => {
     const newSalt = crypto.randomBytes(16).toString('hex');
     const hashedNewPassword = hashPassword(newPassword, newSalt);
 
-    user.salt = newSalt;
-    user.hashedPassword = hashedNewPassword;
+    updateUserPassword(user.id, hashedNewPassword, newSalt);
 
     res.json({ success: true, message: 'Password changed successfully' });
   } catch (err) {
-    console.error('[Auth] Change password error:', err);
+    log.error('Change password error', err, { userId: req.headers.authorization });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/auth/forgot-password
+ * Send password reset email
+ */
+router.post('/forgot-password', validateForgotPassword, async (req, res) => {
+  try {
+    const { email } = req.body;
+    const emailLower = email.toLowerCase().trim();
+    
+    const user = getUserByEmail(emailLower);
+    
+    // Always return success to prevent email enumeration
+    // Don't reveal if email exists or not
+    if (!user) {
+      log.security('forgot_password_attempt_invalid_email', { 
+        email: emailLower.replace(/(..).*(@.*)/, '$1***$2'),
+        ip: req.ip 
+      });
+      
+      // Still return success to prevent email enumeration
+      return res.json({ 
+        success: true, 
+        message: 'If an account with that email exists, we have sent a password reset link.' 
+      });
+    }
+
+    // Generate secure reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour from now
+
+    createResetToken(user.id, resetToken, expiresAt);
+
+    // Send reset email
+    try {
+      await emailService.sendPasswordResetEmail(user.email, user.name, resetToken);
+      
+      log.info('Password reset email sent', {
+        userId: user.id,
+        email: user.email.replace(/(..).*(@.*)/, '$1***$2'),
+        tokenExpires: expiresAt
+      });
+    } catch (emailError) {
+      log.error('Failed to send password reset email', emailError, {
+        userId: user.id,
+        email: user.email.replace(/(..).*(@.*)/, '$1***$2')
+      });
+      
+      // Still return success to user, but log the email failure
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'If an account with that email exists, we have sent a password reset link.' 
+    });
+  } catch (err) {
+    log.error('Forgot password error', err, { email: req.body.email?.replace(/(..).*(@.*)/, '$1***$2') });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Reset password using token
+ */
+router.post('/reset-password', validateResetPassword, (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    // Get and validate reset token
+    const resetTokenData = getResetToken(token);
+    
+    if (!resetTokenData) {
+      log.security('password_reset_invalid_token', { 
+        token: token.substring(0, 8) + '...',
+        ip: req.ip 
+      });
+      
+      return res.status(400).json({ 
+        error: 'Invalid or expired reset token' 
+      });
+    }
+
+    // Generate new password hash
+    const newSalt = crypto.randomBytes(16).toString('hex');
+    const hashedNewPassword = hashPassword(newPassword, newSalt);
+
+    // Update password
+    updateUserPassword(resetTokenData.userId, hashedNewPassword, newSalt);
+    
+    // Mark token as used
+    markResetTokenUsed(resetTokenData.id);
+
+    log.info('Password reset successful', {
+      userId: resetTokenData.userId,
+      email: resetTokenData.user.email.replace(/(..).*(@.*)/, '$1***$2')
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Password has been reset successfully. You can now login with your new password.' 
+    });
+  } catch (err) {
+    log.error('Reset password error', err, { token: req.body.token?.substring(0, 8) + '...' });
     res.status(500).json({ error: 'Internal server error' });
   }
 });

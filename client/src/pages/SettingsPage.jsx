@@ -87,7 +87,9 @@ export default function SettingsPage() {
       // Redirect to OAuth start endpoint
       window.location.href = `${apiUrl}/api/oauth/${platformKey}/start?shop=${shop?.shopifyDomain}`;
     } catch (error) {
-      console.error(`Failed to initiate ${platformKey} OAuth:`, error);
+      if (import.meta.env.DEV) {
+        console.error(`Failed to initiate ${platformKey} OAuth:`, error);
+      }
       setConnectingPlatform(null);
     }
   };
@@ -115,7 +117,9 @@ export default function SettingsPage() {
         }));
       }
     } catch (error) {
-      console.error(`Failed to disconnect ${platformKey}:`, error);
+      if (import.meta.env.DEV) {
+        console.error(`Failed to disconnect ${platformKey}:`, error);
+      }
     }
   };
 
@@ -146,7 +150,9 @@ export default function SettingsPage() {
           });
         }
       } catch (error) {
-        console.error('Failed to check platform connections:', error);
+        if (import.meta.env.DEV) {
+          console.error('Failed to check platform connections:', error);
+        }
       }
     };
 
@@ -170,7 +176,9 @@ export default function SettingsPage() {
       // Clear URL params
       window.history.replaceState({}, document.title, window.location.pathname);
     } else if (platform && error) {
-      console.error(`OAuth error for ${platform}:`, error);
+      if (import.meta.env.DEV) {
+        console.error(`OAuth error for ${platform}:`, error);
+      }
       // Clear URL params
       window.history.replaceState({}, document.title, window.location.pathname);
     }

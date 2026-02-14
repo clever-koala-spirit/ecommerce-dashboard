@@ -29,7 +29,9 @@ export function AuthProvider({ children }) {
           localStorage.removeItem('ss_token');
         }
       } catch (err) {
-        console.error('Session check failed:', err);
+        if (import.meta.env.DEV) {
+          console.error('Session check failed:', err);
+        }
         localStorage.removeItem('ss_token');
       } finally {
         setIsLoading(false);

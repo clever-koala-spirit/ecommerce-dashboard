@@ -35,7 +35,9 @@ export function useLiveData(refreshIntervalMs = 300000) {
         setConnectedSources(connected);
 
         if (result.error) {
-          console.warn('[useLiveData] Error from API:', result.error);
+          if (import.meta.env.DEV) {
+            console.warn('[useLiveData] Error from API:', result.error);
+          }
         }
       } else {
         // Backend not available, use mock data
@@ -53,7 +55,9 @@ export function useLiveData(refreshIntervalMs = 300000) {
         setConnectedSources(new Set(['shopify', 'meta', 'google', 'klaviyo', 'ga4']));
       }
     } catch (err) {
-      console.error('[useLiveData] Error fetching data:', err);
+      if (import.meta.env.DEV) {
+        console.error('[useLiveData] Error fetching data:', err);
+      }
       setError(err.message);
 
       // Fall back to mock data on error

@@ -558,14 +558,16 @@ if (typeof window !== 'undefined' && window.location?.hostname === 'localhost') 
   const totalAdRevenue = metaData.reduce((s, d) => s + d.revenue, 0) + googleData.reduce((s, d) => s + d.conversionValue, 0);
   const last7Revenue = shopifyData.slice(-7).reduce((s, d) => s + d.revenue, 0);
 
-  console.log('[MockData] Summary:');
-  console.log(`  Total Revenue: $${Math.round(totalRevenue).toLocaleString()}`);
-  console.log(`  Total Ad Spend: $${Math.round(totalAdSpend).toLocaleString()} (Meta: $${Math.round(totalMetaSpend).toLocaleString()}, Google: $${Math.round(totalGoogleSpend).toLocaleString()})`);
-  console.log(`  Meta % of spend: ${((totalMetaSpend / totalAdSpend) * 100).toFixed(1)}%`);
-  console.log(`  Blended ROAS: ${(totalAdRevenue / totalAdSpend).toFixed(2)}`);
-  console.log(`  Avg AOV: $${(totalRevenue / shopifyData.reduce((s, d) => s + d.orders, 0)).toFixed(2)}`);
-  console.log(`  Last 7 days avg: $${Math.round(last7Revenue / 7).toLocaleString()}/day`);
-  console.log(`  Days of data: ${shopifyData.length}`);
+  if (import.meta.env.DEV) {
+    console.log('[MockData] Summary:');
+    console.log(`  Total Revenue: $${Math.round(totalRevenue).toLocaleString()}`);
+    console.log(`  Total Ad Spend: $${Math.round(totalAdSpend).toLocaleString()} (Meta: $${Math.round(totalMetaSpend).toLocaleString()}, Google: $${Math.round(totalGoogleSpend).toLocaleString()})`);
+    console.log(`  Meta % of spend: ${((totalMetaSpend / totalAdSpend) * 100).toFixed(1)}%`);
+    console.log(`  Blended ROAS: ${(totalAdRevenue / totalAdSpend).toFixed(2)}`);
+    console.log(`  Avg AOV: $${(totalRevenue / shopifyData.reduce((s, d) => s + d.orders, 0)).toFixed(2)}`);
+    console.log(`  Last 7 days avg: $${Math.round(last7Revenue / 7).toLocaleString()}/day`);
+    console.log(`  Days of data: ${shopifyData.length}`);
+  }
 }
 
 export default mockData;
