@@ -12,6 +12,7 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import AuthCallbackPage from './pages/AuthCallbackPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 // Lazy load legal pages
@@ -75,6 +76,11 @@ function App() {
           <Route path="/forgot-password" element={
             <ErrorBoundary>
               <ForgotPasswordPage />
+            </ErrorBoundary>
+          } />
+          <Route path="/auth-callback" element={
+            <ErrorBoundary>
+              <AuthCallbackPage />
             </ErrorBoundary>
           } />
 

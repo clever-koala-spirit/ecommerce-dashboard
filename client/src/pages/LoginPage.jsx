@@ -94,6 +94,54 @@ export default function LoginPage() {
             <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-500 animate-pulse" />
 
             <div className="relative bg-gradient-to-b from-[#1c2033]/90 to-[#151922]/80 backdrop-blur-xl border border-indigo-500/20 rounded-3xl p-8 shadow-2xl">
+              {/* Social Auth Buttons */}
+              <div className="space-y-3 mb-6">
+                <button
+                  type="button"
+                  onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/auth/oauth/google`}
+                  className="w-full px-4 py-3 bg-white hover:bg-gray-50 text-gray-800 font-semibold rounded-xl transition-all duration-200 shadow-lg flex items-center justify-center gap-3 group"
+                >
+                  <div className="w-5 h-5 bg-[#4285f4] rounded flex items-center justify-center text-white text-xs font-bold">G</div>
+                  Continue with Google
+                </button>
+                
+                <button
+                  type="button" 
+                  onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/auth/oauth/shopify`}
+                  className="w-full px-4 py-3 bg-[#95bf47] hover:bg-[#7ba92f] text-white font-semibold rounded-xl transition-all duration-200 shadow-lg flex items-center justify-center gap-3 group"
+                >
+                  <div className="w-5 h-5 bg-white rounded flex items-center justify-center text-[#95bf47] text-xs font-bold">S</div>
+                  Continue with Shopify
+                </button>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/auth/oauth/facebook`}
+                    className="px-4 py-3 bg-[#1877f2] hover:bg-[#166fe5] text-white font-semibold rounded-xl transition-all duration-200 shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <div className="w-4 h-4 bg-white rounded flex items-center justify-center text-[#1877f2] text-xs font-bold">f</div>
+                    Facebook
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/auth/oauth/apple`}
+                    className="px-4 py-3 bg-black hover:bg-gray-900 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <div className="w-4 h-4 bg-white rounded flex items-center justify-center text-black text-xs font-bold">🍎</div>
+                    Apple
+                  </button>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center my-6">
+                <div className="flex-1 border-t border-indigo-500/20"></div>
+                <span className="px-4 text-sm text-gray-400">or continue with email</span>
+                <div className="flex-1 border-t border-indigo-500/20"></div>
+              </div>
+
               <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Email Field */}
                 <div>

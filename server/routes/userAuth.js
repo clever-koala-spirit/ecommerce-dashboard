@@ -407,4 +407,373 @@ router.post('/reset-password', validateResetPassword, (req, res) => {
   }
 });
 
+/**
+ * OAuth Routes
+ * Handle social authentication with various providers
+ */
+
+/**
+ * GET /api/auth/oauth/google
+ * Redirect to Google OAuth
+ */
+router.get('/oauth/google', (req, res) => {
+  try {
+    const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+    
+    if (!clientId || !clientSecret) {
+      return res.status(501).json({ 
+        error: 'Google OAuth not configured yet. Please use email login.',
+        provider: 'google',
+        configured: false
+      });
+    }
+
+    const redirectUri = `${process.env.APP_URL || 'http://localhost:4000'}/api/auth/oauth/google/callback`;
+    const scopes = 'openid email profile';
+    const state = crypto.randomBytes(16).toString('hex');
+    
+    // In production, store state in session/cache to prevent CSRF
+    
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${clientId}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `scope=${encodeURIComponent(scopes)}&` +
+      `response_type=code&` +
+      `state=${state}`;
+
+    res.redirect(authUrl);
+  } catch (err) {
+    log.error('Google OAuth redirect error', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/auth/oauth/google/callback
+ * Handle Google OAuth callback
+ */
+router.get('/oauth/google/callback', async (req, res) => {
+  try {
+    const { code, error, state } = req.query;
+    
+    if (error) {
+      log.error('Google OAuth error', { error });
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_error`);
+    }
+
+    if (!code) {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=missing_code`);
+    }
+
+    const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+    const redirectUri = `${process.env.APP_URL || 'http://localhost:4000'}/api/auth/oauth/google/callback`;
+
+    // Exchange code for access token
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code: code,
+        grant_type: 'authorization_code',
+        redirect_uri: redirectUri
+      })
+    });
+
+    const tokenData = await tokenResponse.json();
+    if (!tokenResponse.ok) {
+      log.error('Google token exchange failed', tokenData);
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=token_exchange`);
+    }
+
+    // Get user info
+    const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+    });
+
+    const userData = await userResponse.json();
+    if (!userResponse.ok) {
+      log.error('Google user info fetch failed', userData);
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=user_info`);
+    }
+
+    const emailLower = userData.email.toLowerCase().trim();
+    
+    // Check if user exists
+    let user = getUserByEmail(emailLower);
+    
+    if (!user) {
+      // Create new user
+      const userId = crypto.randomUUID();
+      const salt = crypto.randomBytes(16).toString('hex');
+      const tempPassword = crypto.randomBytes(32).toString('hex');
+      const hashedPassword = hashPassword(tempPassword, salt);
+      
+      createUser(userId, userData.name || 'Google User', emailLower, hashedPassword, salt);
+      user = { id: userId, name: userData.name || 'Google User', email: emailLower };
+    }
+
+    // Create JWT token
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, name: user.name },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // Update last login
+    updateUserLastLogin(user.id);
+
+    // Redirect to frontend with token
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth-callback?token=${token}`);
+  } catch (err) {
+    log.error('Google OAuth callback error', err);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=callback_error`);
+  }
+});
+
+/**
+ * GET /api/auth/oauth/shopify
+ * Redirect to Shopify OAuth
+ */
+router.get('/oauth/shopify', (req, res) => {
+  try {
+    const clientId = process.env.SHOPIFY_APP_CLIENT_ID;
+    const clientSecret = process.env.SHOPIFY_APP_CLIENT_SECRET;
+    
+    if (!clientId || !clientSecret) {
+      return res.status(501).json({ 
+        error: 'Shopify OAuth not configured yet. Please use email login.',
+        provider: 'shopify',
+        configured: false
+      });
+    }
+
+    // For Shopify Partners OAuth (not embedded app)
+    const redirectUri = `${process.env.APP_URL || 'http://localhost:4000'}/api/auth/oauth/shopify/callback`;
+    const scopes = 'read_orders,read_products,read_customers,read_analytics';
+    const state = crypto.randomBytes(16).toString('hex');
+    
+    const authUrl = `https://accounts.shopify.com/oauth/authorize?` +
+      `client_id=${clientId}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `scope=${encodeURIComponent(scopes)}&` +
+      `response_type=code&` +
+      `state=${state}`;
+
+    res.redirect(authUrl);
+  } catch (err) {
+    log.error('Shopify OAuth redirect error', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/auth/oauth/shopify/callback
+ * Handle Shopify OAuth callback
+ */
+router.get('/oauth/shopify/callback', async (req, res) => {
+  try {
+    const { code, error, state } = req.query;
+    
+    if (error) {
+      log.error('Shopify OAuth error', { error });
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_error`);
+    }
+
+    if (!code) {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=missing_code`);
+    }
+
+    // For now, just redirect back with a message that Shopify OAuth needs more setup
+    // In production, you'd exchange the code for access token and get user info
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?message=shopify_oauth_in_progress`);
+  } catch (err) {
+    log.error('Shopify OAuth callback error', err);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=callback_error`);
+  }
+});
+
+/**
+ * GET /api/auth/oauth/facebook
+ * Redirect to Facebook OAuth
+ */
+router.get('/oauth/facebook', (req, res) => {
+  try {
+    const appId = process.env.FACEBOOK_APP_ID;
+    const appSecret = process.env.FACEBOOK_APP_SECRET;
+    
+    if (!appId || !appSecret) {
+      return res.status(501).json({ 
+        error: 'Facebook OAuth not configured yet. Please use email login.',
+        provider: 'facebook',
+        configured: false
+      });
+    }
+
+    const redirectUri = `${process.env.APP_URL || 'http://localhost:4000'}/api/auth/oauth/facebook/callback`;
+    const scopes = 'email,public_profile';
+    const state = crypto.randomBytes(16).toString('hex');
+    
+    const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?` +
+      `client_id=${appId}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `scope=${encodeURIComponent(scopes)}&` +
+      `response_type=code&` +
+      `state=${state}`;
+
+    res.redirect(authUrl);
+  } catch (err) {
+    log.error('Facebook OAuth redirect error', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/auth/oauth/facebook/callback
+ * Handle Facebook OAuth callback
+ */
+router.get('/oauth/facebook/callback', async (req, res) => {
+  try {
+    const { code, error, state } = req.query;
+    
+    if (error) {
+      log.error('Facebook OAuth error', { error });
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_error`);
+    }
+
+    if (!code) {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=missing_code`);
+    }
+
+    const appId = process.env.FACEBOOK_APP_ID;
+    const appSecret = process.env.FACEBOOK_APP_SECRET;
+    const redirectUri = `${process.env.APP_URL || 'http://localhost:4000'}/api/auth/oauth/facebook/callback`;
+
+    // Exchange code for access token
+    const tokenUrl = `https://graph.facebook.com/v18.0/oauth/access_token?` +
+      `client_id=${appId}&` +
+      `client_secret=${appSecret}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `code=${code}`;
+
+    const tokenResponse = await fetch(tokenUrl);
+    const tokenData = await tokenResponse.json();
+
+    if (!tokenResponse.ok || tokenData.error) {
+      log.error('Facebook token exchange failed', tokenData);
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=token_exchange`);
+    }
+
+    // Get user info
+    const userResponse = await fetch(`https://graph.facebook.com/v18.0/me?fields=id,name,email&access_token=${tokenData.access_token}`);
+    const userData = await userResponse.json();
+
+    if (!userResponse.ok || userData.error) {
+      log.error('Facebook user info fetch failed', userData);
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=user_info`);
+    }
+
+    if (!userData.email) {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=no_email`);
+    }
+
+    const emailLower = userData.email.toLowerCase().trim();
+    
+    // Check if user exists
+    let user = getUserByEmail(emailLower);
+    
+    if (!user) {
+      // Create new user
+      const userId = crypto.randomUUID();
+      const salt = crypto.randomBytes(16).toString('hex');
+      const tempPassword = crypto.randomBytes(32).toString('hex');
+      const hashedPassword = hashPassword(tempPassword, salt);
+      
+      createUser(userId, userData.name || 'Facebook User', emailLower, hashedPassword, salt);
+      user = { id: userId, name: userData.name || 'Facebook User', email: emailLower };
+    }
+
+    // Create JWT token
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, name: user.name },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // Update last login
+    updateUserLastLogin(user.id);
+
+    // Redirect to frontend with token
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth-callback?token=${token}`);
+  } catch (err) {
+    log.error('Facebook OAuth callback error', err);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=callback_error`);
+  }
+});
+
+/**
+ * GET /api/auth/oauth/apple
+ * Redirect to Apple OAuth
+ */
+router.get('/oauth/apple', (req, res) => {
+  try {
+    const clientId = process.env.APPLE_CLIENT_ID;
+    const clientSecret = process.env.APPLE_CLIENT_SECRET;
+    
+    if (!clientId || !clientSecret) {
+      return res.status(501).json({ 
+        error: 'Apple OAuth not configured yet. Please use email login.',
+        provider: 'apple',
+        configured: false
+      });
+    }
+
+    const redirectUri = `${process.env.APP_URL || 'http://localhost:4000'}/api/auth/oauth/apple/callback`;
+    const scopes = 'name email';
+    const state = crypto.randomBytes(16).toString('hex');
+    
+    const authUrl = `https://appleid.apple.com/auth/authorize?` +
+      `client_id=${clientId}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `scope=${encodeURIComponent(scopes)}&` +
+      `response_type=code&` +
+      `response_mode=form_post&` +
+      `state=${state}`;
+
+    res.redirect(authUrl);
+  } catch (err) {
+    log.error('Apple OAuth redirect error', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/auth/oauth/apple/callback
+ * Handle Apple OAuth callback (Apple uses POST)
+ */
+router.post('/oauth/apple/callback', async (req, res) => {
+  try {
+    const { code, error, state, user } = req.body;
+    
+    if (error) {
+      log.error('Apple OAuth error', { error });
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_error`);
+    }
+
+    if (!code) {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=missing_code`);
+    }
+
+    // Apple OAuth implementation is more complex and requires JWT signing
+    // For now, just redirect back with a message that Apple OAuth needs more setup
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?message=apple_oauth_in_progress`);
+  } catch (err) {
+    log.error('Apple OAuth callback error', err);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=callback_error`);
+  }
+});
+
 export default router;
