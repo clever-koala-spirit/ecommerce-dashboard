@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, User, ArrowRight, Loader2, Check } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, ArrowRight, Loader2, Check, Phone, Hash } from 'lucide-react';
 import { useAuth } from '../providers/AuthProvider';
 
 export default function SignupPage() {
   const navigate = useNavigate();
-  const { signup, isAuthenticated } = useAuth();
+  const { signup, isAuthenticated, requestOtp, verifyOtp } = useAuth();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -14,6 +14,10 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [authMode, setAuthMode] = useState('email'); // 'email' or 'phone'
+  const [phone, setPhone] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -174,10 +178,65 @@ export default function SignupPage() {
               {/* Divider */}
               <div className="flex items-center my-6">
                 <div className="flex-1 border-t border-indigo-500/20"></div>
-                <span className="px-4 text-sm text-gray-400">or sign up with email</span>
+                <span className="px-4 text-sm text-gray-400">or sign up with</span>
                 <div className="flex-1 border-t border-indigo-500/20"></div>
               </div>
 
+              {/* Auth Mode Toggle */}
+              <div className="flex rounded-xl bg-[#0f1117]/50 p-1 mb-5">
+                <button type="button" onClick={() => { setAuthMode('email'); setError(''); }}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${authMode === 'email' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'text-gray-400 hover:text-gray-300'}`}>
+                  <Mail className="w-4 h-4 inline mr-2" />Email
+                </button>
+                <button type="button" onClick={() => { setAuthMode('phone'); setError(''); setOtpSent(false); }}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${authMode === 'phone' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'text-gray-400 hover:text-gray-300'}`}>
+                  <Phone className="w-4 h-4 inline mr-2" />Phone
+                </button>
+              </div>
+
+              {authMode === 'phone' ? (
+                <div className="space-y-4">
+                  {!otpSent ? (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Phone Number</label>
+                        <div className="relative">
+                          <Phone className="absolute left-4 top-3.5 w-5 h-5 text-indigo-400" />
+                          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 (555) 000-0000" disabled={isLoading}
+                            className="w-full pl-12 pr-4 py-3 bg-[#0f1117]/50 border border-indigo-500/30 hover:border-indigo-500/50 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 disabled:opacity-50" />
+                        </div>
+                      </div>
+                      {error && (
+                        <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl"><p className="text-red-300 text-sm">{error}</p></div>
+                      )}
+                      <button type="button" disabled={isLoading || !phone.trim()} onClick={async () => {
+                        setIsLoading(true); setError('');
+                        try { await requestOtp(phone); setOtpSent(true); } catch (err) { setError(err.message); } finally { setIsLoading(false); }
+                      }} className="w-full px-4 py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50 shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2">
+                        {isLoading ? (<><Loader2 className="w-5 h-5 animate-spin" />Sending...</>) : (<>Send verification code<ArrowRight className="w-5 h-5" /></>)}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-gray-400 text-center">Enter the 6-digit code sent to <span className="text-indigo-300 font-medium">{phone}</span></p>
+                      <div className="relative">
+                        <Hash className="absolute left-4 top-3.5 w-5 h-5 text-indigo-400" />
+                        <input type="text" value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" maxLength={6} disabled={isLoading}
+                          className="w-full pl-12 pr-4 py-3 bg-[#0f1117]/50 border border-indigo-500/30 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-center text-2xl tracking-[0.5em] font-mono" />
+                      </div>
+                      {error && (<div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl"><p className="text-red-300 text-sm">{error}</p></div>)}
+                      <button type="button" disabled={isLoading || otpCode.length !== 6} onClick={async () => {
+                        setIsLoading(true); setError('');
+                        try { await verifyOtp(phone, otpCode); navigate('/dashboard'); } catch (err) { setError(err.message); } finally { setIsLoading(false); }
+                      }} className="w-full px-4 py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white font-semibold rounded-xl transition-all disabled:opacity-50 shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2">
+                        {isLoading ? (<><Loader2 className="w-5 h-5 animate-spin" />Verifying...</>) : (<>Create account<ArrowRight className="w-5 h-5" /></>)}
+                      </button>
+                      <button type="button" onClick={() => { setOtpSent(false); setOtpCode(''); setError(''); }} className="w-full text-sm text-gray-400 hover:text-indigo-300 transition py-2">← Different number</button>
+                    </>
+                  )}
+                  <p className="mt-3 text-center text-gray-400 text-sm">Already have an account?{' '}<Link to="/login" className="text-indigo-400 hover:text-indigo-300 font-semibold transition">Sign in</Link></p>
+                </div>
+              ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Full Name Field */}
                 <div>
@@ -363,8 +422,6 @@ export default function SignupPage() {
                     </>
                   )}
                 </button>
-              </form>
-
               {/* Login Link */}
               <p className="mt-5 text-center text-gray-400 text-sm">
                 Already have an account?{' '}
@@ -375,6 +432,8 @@ export default function SignupPage() {
                   Sign in
                 </Link>
               </p>
+              </form>
+              )}
             </div>
           </div>
 

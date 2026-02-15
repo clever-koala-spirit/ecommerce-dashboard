@@ -108,29 +108,9 @@ app.get('/api/health', (req, res) => {
 app.get('/', (req, res) => {
   const shop = req.query.shop;
   if (shop) {
-    // Shopify is opening the app — redirect to dashboard
-    // Use open() to escape iframe, with multiple fallbacks
-    const dashUrl = `https://slayseason.com/dashboard?shop=${encodeURIComponent(shop)}`;
-    return res.send(`<!DOCTYPE html>
-<html>
-<head>
-  <script>
-    var url = ${JSON.stringify(dashUrl)};
-    // Try multiple methods to escape the Shopify admin iframe
-    try { window.open(url, '_top'); } catch(e) {}
-    try { window.top.location.href = url; } catch(e) {}
-    try { window.parent.location.href = url; } catch(e) {}
-    setTimeout(function() { window.location.href = url; }, 500);
-  </script>
-</head>
-<body style="font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#0a0a0a;color:#fff">
-  <div style="text-align:center">
-    <div style="font-size:24px;margin-bottom:16px">🚀</div>
-    <p style="margin:0 0 8px;font-size:16px">Opening Slay Season...</p>
-    <p style="margin:0;font-size:13px;opacity:0.5"><a href="${dashUrl}" target="_top" style="color:#818cf8">Click here</a> if not redirected</p>
-  </div>
-</body>
-</html>`);
+    // Shopify is opening the app — serve the dashboard SPA directly
+    const indexPath = path.join(clientDistPath, 'index.html');
+    return res.sendFile(indexPath);
   }
   // No shop param — serve frontend
   const indexPath = path.join(clientDistPath, 'index.html');

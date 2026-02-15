@@ -18,33 +18,52 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { useShopify } from '../providers/ShopifyProvider';
+import { useAuth } from '../providers/AuthProvider';
 import { useStore } from '../store/useStore';
 import CostManager from '../components/costs/CostManager';
 
 const PLATFORMS = {
+  shopify: {
+    name: 'Shopify',
+    emoji: '🛍️',
+    useOAuth: true,
+    oauthLabel: 'Connect Shopify Store',
+    description: 'Orders, products, and customer data',
+  },
   meta: {
     name: 'Meta Ads',
     emoji: '📘',
     useOAuth: true,
     oauthLabel: 'Connect with Meta',
+    description: 'Facebook & Instagram ad campaigns',
   },
   google: {
     name: 'Google Ads',
     emoji: '🔍',
     useOAuth: true,
     oauthLabel: 'Connect with Google',
+    description: 'Google search & display campaigns',
   },
   klaviyo: {
     name: 'Klaviyo',
     emoji: '💌',
     useOAuth: true,
     oauthLabel: 'Connect with Klaviyo',
+    description: 'Email & SMS marketing flows',
   },
   ga4: {
-    name: 'GA4',
+    name: 'Google Analytics 4',
     emoji: '📊',
     useOAuth: true,
     oauthLabel: 'Connect with Google',
+    description: 'Website traffic & conversions',
+  },
+  tiktok: {
+    name: 'TikTok Ads',
+    emoji: '🎵',
+    useOAuth: true,
+    oauthLabel: 'Connect with TikTok',
+    description: 'TikTok ad campaigns & analytics',
   }
 };
 
@@ -56,20 +75,25 @@ const AI_PROVIDERS = [
 
 export default function SettingsPage() {
   const { shop } = useShopify();
+  const { user } = useAuth();
   const store = useStore();
 
   // State for platform connections
   const [platformStatus, setPlatformStatus] = useState({
+    shopify: false,
     meta: false,
     google: false,
     klaviyo: false,
-    ga4: false
+    ga4: false,
+    tiktok: false
   });
   const [platformAccountInfo, setPlatformAccountInfo] = useState({
+    shopify: null,
     meta: null,
     google: null,
     klaviyo: null,
-    ga4: null
+    ga4: null,
+    tiktok: null
   });
   const [connectingPlatform, setConnectingPlatform] = useState(null);
 
@@ -83,9 +107,19 @@ export default function SettingsPage() {
   const initiateOAuthFlow = async (platformKey) => {
     try {
       setConnectingPlatform(platformKey);
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
-      // Redirect to OAuth start endpoint
-      window.location.href = `${apiUrl}/api/oauth/${platformKey}/start?shop=${shop?.shopifyDomain}`;
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      const params = new URLSearchParams();
+      if (shop?.shopifyDomain) params.set('shop', shop.shopifyDomain);
+      if (platformKey === 'shopify') {
+        // For Shopify connection, we might need the shop domain
+        const shopDomain = prompt('Enter your Shopify store domain (e.g., mystore.myshopify.com):');
+        if (!shopDomain) {
+          setConnectingPlatform(null);
+          return;
+        }
+        params.set('shopDomain', shopDomain);
+      }
+      window.location.href = `${apiUrl}/api/oauth/${platformKey}/start?${params.toString()}`;
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error(`Failed to initiate ${platformKey} OAuth:`, error);
@@ -97,12 +131,14 @@ export default function SettingsPage() {
   // Disconnect platform
   const disconnectPlatform = async (platformKey) => {
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      const token = localStorage.getItem('ss_token');
       const response = await fetch(`${apiUrl}/api/oauth/${platformKey}/disconnect`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Shop-Domain': shop?.shopifyDomain,
+          ...(shop?.shopifyDomain && { 'X-Shop-Domain': shop.shopifyDomain }),
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
       });
 
@@ -127,38 +163,47 @@ export default function SettingsPage() {
   React.useEffect(() => {
     const checkConnections = async () => {
       try {
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+        const token = localStorage.getItem('ss_token');
         const response = await fetch(`${apiUrl}/api/connections`, {
           headers: {
-            'X-Shop-Domain': shop?.shopifyDomain,
+            ...(shop?.shopifyDomain && { 'X-Shop-Domain': shop.shopifyDomain }),
+            ...(token && { 'Authorization': `Bearer ${token}` }),
           },
         });
 
         if (response.ok) {
           const data = await response.json();
           setPlatformStatus({
+            shopify: data.shopify?.connected || !!shop?.shopifyDomain || false,
             meta: data.meta?.connected || false,
             google: data.google?.connected || false,
             klaviyo: data.klaviyo?.connected || false,
             ga4: data.ga4?.connected || false,
+            tiktok: data.tiktok?.connected || false,
           });
           setPlatformAccountInfo({
+            shopify: shop?.shopifyDomain ? { account: shop.shopName || shop.shopifyDomain } : (data.shopify?.message ? { account: data.shopify.message } : null),
             meta: data.meta?.message ? { account: data.meta.message } : null,
             google: data.google?.message ? { account: data.google.message } : null,
             klaviyo: data.klaviyo?.message ? { account: data.klaviyo.message } : null,
             ga4: data.ga4?.message ? { account: data.ga4.message } : null,
+            tiktok: data.tiktok?.message ? { account: data.tiktok.message } : null,
           });
         }
       } catch (error) {
         if (import.meta.env.DEV) {
           console.error('Failed to check platform connections:', error);
         }
+        // Still set Shopify as connected if we have shop data
+        if (shop?.shopifyDomain) {
+          setPlatformStatus(prev => ({ ...prev, shopify: true }));
+          setPlatformAccountInfo(prev => ({ ...prev, shopify: { account: shop.shopName || shop.shopifyDomain } }));
+        }
       }
     };
 
-    if (shop?.shopifyDomain) {
-      checkConnections();
-    }
+    checkConnections();
   }, [shop?.shopifyDomain]);
 
   // Check for OAuth callback params
@@ -204,6 +249,7 @@ export default function SettingsPage() {
 
   const currentAiProvider = AI_PROVIDERS.find(p => p.id === aiProvider);
   const isShopifyConnected = !!shop?.shopifyDomain;
+  const isUserLoggedIn = !!user;
 
   return (
     <div style={styles.container}>
@@ -278,6 +324,7 @@ export default function SettingsPage() {
                       <span style={styles.platformEmoji}>{platform.emoji}</span>
                       <div>
                         <h3 style={styles.platformName}>{platform.name}</h3>
+                        {platform.description && <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', margin: '0 0 4px 0' }}>{platform.description}</p>}
                         <div style={isConnected ? styles.statusBadgeConnected : styles.statusBadgeDisconnected}>
                           {isConnected ? (
                             <>
