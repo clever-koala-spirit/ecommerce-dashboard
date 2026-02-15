@@ -127,8 +127,8 @@ export default function SettingsPage() {
           setConnectingPlatform(null);
           return;
         }
-        params.set('shopDomain', shopDomain);
-        window.location.href = `${apiUrl}/api/oauth/${platformKey}/start?${params.toString()}`;
+        // Use the main auth route which handles Shopify OAuth without requiring existing auth
+        window.location.href = `https://api.slayseason.com/api/auth?shop=${encodeURIComponent(shopDomain)}&force=1`;
         return;
       }
 
