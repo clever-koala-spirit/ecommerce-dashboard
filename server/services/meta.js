@@ -43,7 +43,7 @@ export class MetaService {
       return { 
         connected: false, 
         status: 'red', 
-        error: 'Coming Soon - Meta Ads integration is not yet configured' 
+        error: 'Meta Ads API credentials not configured. Contact admin.' 
       };
     }
 

@@ -112,7 +112,7 @@ export default function SettingsPage() {
   const [showAiKey, setShowAiKey] = useState(false);
 
   // "Coming soon" modal state
-  const [comingSoonPlatform, setComingSoonPlatform] = useState(null);
+  const [unconfiguredPlatform, setUnconfiguredPlatform] = useState(null);
 
   // Klaviyo API key modal
   const [showKlaviyoModal, setShowKlaviyoModal] = useState(false);
@@ -191,8 +191,8 @@ export default function SettingsPage() {
           window.location.href = `${apiUrl}/api/oauth/${platformKey}/start?${params.toString()}`;
           return;
         }
-        // Not configured — show coming soon
-        setComingSoonPlatform(platformKey);
+        // Not configured
+        setUnconfiguredPlatform(platformKey);
         setConnectingPlatform(null);
         return;
       }
@@ -203,7 +203,7 @@ export default function SettingsPage() {
       } else {
         const data = await checkRes.json().catch(() => ({}));
         if (data.configured === false) {
-          setComingSoonPlatform(platformKey);
+          setUnconfiguredPlatform(platformKey);
           setConnectingPlatform(null);
         } else {
           window.location.href = `${apiUrl}/api/oauth/${platformKey}/start?${params.toString()}`;
@@ -213,9 +213,9 @@ export default function SettingsPage() {
       if (import.meta.env.DEV) {
         console.error(`Failed to initiate ${platformKey} OAuth:`, error);
       }
-      // Network error or CORS — show coming soon as fallback for non-Shopify
+      // Network error or CORS — show error for non-Shopify
       if (platformKey !== 'shopify') {
-        setComingSoonPlatform(platformKey);
+        setUnconfiguredPlatform(platformKey);
       }
       setConnectingPlatform(null);
     }
@@ -730,8 +730,8 @@ export default function SettingsPage() {
           </div>
         </section>
       </div>
-      {/* Coming Soon Modal */}
-      {comingSoonPlatform && (
+      {/* Platform Not Configured Modal */}
+      {unconfiguredPlatform && (
         <div
           style={{
             position: 'fixed',
@@ -742,7 +742,7 @@ export default function SettingsPage() {
             justifyContent: 'center',
             zIndex: 9999,
           }}
-          onClick={() => setComingSoonPlatform(null)}
+          onClick={() => setUnconfiguredPlatform(null)}
         >
           <div
             style={{
@@ -757,17 +757,17 @@ export default function SettingsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>
-              {PLATFORMS[comingSoonPlatform]?.emoji || '🔗'}
+              {PLATFORMS[unconfiguredPlatform]?.emoji || '🔗'}
             </div>
             <h3 style={{ color: 'var(--color-text-primary, #fff)', fontSize: '20px', margin: '0 0 8px' }}>
-              {PLATFORMS[comingSoonPlatform]?.name} — Coming Soon
+              {PLATFORMS[unconfiguredPlatform]?.name} — Setup Required
             </h3>
             <p style={{ color: 'var(--color-text-secondary, #94a3b8)', fontSize: '14px', lineHeight: '1.6', margin: '0 0 24px' }}>
-              We're working on adding {PLATFORMS[comingSoonPlatform]?.name} integration.
-              This will be available in an upcoming update.
+              {PLATFORMS[unconfiguredPlatform]?.name} API credentials need to be configured before connecting.
+              Please contact support or check your admin settings.
             </p>
             <button
-              onClick={() => setComingSoonPlatform(null)}
+              onClick={() => setUnconfiguredPlatform(null)}
               style={{
                 padding: '10px 24px',
                 borderRadius: '8px',
