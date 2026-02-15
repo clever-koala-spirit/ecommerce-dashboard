@@ -33,6 +33,7 @@ router.get('/dashboard', async (req, res) => {
       `${cacheKeyPrefix}:shopify:30d`,
       async () => {
         try {
+          if (!shopData?.accessToken) throw new Error('No Shopify access token');
           const result = await shopifyService.fetchOrders(dateRange, shopData.accessToken, shopDomain);
           if (result.connected && result.data && result.data.length > 0) {
             return result.data;

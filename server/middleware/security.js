@@ -12,7 +12,7 @@ import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
 import { getShop } from '../db/database.js';
 import { verifyHMAC } from '../auth/shopify.js';
-import { verifySessionToken } from './sessionToken.js';
+import { verifySessionToken, loadShopData } from './sessionToken.js';
 
 // --- Content Security Policy for Shopify embedded apps ---
 export const securityHeaders = helmet({
@@ -158,7 +158,7 @@ export function auditLog(req, res, next) {
 }
 
 // --- Export session token middleware ---
-export { verifySessionToken };
+export { verifySessionToken, loadShopData };
 
 // --- CORS configuration ---
 export function getCorsConfig() {

@@ -24,6 +24,7 @@ import {
   auditLog,
   getCorsConfig,
   verifySessionToken,
+  loadShopData,
 } from './middleware/security.js';
 
 // Route imports
@@ -61,6 +62,7 @@ app.use(express.json({ limit: '10mb' }));
 // Extracts JWT from Authorization header and sets req.shopDomain if valid
 // Falls back gracefully to X-Shop-Domain header auth if no token
 app.use(verifySessionToken);
+app.use(loadShopData);
 
 // --- Public routes (no auth required) ---
 

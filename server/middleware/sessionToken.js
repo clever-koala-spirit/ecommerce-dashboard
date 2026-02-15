@@ -15,7 +15,7 @@
  */
 
 import jwt from 'jsonwebtoken';
-import { getUserShopDomain } from '../db/database.js';
+import { getUserShopDomain, getShop } from '../db/database.js';
 
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
 const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
@@ -100,6 +100,20 @@ export function verifySessionToken(req, res, next) {
   }
 
   // No valid session token — proceed to next auth method (X-Shop-Domain header)
+  next();
+}
+
+/**
+ * Middleware to load shop data (access token etc.) from DB based on req.shopDomain.
+ * Must run after verifySessionToken.
+ */
+export function loadShopData(req, res, next) {
+  if (req.shopDomain && !req.shopData) {
+    const shop = getShop(req.shopDomain);
+    if (shop) {
+      req.shopData = shop;
+    }
+  }
   next();
 }
 
