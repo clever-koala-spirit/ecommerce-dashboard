@@ -67,6 +67,13 @@ export function handleAuthStart(req, res) {
     return res.status(400).json({ error: 'Invalid shop domain. Must be xxx.myshopify.com' });
   }
 
+  // If shop already has a valid token, skip OAuth and go to dashboard
+  const existingShop = getShop(shop);
+  if (existingShop && existingShop.accessToken && existingShop.isActive) {
+    console.log(`[Auth] Shop already connected: ${shop} — redirecting to dashboard`);
+    return res.redirect(`https://slayseason.com/dashboard?shop=${encodeURIComponent(shop)}`);
+  }
+
   // Generate cryptographic nonce to prevent CSRF
   const nonce = crypto.randomBytes(16).toString('hex');
   setShopNonce(shop, nonce);

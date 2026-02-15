@@ -37,6 +37,7 @@ import oauthRouter from './routes/oauth.js';
 import billingRouter from './routes/billing.js';
 
 const app = express();
+app.set('trust proxy', 1); // Behind nginx
 const PORT = process.env.PORT || 4000;
 
 // --- Raw body capture for webhook HMAC verification (MUST be before json parser) ---
@@ -105,10 +106,38 @@ app.get('/api/health', (req, res) => {
 
 // Root endpoint — serve SPA if frontend is built, otherwise API info
 app.get('/', (req, res) => {
+  const shop = req.query.shop;
+  if (shop) {
+    // Shopify is opening the app — redirect to dashboard via auth
+    return res.send(`<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <script>
+    var shop = '${shop.replace(/'/g, "\\'")}';
+    var host = new URLSearchParams(window.location.search).get('host');
+    var dashUrl = 'https://api.slayseason.com/api/auth?shop=' + encodeURIComponent(shop);
+    if (window.top !== window.self) {
+      try {
+        var AppBridge = window['app-bridge'];
+        if (AppBridge && host) {
+          var app = AppBridge.createApp({ apiKey: '99d59e211a3d5de70d462211eade9d39', host: host });
+          var redirect = AppBridge.actions.Redirect.create(app);
+          redirect.dispatch(AppBridge.actions.Redirect.Action.REMOTE, dashUrl);
+        } else { window.top.location.href = dashUrl; }
+      } catch(e) { window.top.location.href = dashUrl; }
+    } else { window.location.href = dashUrl; }
+  </script>
+</head>
+<body style="font-family:sans-serif;text-align:center;margin-top:40vh;color:#666">
+  <p>Redirecting to Slay Season dashboard...</p>
+</body>
+</html>`);
+  }
+  // No shop param — serve frontend
   const indexPath = path.join(clientDistPath, 'index.html');
   res.sendFile(indexPath, (err) => {
     if (err) {
-      // Frontend not built — return API info
       res.json({
         name: 'Slay Season — Ecommerce Analytics API',
         version: '2.0.0',
@@ -150,40 +179,6 @@ app.use('/api/billing', apiRateLimiter, requireShopAuth, billingRouter);
 // Forecast endpoint placeholder
 app.post('/api/forecast', apiRateLimiter, requireShopAuth, (req, res) => {
   res.json({ mock: true, message: 'Forecasting engine — Phase 3' });
-});
-
-// --- Shopify app entry point (root with shop param) ---
-app.get('/', (req, res, next) => {
-  const shop = req.query.shop;
-  if (!shop) return next(); // No shop param, serve frontend
-  
-  // Serve a page that redirects out of the Shopify admin iframe
-  res.send(`<!DOCTYPE html>
-<html>
-<head>
-  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-  <script>
-    const host = new URLSearchParams(window.location.search).get('host');
-    const shop = new URLSearchParams(window.location.search).get('shop');
-    if (window.top !== window.self) {
-      // Inside Shopify admin iframe — use App Bridge to redirect
-      const AppBridge = window['app-bridge'];
-      if (AppBridge && host) {
-        const app = AppBridge.createApp({ apiKey: '99d59e211a3d5de70d462211eade9d39', host });
-        const redirect = AppBridge.actions.Redirect.create(app);
-        redirect.dispatch(AppBridge.actions.Redirect.Action.REMOTE, 'https://api.slayseason.com/api/auth?shop=' + encodeURIComponent(shop));
-      } else {
-        window.top.location.href = 'https://api.slayseason.com/api/auth?shop=' + encodeURIComponent(shop);
-      }
-    } else {
-      window.location.href = 'https://api.slayseason.com/api/auth?shop=' + encodeURIComponent(shop);
-    }
-  </script>
-</head>
-<body>
-  <p style="font-family:sans-serif;text-align:center;margin-top:40vh">Redirecting to Slay Season dashboard...</p>
-</body>
-</html>`);
 });
 
 // --- API 404 handler ---
