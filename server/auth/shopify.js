@@ -154,8 +154,8 @@ export async function handleAuthCallback(req, res) {
     // Register mandatory GDPR webhooks
     await registerWebhooks(shop, access_token);
 
-    // Redirect to the app dashboard
-    res.redirect(`https://${shop}/admin/apps/${SHOPIFY_API_KEY}`);
+    // Redirect to the Slay Season dashboard
+    res.redirect(`https://slayseason.com/dashboard?shop=${encodeURIComponent(shop)}`);
 
   } catch (error) {
     console.error('[Auth] OAuth callback error:', error);
