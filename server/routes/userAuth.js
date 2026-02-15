@@ -676,7 +676,7 @@ router.get('/oauth/google', (req, res) => {
     
     if (!clientId || !clientSecret) {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Google login is coming soon. Please use email login.')}`);
+      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Google login not configured yet.')}`);
     }
 
     const redirectUri = `${process.env.APP_URL || 'http://localhost:4000'}/api/auth/oauth/google/callback`;
@@ -795,7 +795,7 @@ router.get('/oauth/shopify', (req, res) => {
     
     if (!clientId || !clientSecret) {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Shopify login is coming soon. Please use email login.')}`);
+      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Shopify login not configured yet.')}`);
     }
 
     // For Shopify Partners OAuth (not embedded app)
@@ -911,7 +911,7 @@ router.get('/oauth/facebook', (req, res) => {
     
     if (!appId || !appSecret) {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Facebook login is coming soon. Please use email login.')}`);
+      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Facebook login not configured yet.')}`);
     }
 
     const redirectUri = `${process.env.APP_URL || 'http://localhost:4000'}/api/auth/oauth/facebook/callback`;
@@ -1026,7 +1026,7 @@ router.get('/oauth/apple', (req, res) => {
     
     if (!clientId || !clientSecret) {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Apple login is coming soon. Please use email login.')}`);
+      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Apple login not configured yet.')}`);
     }
 
     const redirectUri = `${process.env.APP_URL || 'http://localhost:4000'}/api/auth/oauth/apple/callback`;
