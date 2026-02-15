@@ -2,6 +2,7 @@ import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getDB } from '../db/database.js';
 import rateLimit from 'express-rate-limit';
+import fs from 'fs';
 
 const router = express.Router();
 
@@ -14,7 +15,6 @@ const getOpenAIKey = () => {
   
   // Fallback to OpenClaw config (read from file system)
   try {
-    const fs = await import('fs');
     const openClawConfigPath = '/home/chip/.openclaw/openclaw.json';
     if (fs.existsSync(openClawConfigPath)) {
       const config = JSON.parse(fs.readFileSync(openClawConfigPath, 'utf8'));
