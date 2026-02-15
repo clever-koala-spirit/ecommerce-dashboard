@@ -249,8 +249,19 @@ export function sanitizeInput(input) {
 // --- Express middleware to sanitize all inputs ---
 export function sanitizeAllInputs(req, res, next) {
   if (req.body) req.body = sanitizeInput(req.body);
-  if (req.query) req.query = sanitizeInput(req.query);
-  if (req.params) req.params = sanitizeInput(req.params);
+  // req.query is a readonly getter in Express 5 — sanitize values in place
+  if (req.query) {
+    const sanitized = sanitizeInput(req.query);
+    for (const key of Object.keys(sanitized)) {
+      req.query[key] = sanitized[key];
+    }
+  }
+  if (req.params) {
+    const sanitizedParams = sanitizeInput(req.params);
+    for (const key of Object.keys(sanitizedParams)) {
+      req.params[key] = sanitizedParams[key];
+    }
+  }
   next();
 }
 
