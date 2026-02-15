@@ -7,6 +7,14 @@ import { log } from '../utils/logger.js';
 
 class BillingService {
   constructor() {
+    // Pricing configuration (set before early return so getPricingPlans works)
+    this.prices = {
+      starter: process.env.STRIPE_PRICE_STARTER || 'price_starter',
+      growth: process.env.STRIPE_PRICE_GROWTH || 'price_growth', 
+      scale: process.env.STRIPE_PRICE_SCALE || 'price_scale',
+      enterprise: process.env.STRIPE_PRICE_ENTERPRISE || 'price_enterprise'
+    };
+
     if (!process.env.STRIPE_SECRET_KEY) {
       log.warn('Stripe billing service initialized without STRIPE_SECRET_KEY');
       this.stripe = null;
@@ -14,14 +22,6 @@ class BillingService {
     }
 
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-    
-    // Pricing configuration
-    this.prices = {
-      starter: process.env.STRIPE_PRICE_STARTER || 'price_starter',
-      growth: process.env.STRIPE_PRICE_GROWTH || 'price_growth', 
-      scale: process.env.STRIPE_PRICE_SCALE || 'price_scale',
-      enterprise: process.env.STRIPE_PRICE_ENTERPRISE || 'price_enterprise'
-    };
     
     log.info('Stripe billing service initialized', { 
       pricesConfigured: Object.keys(this.prices).length 

@@ -24,7 +24,7 @@ export class MetaService {
       const response = await withRetry(() =>
         queueRequest('meta', () =>
           fetch(
-            `https://graph.instagram.com/${API_VERSION}/${this.adAccountId}?access_token=${this.accessToken}`
+            `https://graph.facebook.com/${API_VERSION}/${this.adAccountId}?access_token=${this.accessToken}`
           )
         )
       );
@@ -62,7 +62,7 @@ export class MetaService {
 
       while (true) {
         const url = new URL(
-          `https://graph.instagram.com/${API_VERSION}/${this.adAccountId}/campaigns`
+          `https://graph.facebook.com/${API_VERSION}/${this.adAccountId}/campaigns`
         );
 
         url.searchParams.append('fields', FIELDS);
@@ -112,7 +112,7 @@ export class MetaService {
       const endDate = this.formatDateForMeta(dateRange.end);
 
       const url = new URL(
-        `https://graph.instagram.com/${API_VERSION}/${this.adAccountId}/insights`
+        `https://graph.facebook.com/${API_VERSION}/${this.adAccountId}/insights`
       );
 
       url.searchParams.append('fields', 'spend,impressions,clicks,actions,action_values');
@@ -192,7 +192,7 @@ export class MetaService {
   }
 
   formatDateForMeta(dateString) {
-    return dateString.split('T')[0].replace(/-/g, '');
+    return dateString.split('T')[0];
   }
 }
 

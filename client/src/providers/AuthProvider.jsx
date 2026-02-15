@@ -7,7 +7,7 @@ export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+  const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api';
 
   // Check for existing session on mount
   useEffect(() => {

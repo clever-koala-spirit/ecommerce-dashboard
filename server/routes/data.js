@@ -32,7 +32,7 @@ router.get('/dashboard', async (req, res) => {
     const shopifyData = await getCachedOrFetch(
       `${cacheKeyPrefix}:shopify:30d`,
       async () => {
-        const result = await shopifyService.fetchOrders(dateRange, shopData.accessToken);
+        const result = await shopifyService.fetchOrders(dateRange, shopData.accessToken, shopDomain);
         return result.data || mockData.shopify;
       },
       300
@@ -123,7 +123,7 @@ router.get('/history', async (req, res) => {
     const shopifyData = await getCachedOrFetch(
       `${cacheKeyPrefix}:${metric}:${days}d`,
       async () => {
-        const result = await shopifyService.fetchOrders(dateRange, shopData.accessToken);
+        const result = await shopifyService.fetchOrders(dateRange, shopData.accessToken, shopDomain);
         return result.data || mockData.shopify;
       },
       600
@@ -149,7 +149,7 @@ router.get('/shopify/orders', async (req, res) => {
     const data = await getCachedOrFetch(
       `data:${shopDomain}:shopify:orders:30d`,
       async () => {
-        const result = await shopifyService.fetchOrders(dateRange, shopData.accessToken);
+        const result = await shopifyService.fetchOrders(dateRange, shopData.accessToken, shopDomain);
         return result.data || mockData.shopify;
       },
       300

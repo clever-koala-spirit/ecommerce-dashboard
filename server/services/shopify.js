@@ -13,18 +13,18 @@ export class ShopifyService {
     return !!(this.storeUrl && this.accessToken);
   }
 
-  async testConnection(accessToken = null) {
+  async testConnection(accessToken = null, shopDomain = null) {
     // Use provided access token or fall back to instance/env token
     const token = accessToken || this.accessToken;
-    const storeUrl = this.storeUrl;
+    const store = shopDomain || this.storeUrl;
 
-    if (!token || !storeUrl) {
+    if (!token || !store) {
       return { connected: false, status: 'red', error: 'Missing credentials' };
     }
 
     try {
       const response = await queueRequest('shopify', () =>
-        fetch(`https://${storeUrl}/admin/api/${SHOPIFY_API_VERSION}/shop.json`, {
+        fetch(`https://${store}/admin/api/${SHOPIFY_API_VERSION}/shop.json`, {
           headers: this.getHeaders(token),
         })
       );
@@ -43,10 +43,10 @@ export class ShopifyService {
     }
   }
 
-  async fetchOrders(dateRange, accessToken = null) {
+  async fetchOrders(dateRange, accessToken = null, shopDomain = null) {
     // Use provided access token or fall back to instance token
     const token = accessToken || this.accessToken;
-    const storeUrl = this.storeUrl;
+    const storeUrl = shopDomain || this.storeUrl;
 
     if (!token || !storeUrl) {
       return { connected: false };

@@ -20,7 +20,7 @@ async function syncSource(shopDomain, shopAccessToken, sourceName, service) {
 
     // Pass access token for Shopify service
     if (sourceName === 'shopify') {
-      testResult = await service.testConnection(shopAccessToken);
+      testResult = await service.testConnection(shopAccessToken, shopDomain);
     } else {
       testResult = await service.testConnection();
     }
@@ -41,7 +41,7 @@ async function syncSource(shopDomain, shopAccessToken, sourceName, service) {
 
     switch (sourceName) {
       case 'shopify':
-        const shopifyResult = await service.fetchOrders(dateRange, shopAccessToken);
+        const shopifyResult = await service.fetchOrders(dateRange, shopAccessToken, shopDomain);
         if (shopifyResult.data) {
           data = shopifyResult.data;
           recordCount = data.length;
@@ -186,7 +186,7 @@ export function startCronJobs() {
 
         // Pass access token for Shopify service
         if (sourceName === 'shopify') {
-          testResult = await service.testConnection(shop.accessToken);
+          testResult = await service.testConnection(shop.accessToken, shop.shopDomain);
         } else {
           testResult = await service.testConnection();
         }

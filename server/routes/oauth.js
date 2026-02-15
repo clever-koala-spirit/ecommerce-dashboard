@@ -120,9 +120,11 @@ router.get('/:platform/start', (req, res) => {
 
     // Validate credentials are configured
     if (!config.clientId || !config.clientSecret) {
-      log.error('OAuth credentials not configured', null, { platform });
-      return res.status(500).json({
-        error: `OAuth not configured for ${platform}. Contact support.`,
+      log.warn('OAuth credentials not configured', { platform });
+      return res.status(501).json({
+        error: `${platform} integration is not configured yet. API credentials are needed.`,
+        platform,
+        configured: false,
       });
     }
 
@@ -286,9 +288,8 @@ router.get('/:platform/callback', validateOAuthCallback, async (req, res) => {
   } catch (error) {
     log.error('OAuth callback processing failed', error, {
       platform: req.params.platform,
-      shopDomain,
-      hasCode: !!code,
-      hasState: !!state
+      hasCode: !!req.query.code,
+      hasState: !!req.query.state
     });
 
     // Redirect to settings with error
@@ -365,8 +366,12 @@ router.post('/:platform/disconnect', async (req, res) => {
       return res.status(404).json({ error: 'Platform not connected' });
     }
 
-    // Mark as disconnected (implemented in database)
-    // savePlatformConnection(shopDomain, platform, { status: 'inactive' });
+    // Mark as disconnected in database
+    const db = (await import('../db/database.js')).getDB();
+    db.run(
+      `UPDATE platform_connections SET status = 'inactive', updated_at = CURRENT_TIMESTAMP WHERE shop_domain = ? AND platform = ? AND status = 'active'`,
+      [shopDomain, platform]
+    );
 
     res.json({
       message: `Successfully disconnected ${platform}`,

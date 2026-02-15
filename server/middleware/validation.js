@@ -7,7 +7,7 @@ import Joi from 'joi';
 // Common validation patterns
 const emailSchema = Joi.string().email().required();
 const passwordSchema = Joi.string().min(8).max(128).required();
-const platformSchema = Joi.string().valid('meta', 'google', 'klaviyo', 'ga4', 'shopify').required();
+const platformSchema = Joi.string().valid('meta', 'google', 'klaviyo', 'ga4', 'shopify', 'tiktok').required();
 const shopDomainSchema = Joi.string().pattern(/^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/).required();
 
 /**
@@ -75,10 +75,11 @@ export const validateOAuthInitiate = validateRequest(Joi.object({
 }));
 
 export const validateOAuthCallback = validateRequest(Joi.object({
-  code: Joi.string().required(),
-  state: Joi.string().required(),
-  platform: platformSchema
-}), 'query');
+  code: Joi.string().optional(),
+  state: Joi.string().optional(),
+  error: Joi.string().optional(),
+  error_description: Joi.string().optional()
+}).unknown(true), 'query');
 
 // --- Platform connection validation ---
 export const validatePlatformCredentials = validateRequest(Joi.object({
@@ -159,7 +160,6 @@ export const validateCreateSubscription = validateRequest(Joi.object({
 }));
 
 export const validateUpdateSubscription = validateRequest(Joi.object({
-  subscriptionId: Joi.string().required(),
   priceId: Joi.string().required()
 }));
 

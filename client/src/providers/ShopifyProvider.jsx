@@ -36,7 +36,7 @@ export function ShopifyProvider({ children }) {
   const [error, setError] = useState(null);
   const embedded = isEmbedded();
 
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+  const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api';
 
   // Authenticated fetch — includes session token for embedded, falls back to X-Shop-Domain header
   const authenticatedFetch = useCallback(async (endpoint, options = {}) => {

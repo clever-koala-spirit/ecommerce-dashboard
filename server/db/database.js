@@ -172,17 +172,19 @@ export async function initDB() {
   `);
 
   // Platform connections — stores OAuth tokens for Meta, Google, Klaviyo, GA4 per shop
+  // Supports multiple accounts per platform via account_id
   db.run(`
     CREATE TABLE IF NOT EXISTS platform_connections (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       shop_domain TEXT NOT NULL,
       platform TEXT NOT NULL,
+      account_id TEXT DEFAULT 'default',
       credentials_encrypted TEXT NOT NULL,
       status TEXT DEFAULT 'active',
       last_sync_at TIMESTAMP,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(shop_domain, platform)
+      UNIQUE(shop_domain, platform, account_id)
     );
   `);
 
@@ -249,6 +251,19 @@ export async function initDB() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  // Migration: add account_id column to platform_connections if missing
+  try {
+    const cols = db.exec(`PRAGMA table_info(platform_connections)`);
+    const colNames = cols.length > 0 ? cols[0].values.map(r => r[1]) : [];
+    if (!colNames.includes('account_id')) {
+      db.run(`ALTER TABLE platform_connections ADD COLUMN account_id TEXT DEFAULT 'default'`);
+      // Recreate unique index to include account_id
+      db.run(`DROP INDEX IF EXISTS idx_platform_conn`);
+    }
+  } catch (e) {
+    // Ignore migration errors on fresh DB
+  }
 
   // Indexes for performance
   db.run(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);`);
@@ -550,18 +565,18 @@ export function cleanupExpiredOAuthStates() {
 }
 
 // --- Platform connections ---
-export function savePlatformConnection(shopDomain, platform, credentials) {
+export function savePlatformConnection(shopDomain, platform, credentials, accountId = 'default') {
   const db = getDB();
   const encrypted = encrypt(JSON.stringify(credentials));
 
   db.run(
-    `INSERT INTO platform_connections (shop_domain, platform, credentials_encrypted)
-     VALUES (?, ?, ?)
-     ON CONFLICT(shop_domain, platform) DO UPDATE SET
+    `INSERT INTO platform_connections (shop_domain, platform, account_id, credentials_encrypted)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(shop_domain, platform, account_id) DO UPDATE SET
        credentials_encrypted = excluded.credentials_encrypted,
        status = 'active',
        updated_at = CURRENT_TIMESTAMP`,
-    [shopDomain, platform, encrypted]
+    [shopDomain, platform, accountId, encrypted]
   );
 }
 

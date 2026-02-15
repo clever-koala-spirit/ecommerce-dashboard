@@ -29,7 +29,7 @@ router.get('/', async (req, res) => {
 
         // Pass access token for Shopify, other services use their own auth
         if (name === 'shopify') {
-          testResult = await service.testConnection(shopData.accessToken);
+          testResult = await service.testConnection(shopData.accessToken, shopDomain);
         } else {
           testResult = await service.testConnection();
         }
@@ -91,7 +91,7 @@ router.post('/:source/test', async (req, res) => {
 
     // Pass access token for Shopify
     if (source === 'shopify') {
-      result = await service.testConnection(shopData.accessToken);
+      result = await service.testConnection(shopData.accessToken, shopDomain);
     } else {
       result = await service.testConnection();
     }
@@ -121,7 +121,7 @@ router.post('/:source/sync', async (req, res) => {
 
     // Pass access token for Shopify
     if (source === 'shopify') {
-      testResult = await service.testConnection(shopData.accessToken);
+      testResult = await service.testConnection(shopData.accessToken, shopDomain);
     } else {
       testResult = await service.testConnection();
     }
@@ -170,7 +170,7 @@ router.get('/:source/data', async (req, res) => {
 
     // Pass access token for Shopify
     if (source === 'shopify') {
-      testResult = await service.testConnection(shopData.accessToken);
+      testResult = await service.testConnection(shopData.accessToken, shopDomain);
     } else {
       testResult = await service.testConnection();
     }
@@ -194,7 +194,7 @@ router.get('/:source/data', async (req, res) => {
 
     switch (source) {
       case 'shopify':
-        data = await service.fetchOrders(dateRange, shopData.accessToken);
+        data = await service.fetchOrders(dateRange, shopData.accessToken, shopDomain);
         break;
       case 'meta':
         data = await service.fetchDailyInsights(dateRange);
