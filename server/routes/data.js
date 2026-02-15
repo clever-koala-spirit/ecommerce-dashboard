@@ -32,8 +32,15 @@ router.get('/dashboard', async (req, res) => {
     const shopifyData = await getCachedOrFetch(
       `${cacheKeyPrefix}:shopify:30d`,
       async () => {
-        const result = await shopifyService.fetchOrders(dateRange, shopData.accessToken, shopDomain);
-        return result.data || mockData.shopify;
+        try {
+          const result = await shopifyService.fetchOrders(dateRange, shopData.accessToken, shopDomain);
+          if (result.connected && result.data && result.data.length > 0) {
+            return result.data;
+          }
+        } catch (err) {
+          console.error('[Dashboard] Shopify fetch error:', err.message);
+        }
+        return mockData.shopify;
       },
       300
     );

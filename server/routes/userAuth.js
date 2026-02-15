@@ -6,7 +6,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import { createUser, getUserByEmail, getUserById, updateUserLastLogin, updateUserPassword, createResetToken, getResetToken, markResetTokenUsed, getShop } from '../db/database.js';
+import { createUser, getUserByEmail, getUserById, updateUserLastLogin, updateUserPassword, createResetToken, getResetToken, markResetTokenUsed, getShop, linkUserToShop, getUserShopDomain } from '../db/database.js';
 import emailService from '../services/email.js';
 import { log } from '../utils/logger.js';
 import { 
@@ -119,19 +119,17 @@ router.post('/login', validateLogin, (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Create JWT token
-    const token = jwt.sign(
-      { userId: user.id, email: user.email, name: user.name },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    // Create JWT token (include shopDomain if user has one linked)
+    const jwtPayload = { userId: user.id, email: user.email, name: user.name };
+    if (user.shopDomain) jwtPayload.shopDomain = user.shopDomain;
+    const token = jwt.sign(jwtPayload, JWT_SECRET, { expiresIn: '7d' });
 
     // Update last login
     updateUserLastLogin(user.id);
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email, shopDomain: user.shopDomain || null },
     });
   } catch (err) {
     log.error('Login error', err, { email: req.body.email?.replace(/(..).*(@.*)/, '$1***$2') });
@@ -241,11 +239,75 @@ router.get('/me', (req, res) => {
       return res.status(401).json({ error: 'User not found' });
     }
 
+    // Include shopDomain from JWT or from user record
+    const shopDomain = decoded.shopDomain || user.shopDomain || null;
+
     res.json({
-      user: { id: user.id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email, shopDomain },
     });
   } catch (err) {
     log.error('Get user info error', err, { requestId: req.requestId });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/auth/link-shop
+ * Link a user account to a Shopify shop
+ */
+router.post('/link-shop', (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    const { shopDomain } = req.body;
+    if (!shopDomain) {
+      return res.status(400).json({ error: 'shopDomain is required' });
+    }
+
+    // Validate format
+    const shopRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/;
+    if (!shopRegex.test(shopDomain)) {
+      return res.status(400).json({ error: 'Invalid shop domain format. Use yourstore.myshopify.com' });
+    }
+
+    // Check shop exists and is active
+    const shop = getShop(shopDomain);
+    if (!shop || !shop.isActive) {
+      return res.status(404).json({ error: 'Shop not found or not active. Please install the app on your Shopify store first.' });
+    }
+
+    // Link user to shop
+    linkUserToShop(decoded.userId, shopDomain);
+
+    // Issue new JWT with shopDomain
+    const user = getUserByEmail(decoded.email);
+    const newToken = jwt.sign(
+      { userId: user.id, email: user.email, name: user.name, shopDomain },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    log.info('User linked to shop', { userId: decoded.userId, shopDomain });
+
+    res.json({
+      success: true,
+      token: newToken,
+      user: { id: user.id, name: user.name, email: user.email, shopDomain },
+      shop: { name: shop.shopName, domain: shopDomain },
+    });
+  } catch (err) {
+    log.error('Link shop error', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -302,16 +364,14 @@ router.post('/refresh', (req, res) => {
       return res.status(401).json({ error: 'User not found' });
     }
 
-    // Create new token
-    const newToken = jwt.sign(
-      { userId: user.id, email: user.email, name: user.name },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    // Create new token (include shopDomain if user has one linked)
+    const refreshPayload = { userId: user.id, email: user.email, name: user.name };
+    if (user.shopDomain) refreshPayload.shopDomain = user.shopDomain;
+    const newToken = jwt.sign(refreshPayload, JWT_SECRET, { expiresIn: '7d' });
 
     res.json({
       token: newToken,
-      user: { id: user.id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email, shopDomain: user.shopDomain || null },
     });
   } catch (err) {
     log.error('Token refresh error', err, { requestId: req.requestId });
@@ -706,12 +766,12 @@ router.get('/oauth/google/callback', async (req, res) => {
       user = { id: userId, name: userData.name || 'Google User', email: emailLower };
     }
 
-    // Create JWT token
-    const token = jwt.sign(
-      { userId: user.id, email: user.email, name: user.name },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    // Create JWT token (include shopDomain if user has one linked)
+    // Need to re-fetch user to get shopDomain from DB
+    const fullUser = getUserByEmail(emailLower);
+    const googleJwtPayload = { userId: (fullUser || user).id, email: (fullUser || user).email, name: (fullUser || user).name };
+    if (fullUser?.shopDomain) googleJwtPayload.shopDomain = fullUser.shopDomain;
+    const token = jwt.sign(googleJwtPayload, JWT_SECRET, { expiresIn: '7d' });
 
     // Update last login
     updateUserLastLogin(user.id);

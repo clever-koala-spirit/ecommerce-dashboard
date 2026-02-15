@@ -15,6 +15,7 @@
  */
 
 import jwt from 'jsonwebtoken';
+import { getUserShopDomain } from '../db/database.js';
 
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
 const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
@@ -75,14 +76,23 @@ export function verifySessionToken(req, res, next) {
       // Shopify token verification failed — try our own JWT (signed with JWT_SECRET)
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
-        if (decoded.shopDomain) {
-          req.shopDomain = decoded.shopDomain;
+        let shopDomain = decoded.shopDomain;
+
+        // If JWT has userId but no shopDomain, look up linked shop from DB
+        if (!shopDomain && decoded.userId) {
+          shopDomain = getUserShopDomain(decoded.userId);
+        }
+
+        if (shopDomain) {
+          req.shopDomain = shopDomain;
           req.userId = decoded.userId;
           req.authMethod = 'app_jwt';
           console.debug('[SessionToken] Verified app JWT for shop:', req.shopDomain);
           return next();
         }
         // Valid JWT but no shopDomain — fall through
+        req.userId = decoded.userId;
+        req.authMethod = 'app_jwt_no_shop';
       } catch (jwtErr) {
         console.warn('[SessionToken] All token verification failed:', err.message, jwtErr.message);
       }

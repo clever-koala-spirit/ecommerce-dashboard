@@ -265,6 +265,17 @@ export async function initDB() {
     // Ignore migration errors on fresh DB
   }
 
+  // Migration: add shop_domain column to users table
+  try {
+    const cols = db.exec(`PRAGMA table_info(users)`);
+    const colNames = cols.length > 0 ? cols[0].values.map(r => r[1]) : [];
+    if (!colNames.includes('shop_domain')) {
+      db.run(`ALTER TABLE users ADD COLUMN shop_domain TEXT`);
+    }
+  } catch (e) {
+    // Ignore migration errors on fresh DB
+  }
+
   // Indexes for performance
   db.run(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_reset_tokens_token ON reset_tokens(token);`);
@@ -404,7 +415,7 @@ export function createUser(id, name, email, hashedPassword, salt) {
 export function getUserByEmail(email) {
   const db = getDB();
   const results = db.exec(
-    `SELECT id, name, email, hashed_password, salt, created_at, last_login_at
+    `SELECT id, name, email, hashed_password, salt, created_at, last_login_at, shop_domain
      FROM users WHERE email = ?`,
     [email.toLowerCase().trim()]
   );
@@ -420,13 +431,14 @@ export function getUserByEmail(email) {
     salt: row[4],
     createdAt: row[5],
     lastLoginAt: row[6],
+    shopDomain: row[7] || null,
   };
 }
 
 export function getUserById(id) {
   const db = getDB();
   const results = db.exec(
-    `SELECT id, name, email, hashed_password, salt, created_at, last_login_at
+    `SELECT id, name, email, hashed_password, salt, created_at, last_login_at, shop_domain
      FROM users WHERE id = ?`,
     [id]
   );
@@ -442,7 +454,21 @@ export function getUserById(id) {
     salt: row[4],
     createdAt: row[5],
     lastLoginAt: row[6],
+    shopDomain: row[7] || null,
   };
+}
+
+export function linkUserToShop(userId, shopDomain) {
+  const db = getDB();
+  db.run(`UPDATE users SET shop_domain = ? WHERE id = ?`, [shopDomain, userId]);
+  saveDatabaseToFile();
+}
+
+export function getUserShopDomain(userId) {
+  const db = getDB();
+  const results = db.exec(`SELECT shop_domain FROM users WHERE id = ?`, [userId]);
+  if (results.length === 0 || results[0].values.length === 0) return null;
+  return results[0].values[0][0] || null;
 }
 
 export function updateUserLastLogin(id) {

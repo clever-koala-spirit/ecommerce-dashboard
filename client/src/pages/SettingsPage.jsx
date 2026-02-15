@@ -79,6 +79,13 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const store = useStore();
 
+  // State for shop linking
+  const [linkShopDomain, setLinkShopDomain] = useState('');
+  const [linkShopError, setLinkShopError] = useState('');
+  const [linkShopSuccess, setLinkShopSuccess] = useState('');
+  const [linkingShop, setLinkingShop] = useState(false);
+  const [shopifyOAuthMessage, setShopifyOAuthMessage] = useState('');
+
   // State for platform connections
   const [platformStatus, setPlatformStatus] = useState({
     shopify: false,
@@ -113,6 +120,47 @@ export default function SettingsPage() {
   const [klaviyoError, setKlaviyoError] = useState('');
   const [klaviyoConnecting, setKlaviyoConnecting] = useState(false);
 
+  // Link user to Shopify shop
+  const handleLinkShop = async () => {
+    let domain = linkShopDomain.trim();
+    if (!domain) {
+      setLinkShopError('Please enter your Shopify store domain');
+      return;
+    }
+    // Auto-add .myshopify.com if needed
+    if (!domain.includes('.myshopify.com')) {
+      domain = `${domain}.myshopify.com`;
+    }
+    setLinkingShop(true);
+    setLinkShopError('');
+    setLinkShopSuccess('');
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      const token = localStorage.getItem('ss_token');
+      const res = await fetch(`${apiUrl}/api/auth/link-shop`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ shopDomain: domain }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        // Update token
+        localStorage.setItem('ss_token', data.token);
+        setLinkShopSuccess(`Successfully linked to ${data.shop.name || domain}! Refreshing...`);
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        setLinkShopError(data.error || 'Failed to link shop');
+      }
+    } catch (err) {
+      setLinkShopError('Network error. Please try again.');
+    } finally {
+      setLinkingShop(false);
+    }
+  };
+
   // Initiate OAuth flow for a platform
   const initiateOAuthFlow = async (platformKey) => {
     try {
@@ -127,8 +175,10 @@ export default function SettingsPage() {
           setConnectingPlatform(null);
           return;
         }
-        // Use the main auth route which handles Shopify OAuth without requiring existing auth
-        window.location.href = `https://api.slayseason.com/api/auth?shop=${encodeURIComponent(shopDomain)}&force=1`;
+        // Open Shopify OAuth in a new tab to avoid iframe capture
+        window.open(`https://api.slayseason.com/api/auth?shop=${encodeURIComponent(shopDomain)}&force=1`, '_blank');
+        setShopifyOAuthMessage('Complete the authorization in the new tab. Once done, refresh this page.');
+        setConnectingPlatform(null);
         return;
       }
 
@@ -372,9 +422,54 @@ export default function SettingsPage() {
                 </div>
               </div>
             ) : (
-              <div style={styles.emptyState}>
-                <AlertCircle size={32} style={styles.emptyStateIcon} />
-                <p>No Shopify store connected</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <AlertCircle size={32} style={{ color: '#6366f1' }} />
+                  <div>
+                    <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '600', color: 'var(--color-text-primary)' }}>Link your Shopify store</h3>
+                    <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-text-secondary)' }}>
+                      Enter your .myshopify.com domain to connect your store data to this account.
+                    </p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={linkShopDomain}
+                    onChange={(e) => setLinkShopDomain(e.target.value)}
+                    placeholder="mystore.myshopify.com"
+                    onKeyDown={(e) => e.key === 'Enter' && handleLinkShop()}
+                    style={{
+                      flex: 1,
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-bg-input, #0f0f1a)',
+                      color: 'var(--color-text-primary)',
+                      fontSize: '14px',
+                    }}
+                  />
+                  <button
+                    onClick={handleLinkShop}
+                    disabled={linkingShop}
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: 'var(--color-accent, #6366f1)',
+                      color: 'white',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: linkingShop ? 'wait' : 'pointer',
+                      opacity: linkingShop ? 0.7 : 1,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {linkingShop ? 'Linking...' : 'Link Store'}
+                  </button>
+                </div>
+                {linkShopError && <p style={{ color: '#ef4444', fontSize: '13px', margin: 0 }}>{linkShopError}</p>}
+                {linkShopSuccess && <p style={{ color: '#22c55e', fontSize: '13px', margin: 0 }}>{linkShopSuccess}</p>}
               </div>
             )}
           </div>
@@ -463,6 +558,38 @@ export default function SettingsPage() {
               );
             })}
           </div>
+
+          {shopifyOAuthMessage && (
+            <div style={{
+              padding: '12px 16px',
+              borderRadius: '8px',
+              background: 'rgba(99, 102, 241, 0.08)',
+              border: '1px solid rgba(99, 102, 241, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}>
+              <AlertCircle size={18} style={{ color: '#818cf8', flexShrink: 0 }} />
+              <span style={{ fontSize: '14px', color: '#c7d2fe' }}>{shopifyOAuthMessage}</span>
+              <button
+                onClick={() => window.location.reload()}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: 'var(--color-accent, #6366f1)',
+                  color: 'white',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  marginLeft: 'auto',
+                }}
+              >
+                Refresh
+              </button>
+            </div>
+          )}
         </section>
 
         {/* AI Assistant Section */}

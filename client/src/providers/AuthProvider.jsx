@@ -25,6 +25,10 @@ export function AuthProvider({ children }) {
           const data = await res.json();
           setUser(data.user);
           setIsAuthenticated(true);
+          // Store shopDomain for API calls if user has a linked shop
+          if (data.user.shopDomain) {
+            sessionStorage.setItem('shopDomain', data.user.shopDomain);
+          }
         } else {
           localStorage.removeItem('ss_token');
         }
@@ -85,6 +89,9 @@ export function AuthProvider({ children }) {
         const data = await res.json();
         setUser(data.user);
         setIsAuthenticated(true);
+        if (data.user.shopDomain) {
+          sessionStorage.setItem('shopDomain', data.user.shopDomain);
+        }
       }
     } catch (err) {
       // Token might still be valid, set authenticated optimistically
