@@ -14,6 +14,7 @@ import SignupPage from './pages/SignupPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import NotFoundPage from './pages/NotFoundPage';
+import ChatWidget from './components/chat/ChatWidget';
 
 // Lazy load pages
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
@@ -147,6 +148,8 @@ function App() {
             </ErrorBoundary>
           } />
         </Routes>
+        {/* Global chat widget - appears on all pages */}
+        <ChatWidget />
       </Suspense>
     </ErrorBoundary>
   );

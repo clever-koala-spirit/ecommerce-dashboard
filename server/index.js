@@ -36,6 +36,7 @@ import dataRouter from './routes/data.js';
 import aiRouter from './routes/ai.js';
 import oauthRouter from './routes/oauth.js';
 import billingRouter from './routes/billing.js';
+import chatRouter from './routes/chat.js';
 
 const app = express();
 app.set('trust proxy', 1); // Behind nginx
@@ -181,6 +182,9 @@ app.use('/api/auth', userAuthRouter);
 
 // --- Shopify OAuth auth routes (handles GET / for OAuth flow) ---
 app.use('/api/auth', authRouter);
+
+// --- Public chat routes (no auth required) ---
+app.use('/api/chat', chatRouter);
 
 // --- Webhook routes (HMAC verified, rate limited) ---
 app.use('/api/webhooks', webhookRateLimiter, webhooksRouter);

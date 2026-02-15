@@ -252,6 +252,18 @@ export async function initDB() {
     );
   `);
 
+  // Chat conversations — for AI chat assistant
+  db.run(`
+    CREATE TABLE IF NOT EXISTS chat_conversations (
+      id TEXT PRIMARY KEY,
+      visitor_email TEXT,
+      messages TEXT NOT NULL,
+      needs_human INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   // Migration: add account_id column to platform_connections if missing
   try {
     const cols = db.exec(`PRAGMA table_info(platform_connections)`);
@@ -288,6 +300,8 @@ export async function initDB() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_sync_log_shop ON sync_log(shop_domain, source);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_platform_conn ON platform_connections(shop_domain, platform);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_costs_shop ON fixed_costs(shop_domain);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_chat_conversations_created ON chat_conversations(created_at);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_chat_conversations_human ON chat_conversations(needs_human);`);
 
   // Save initial schema to file and start auto-save
   saveDatabaseToFile();
