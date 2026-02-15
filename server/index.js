@@ -108,9 +108,8 @@ app.get('/api/health', (req, res) => {
 app.get('/', (req, res) => {
   const shop = req.query.shop;
   if (shop) {
-    // Shopify is opening the app — serve the dashboard SPA directly
-    const indexPath = path.join(clientDistPath, 'index.html');
-    return res.sendFile(indexPath);
+    // Shopify is opening the app — redirect to dashboard
+    return res.redirect(`https://slayseason.com/dashboard?shop=${encodeURIComponent(shop)}`);
   }
   // No shop param — serve frontend
   const indexPath = path.join(clientDistPath, 'index.html');
