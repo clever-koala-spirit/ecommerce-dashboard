@@ -15,9 +15,14 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import NotFoundPage from './pages/NotFoundPage';
 
-// Lazy load legal pages
+// Lazy load pages
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const PricingPage = lazy(() => import('./pages/PricingPage'));
+const BlogPage = lazy(() => import('./pages/BlogPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
+const HelpPage = lazy(() => import('./pages/HelpPage'));
 
 function LoadingScreen() {
   return (
@@ -83,6 +88,13 @@ function App() {
               <AuthCallbackPage />
             </ErrorBoundary>
           } />
+
+          {/* Public pages */}
+          <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
+          <Route path="/pricing" element={<ErrorBoundary><PricingPage /></ErrorBoundary>} />
+          <Route path="/blog" element={<ErrorBoundary><BlogPage /></ErrorBoundary>} />
+          <Route path="/contact" element={<ErrorBoundary><ContactPage /></ErrorBoundary>} />
+          <Route path="/help" element={<ErrorBoundary><HelpPage /></ErrorBoundary>} />
 
           {/* Legal pages */}
           <Route path="/privacy" element={

@@ -195,6 +195,8 @@ const LandingPage = () => {
             {[['Features', 'features'], ['Pricing', 'pricing'], ['How It Works', 'how-it-works'], ['FAQ', 'faq']].map(([label, id]) => (
               <button key={id} onClick={() => scrollTo(id)} className="text-[#8b92b0] hover:text-white transition-colors duration-200">{label}</button>
             ))}
+            <button onClick={() => navigate('/about')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">About</button>
+            <button onClick={() => navigate('/blog')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Blog</button>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
@@ -964,8 +966,8 @@ const LandingPage = () => {
               <p className="text-sm text-[#6b7194] leading-relaxed">True profit analytics for DTC brands. Built by operators, for operators.</p>
             </div>
             {[
-              { title: 'Product', links: [['Features', () => scrollTo('features')], ['Pricing', () => scrollTo('pricing')], ['Free Trial', () => navigate('/signup')], ['Integrations', null]] },
-              { title: 'Company', links: [['Our Story', () => scrollTo('founder-story')], ['Blog', null], ['Contact', null], ['Careers', null]] },
+              { title: 'Product', links: [['Features', () => scrollTo('features')], ['Pricing', () => navigate('/pricing')], ['Free Trial', () => navigate('/signup')], ['Integrations', null]] },
+              { title: 'Company', links: [['About', () => navigate('/about')], ['Blog', () => navigate('/blog')], ['Contact', () => navigate('/contact')], ['Help', () => navigate('/help')]] },
               { title: 'Legal', links: [['Privacy Policy', () => navigate('/privacy')], ['Terms of Service', () => navigate('/terms')], ['Security', null], ['GDPR', null]] },
             ].map((col, i) => (
               <div key={i}>
