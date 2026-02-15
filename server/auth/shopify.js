@@ -67,9 +67,9 @@ export function handleAuthStart(req, res) {
     return res.status(400).json({ error: 'Invalid shop domain. Must be xxx.myshopify.com' });
   }
 
-  // If shop already has a valid token, skip OAuth and issue a session
+  // If shop already has a valid token AND force param not set, skip OAuth
   const existingShop = getShop(shop);
-  if (existingShop && existingShop.accessToken && existingShop.isActive) {
+  if (existingShop && existingShop.accessToken && existingShop.isActive && !req.query.force) {
     console.log(`[Auth] Shop already connected: ${shop} — redirecting to session endpoint`);
     return res.redirect(`/api/auth/shopify/session?shop=${encodeURIComponent(shop)}`);
   }
@@ -161,8 +161,32 @@ export async function handleAuthCallback(req, res) {
     // Register mandatory GDPR webhooks
     await registerWebhooks(shop, access_token);
 
-    // Redirect to session endpoint to issue a JWT, then to dashboard
-    res.redirect(`/api/auth/shopify/session?shop=${encodeURIComponent(shop)}`);
+    // Issue JWT directly here and redirect to frontend (avoids iframe issues)
+    const jwt = await import('jsonwebtoken');
+    const { getUserByEmail, createUser } = await import('../db/database.js');
+    
+    const shopEmail = shopInfo.email || `${shop.replace('.myshopify.com', '')}@shop.slayseason.com`;
+    const shopName = shopInfo.name || shop.replace('.myshopify.com', '');
+    
+    let user = getUserByEmail(shopEmail);
+    if (!user) {
+      const userId = crypto.randomUUID();
+      const salt = crypto.randomBytes(16).toString('hex');
+      const tempPassword = crypto.randomBytes(32).toString('hex');
+      const { hashPassword } = await import('../db/database.js');
+      const hashedPassword = hashPassword(tempPassword, salt);
+      createUser(userId, shopName, shopEmail, hashedPassword, salt);
+      user = { id: userId, name: shopName, email: shopEmail };
+    }
+    
+    const token = jwt.default.sign(
+      { userId: user.id, email: user.email, name: user.name, shopDomain: shop },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    
+    const frontendUrl = process.env.FRONTEND_URL || 'https://slayseason.com';
+    res.redirect(`${frontendUrl}/auth-callback?token=${encodeURIComponent(token)}&shop=${encodeURIComponent(shop)}`);
 
   } catch (error) {
     console.error('[Auth] OAuth callback error:', error);
