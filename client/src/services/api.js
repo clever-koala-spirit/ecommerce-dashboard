@@ -17,11 +17,16 @@ async function apiFetch(endpoint, options = {}) {
     try {
       token = await window.shopify.idToken();
     } catch (err) {
-      // Not embedded or token fetch failed — will use X-Shop-Domain header instead
+      // Not embedded or token fetch failed
       if (import.meta.env.DEV) {
         console.debug('[apiFetch] Session token not available:', err.message);
       }
     }
+  }
+
+  // Fall back to stored JWT from our own auth (email/password or Shopify session endpoint)
+  if (!token) {
+    token = localStorage.getItem('ss_token');
   }
 
   const headers = {

@@ -72,9 +72,20 @@ export function verifySessionToken(req, res, next) {
         });
       }
     } catch (err) {
-      // Token verification failed — log and fall through to header-based auth
-      console.warn('[SessionToken] Verification failed:', err.message);
-      // Don't return error here — fall through to check X-Shop-Domain header
+      // Shopify token verification failed — try our own JWT (signed with JWT_SECRET)
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+        if (decoded.shopDomain) {
+          req.shopDomain = decoded.shopDomain;
+          req.userId = decoded.userId;
+          req.authMethod = 'app_jwt';
+          console.debug('[SessionToken] Verified app JWT for shop:', req.shopDomain);
+          return next();
+        }
+        // Valid JWT but no shopDomain — fall through
+      } catch (jwtErr) {
+        console.warn('[SessionToken] All token verification failed:', err.message, jwtErr.message);
+      }
     }
   }
 
