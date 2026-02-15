@@ -49,26 +49,29 @@ function getOAuthConfig(platform) {
     google: {
       authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
       tokenUrl: 'https://oauth2.googleapis.com/token',
-      scope: 'https://www.googleapis.com/auth/adwords https://www.googleapis.com/auth/analytics.readonly',
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      scope: 'openid email profile https://www.googleapis.com/auth/adwords',
+      clientId: process.env.GOOGLE_OAUTH_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
       usesPKCE: true,
+      extraParams: { access_type: 'offline', prompt: 'consent' },
     },
     klaviyo: {
-      authUrl: 'https://www.klaviyo.com/oauth/authorize',
-      tokenUrl: 'https://a.klaviyo.com/oauth/token',
-      scope: 'campaigns:read flows:read metrics:read',
-      clientId: process.env.KLAVIYO_CLIENT_ID,
-      clientSecret: process.env.KLAVIYO_CLIENT_SECRET,
-      usesPKCE: true,
+      // Klaviyo uses API key, not OAuth — see POST /klaviyo/connect endpoint
+      authUrl: null,
+      tokenUrl: null,
+      scope: null,
+      clientId: null,
+      clientSecret: null,
+      usesPKCE: false,
     },
     ga4: {
       authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
       tokenUrl: 'https://oauth2.googleapis.com/token',
-      scope: 'https://www.googleapis.com/auth/analytics.readonly',
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      scope: 'openid email profile https://www.googleapis.com/auth/analytics.readonly',
+      clientId: process.env.GOOGLE_OAUTH_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
       usesPKCE: true,
+      extraParams: { access_type: 'offline', prompt: 'consent' },
     },
     tiktok: {
       authUrl: 'https://business-api.tiktok.com/portal/auth',
@@ -159,6 +162,13 @@ router.get('/:platform/start', (req, res) => {
     if (pkce) {
       params.append('code_challenge', pkce.challenge);
       params.append('code_challenge_method', 'S256');
+    }
+
+    // Add extra params (e.g. access_type, prompt for Google)
+    if (config.extraParams) {
+      for (const [key, value] of Object.entries(config.extraParams)) {
+        params.append(key, value);
+      }
     }
 
     // Platform-specific parameters
@@ -348,6 +358,61 @@ async function fetchPlatformInfo(platform, tokenData) {
 
   return credentials;
 }
+
+/**
+ * POST /api/oauth/klaviyo/connect
+ * Connects Klaviyo via API key (not OAuth)
+ */
+router.post('/klaviyo/connect', async (req, res) => {
+  try {
+    const { shopDomain } = req;
+    const { apiKey } = req.body;
+
+    if (!apiKey || typeof apiKey !== 'string' || apiKey.trim().length < 5) {
+      return res.status(400).json({ error: 'A valid Klaviyo API key is required' });
+    }
+
+    // Validate the key by calling Klaviyo accounts endpoint
+    const validateRes = await fetch('https://a.klaviyo.com/api/accounts/', {
+      headers: {
+        'Authorization': `Klaviyo-API-Key ${apiKey.trim()}`,
+        'revision': '2024-02-15',
+      },
+    });
+
+    if (!validateRes.ok) {
+      const errBody = await validateRes.text().catch(() => '');
+      log.warn('Klaviyo API key validation failed', { status: validateRes.status, body: errBody.substring(0, 200) });
+      return res.status(400).json({ error: 'Invalid Klaviyo API key. Please check and try again.' });
+    }
+
+    const accountData = await validateRes.json().catch(() => ({}));
+    const accountName = accountData?.data?.[0]?.attributes?.contact_information?.organization_name
+      || accountData?.data?.[0]?.id
+      || 'Klaviyo Account';
+
+    // Save to platform_connections
+    savePlatformConnection(shopDomain, 'klaviyo', {
+      accessToken: apiKey.trim(),
+      refreshToken: null,
+      expiresAt: null,
+      tokenType: 'api_key',
+      accountName,
+    });
+
+    log.oauth('klaviyo', 'api_key_connected', { shopDomain, accountName });
+
+    res.json({
+      success: true,
+      platform: 'klaviyo',
+      accountName,
+      message: `Connected to Klaviyo: ${accountName}`,
+    });
+  } catch (error) {
+    log.error('Klaviyo API key connection failed', error, { shopDomain: req.shopDomain });
+    res.status(500).json({ error: 'Failed to connect Klaviyo' });
+  }
+});
 
 /**
  * GET /api/oauth/:platform/disconnect

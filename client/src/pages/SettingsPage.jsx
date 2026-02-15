@@ -47,8 +47,9 @@ const PLATFORMS = {
   klaviyo: {
     name: 'Klaviyo',
     emoji: '💌',
-    useOAuth: true,
-    oauthLabel: 'Connect with Klaviyo',
+    useOAuth: false,
+    useApiKey: true,
+    oauthLabel: 'Connect with API Key',
     description: 'Email & SMS marketing flows',
   },
   ga4: {
@@ -105,6 +106,12 @@ export default function SettingsPage() {
 
   // "Coming soon" modal state
   const [comingSoonPlatform, setComingSoonPlatform] = useState(null);
+
+  // Klaviyo API key modal
+  const [showKlaviyoModal, setShowKlaviyoModal] = useState(false);
+  const [klaviyoApiKey, setKlaviyoApiKey] = useState('');
+  const [klaviyoError, setKlaviyoError] = useState('');
+  const [klaviyoConnecting, setKlaviyoConnecting] = useState(false);
 
   // Initiate OAuth flow for a platform
   const initiateOAuthFlow = async (platformKey) => {
@@ -192,6 +199,42 @@ export default function SettingsPage() {
       if (import.meta.env.DEV) {
         console.error(`Failed to disconnect ${platformKey}:`, error);
       }
+    }
+  };
+
+  // Connect Klaviyo with API key
+  const connectKlaviyo = async () => {
+    if (!klaviyoApiKey.trim()) {
+      setKlaviyoError('Please enter your Klaviyo Private API Key');
+      return;
+    }
+    setKlaviyoConnecting(true);
+    setKlaviyoError('');
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      const token = localStorage.getItem('ss_token');
+      const response = await fetch(`${apiUrl}/api/oauth/klaviyo/connect`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(shop?.shopifyDomain && { 'X-Shop-Domain': shop.shopifyDomain }),
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ apiKey: klaviyoApiKey.trim() }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setPlatformStatus(prev => ({ ...prev, klaviyo: true }));
+        setPlatformAccountInfo(prev => ({ ...prev, klaviyo: { account: data.accountName || 'Connected' } }));
+        setShowKlaviyoModal(false);
+        setKlaviyoApiKey('');
+      } else {
+        setKlaviyoError(data.error || 'Failed to connect');
+      }
+    } catch (error) {
+      setKlaviyoError('Network error. Please try again.');
+    } finally {
+      setKlaviyoConnecting(false);
     }
   };
 
@@ -392,7 +435,13 @@ export default function SettingsPage() {
                       {!isConnected ? (
                         <button
                           style={styles.btnOAuth}
-                          onClick={() => initiateOAuthFlow(platformKey)}
+                          onClick={() => {
+                            if (platform.useApiKey) {
+                              setShowKlaviyoModal(true);
+                            } else {
+                              initiateOAuthFlow(platformKey);
+                            }
+                          }}
                           disabled={isConnecting}
                         >
                           <Link size={16} />
@@ -605,6 +654,98 @@ export default function SettingsPage() {
             >
               Got it
             </button>
+          </div>
+        </div>
+      )}
+      {/* Klaviyo API Key Modal */}
+      {showKlaviyoModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+          onClick={() => { setShowKlaviyoModal(false); setKlaviyoError(''); }}
+        >
+          <div
+            style={{
+              background: 'var(--color-bg-card, #1e1e2e)',
+              border: '1px solid var(--color-border, #333)',
+              borderRadius: '16px',
+              padding: '32px',
+              maxWidth: '460px',
+              width: '90%',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: '48px', marginBottom: '16px', textAlign: 'center' }}>💌</div>
+            <h3 style={{ color: 'var(--color-text-primary, #fff)', fontSize: '20px', margin: '0 0 8px', textAlign: 'center' }}>
+              Connect Klaviyo
+            </h3>
+            <p style={{ color: 'var(--color-text-secondary, #94a3b8)', fontSize: '14px', lineHeight: '1.6', margin: '0 0 20px', textAlign: 'center' }}>
+              Enter your Klaviyo Private API Key. You can find it in Klaviyo → Settings → API Keys.
+            </p>
+            <input
+              type="password"
+              value={klaviyoApiKey}
+              onChange={(e) => setKlaviyoApiKey(e.target.value)}
+              placeholder="pk_xxxxxxxxxxxxxxxxxxxx"
+              style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: '8px',
+                border: '1px solid var(--color-border, #333)',
+                background: 'var(--color-bg-input, #0f0f1a)',
+                color: 'var(--color-text-primary, #fff)',
+                fontSize: '14px',
+                fontFamily: 'monospace',
+                boxSizing: 'border-box',
+                marginBottom: '12px',
+              }}
+              onKeyDown={(e) => e.key === 'Enter' && connectKlaviyo()}
+            />
+            {klaviyoError && (
+              <p style={{ color: '#ef4444', fontSize: '13px', margin: '0 0 12px' }}>
+                {klaviyoError}
+              </p>
+            )}
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => { setShowKlaviyoModal(false); setKlaviyoError(''); }}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--color-border, #333)',
+                  background: 'transparent',
+                  color: 'var(--color-text-secondary, #94a3b8)',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={connectKlaviyo}
+                disabled={klaviyoConnecting}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: 'var(--color-accent, #6366f1)',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: klaviyoConnecting ? 'wait' : 'pointer',
+                  opacity: klaviyoConnecting ? 0.7 : 1,
+                }}
+              >
+                {klaviyoConnecting ? 'Connecting...' : 'Connect'}
+              </button>
+            </div>
           </div>
         </div>
       )}
