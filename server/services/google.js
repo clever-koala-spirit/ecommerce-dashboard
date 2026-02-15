@@ -1,15 +1,35 @@
 import { queueRequest, withRetry } from '../middleware/rateLimiter.js';
+import { getPlatformConnection } from '../db/database.js';
 
 export class GoogleAdsService {
   constructor() {
+    // Fallback to environment variables if available
     this.developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
-    this.clientId = process.env.GOOGLE_ADS_CLIENT_ID;
-    this.clientSecret = process.env.GOOGLE_ADS_CLIENT_SECRET;
-    this.refreshToken = process.env.GOOGLE_ADS_REFRESH_TOKEN;
+    this.clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+    this.clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
     this.customerId = process.env.GOOGLE_ADS_CUSTOMER_ID;
     this.accessToken = null;
     this.tokenExpiry = 0;
-    this.connected = this.validateCredentials();
+    this.shopDomain = null;
+  }
+
+  // Load credentials from database or environment
+  loadCredentials(shopDomain) {
+    this.shopDomain = shopDomain;
+    
+    if (shopDomain) {
+      const connection = getPlatformConnection(shopDomain, 'google');
+      if (connection && connection.credentials) {
+        this.accessToken = connection.credentials.accessToken;
+        this.refreshToken = connection.credentials.refreshToken;
+        this.tokenExpiry = connection.credentials.expiresAt ? new Date(connection.credentials.expiresAt).getTime() : 0;
+        this.customerId = connection.credentials.customerId || process.env.GOOGLE_ADS_CUSTOMER_ID;
+        return true;
+      }
+    }
+    
+    // Fallback to environment variables
+    return this.validateCredentials();
   }
 
   validateCredentials() {
@@ -17,7 +37,7 @@ export class GoogleAdsService {
       this.developerToken &&
       this.clientId &&
       this.clientSecret &&
-      this.refreshToken &&
+      (this.refreshToken || this.accessToken) &&
       this.customerId
     );
   }
@@ -25,6 +45,10 @@ export class GoogleAdsService {
   async getAccessToken() {
     if (this.accessToken && Date.now() < this.tokenExpiry) {
       return this.accessToken;
+    }
+
+    if (!this.refreshToken) {
+      throw new Error('No refresh token available');
     }
 
     try {
@@ -54,9 +78,21 @@ export class GoogleAdsService {
     }
   }
 
-  async testConnection() {
-    if (!this.connected) {
+  async testConnection(shopDomain = null) {
+    if (shopDomain) {
+      this.loadCredentials(shopDomain);
+    }
+
+    if (!this.validateCredentials()) {
       return { connected: false, status: 'red', error: 'Missing credentials' };
+    }
+
+    if (!this.developerToken) {
+      return { 
+        connected: false, 
+        status: 'red', 
+        error: 'Google Ads Developer Token required' 
+      };
     }
 
     try {
@@ -71,26 +107,31 @@ export class GoogleAdsService {
       );
 
       if (!response.ok) {
+        const errorText = await response.text();
         return {
           connected: false,
           status: 'red',
-          error: `HTTP ${response.status}`,
+          error: `HTTP ${response.status}: ${errorText}`,
         };
       }
 
       return {
         connected: true,
         status: 'green',
-        customerId: this.customerId,
+        message: `Google Ads (${this.customerId})`,
       };
     } catch (error) {
       return { connected: false, status: 'red', error: error.message };
     }
   }
 
-  async fetchCampaigns(dateRange) {
-    if (!this.connected) {
-      return { connected: false };
+  async fetchCampaigns(dateRange, shopDomain = null) {
+    if (shopDomain) {
+      this.loadCredentials(shopDomain);
+    }
+
+    if (!this.validateCredentials()) {
+      return { connected: false, error: 'Missing credentials' };
     }
 
     try {
@@ -144,9 +185,13 @@ export class GoogleAdsService {
     }
   }
 
-  async fetchDailyMetrics(dateRange) {
-    if (!this.connected) {
-      return { connected: false };
+  async fetchDailyMetrics(dateRange, shopDomain = null) {
+    if (shopDomain) {
+      this.loadCredentials(shopDomain);
+    }
+
+    if (!this.validateCredentials()) {
+      return { connected: false, error: 'Missing credentials' };
     }
 
     try {

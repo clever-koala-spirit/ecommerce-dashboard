@@ -1,21 +1,43 @@
 import { queueRequest, withRetry } from '../middleware/rateLimiter.js';
+import { getPlatformConnection } from '../db/database.js';
 
 const API_VERSION = '2024-10-15';
 const BASE_URL = 'https://a.klaviyo.com/api';
 
 export class KlaviyoService {
   constructor() {
+    // Fallback to environment variable if available
     this.apiKey = process.env.KLAVIYO_API_KEY;
-    this.connected = this.validateCredentials();
+    this.shopDomain = null;
+  }
+
+  // Load credentials from database or environment
+  loadCredentials(shopDomain) {
+    this.shopDomain = shopDomain;
+    
+    if (shopDomain) {
+      const connection = getPlatformConnection(shopDomain, 'klaviyo');
+      if (connection && connection.credentials) {
+        this.apiKey = connection.credentials.accessToken; // Klaviyo API key stored as accessToken
+        return true;
+      }
+    }
+    
+    // Fallback to environment variable
+    return this.validateCredentials();
   }
 
   validateCredentials() {
     return !!this.apiKey;
   }
 
-  async testConnection() {
-    if (!this.connected) {
-      return { connected: false, status: 'red', error: 'Missing credentials' };
+  async testConnection(shopDomain = null) {
+    if (shopDomain) {
+      this.loadCredentials(shopDomain);
+    }
+
+    if (!this.validateCredentials()) {
+      return { connected: false, status: 'red', error: 'Missing API key' };
     }
 
     try {
@@ -28,26 +50,36 @@ export class KlaviyoService {
       );
 
       if (!response.ok) {
+        const errorText = await response.text();
         return {
           connected: false,
           status: 'red',
-          error: `HTTP ${response.status}`,
+          error: `HTTP ${response.status}: ${errorText}`,
         };
       }
+
+      const data = await response.json();
+      const accountName = data?.data?.[0]?.attributes?.contact_information?.organization_name
+        || data?.data?.[0]?.id
+        || 'Klaviyo Account';
 
       return {
         connected: true,
         status: 'green',
-        message: 'Klaviyo account connected',
+        message: accountName,
       };
     } catch (error) {
       return { connected: false, status: 'red', error: error.message };
     }
   }
 
-  async fetchFlows() {
-    if (!this.connected) {
-      return { connected: false };
+  async fetchFlows(shopDomain = null) {
+    if (shopDomain) {
+      this.loadCredentials(shopDomain);
+    }
+
+    if (!this.validateCredentials()) {
+      return { connected: false, error: 'Missing API key' };
     }
 
     try {
@@ -57,7 +89,7 @@ export class KlaviyoService {
       while (true) {
         const url = new URL(`${BASE_URL}/flows/`);
         url.searchParams.append('fields[flows]', 'name,status,created');
-        url.searchParams.append('limit', 100);
+        url.searchParams.append('page[size]', '100');
 
         if (cursor) {
           url.searchParams.append('page[cursor]', cursor);
@@ -96,9 +128,13 @@ export class KlaviyoService {
     }
   }
 
-  async fetchCampaigns(dateRange) {
-    if (!this.connected) {
-      return { connected: false };
+  async fetchCampaigns(dateRange, shopDomain = null) {
+    if (shopDomain) {
+      this.loadCredentials(shopDomain);
+    }
+
+    if (!this.validateCredentials()) {
+      return { connected: false, error: 'Missing API key' };
     }
 
     try {
@@ -108,7 +144,7 @@ export class KlaviyoService {
       while (true) {
         const url = new URL(`${BASE_URL}/campaigns/`);
         url.searchParams.append('fields[campaigns]', 'name,status,created,updated');
-        url.searchParams.append('limit', 100);
+        url.searchParams.append('page[size]', '100');
 
         if (cursor) {
           url.searchParams.append('page[cursor]', cursor);
@@ -155,18 +191,19 @@ export class KlaviyoService {
     }
   }
 
-  async fetchMetrics(dateRange) {
-    if (!this.connected) {
-      return { connected: false };
+  async fetchMetrics(dateRange, shopDomain = null) {
+    if (shopDomain) {
+      this.loadCredentials(shopDomain);
+    }
+
+    if (!this.validateCredentials()) {
+      return { connected: false, error: 'Missing API key' };
     }
 
     try {
-      const startDate = dateRange.start;
-      const endDate = dateRange.end;
-
       const url = new URL(`${BASE_URL}/metrics/`);
       url.searchParams.append('fields[metrics]', 'name,created');
-      url.searchParams.append('limit', 100);
+      url.searchParams.append('page[size]', '100');
 
       const response = await withRetry(() =>
         queueRequest('klaviyo', () =>
@@ -198,9 +235,13 @@ export class KlaviyoService {
     }
   }
 
-  async fetchListStats() {
-    if (!this.connected) {
-      return { connected: false };
+  async fetchListStats(shopDomain = null) {
+    if (shopDomain) {
+      this.loadCredentials(shopDomain);
+    }
+
+    if (!this.validateCredentials()) {
+      return { connected: false, error: 'Missing API key' };
     }
 
     try {
@@ -213,7 +254,7 @@ export class KlaviyoService {
           'fields[lists]',
           'name,created,updated,profile_count'
         );
-        url.searchParams.append('limit', 100);
+        url.searchParams.append('page[size]', '100');
 
         if (cursor) {
           url.searchParams.append('page[cursor]', cursor);

@@ -1,23 +1,50 @@
 import { queueRequest, withRetry } from '../middleware/rateLimiter.js';
+import { getPlatformConnection } from '../db/database.js';
 
 const API_VERSION = 'v19.0';
 const FIELDS = 'campaign_id,campaign_name,spend,impressions,clicks,cpc,ctr,actions,action_values';
 
 export class MetaService {
   constructor() {
+    // Fallback to environment variables if available
     this.accessToken = process.env.META_ACCESS_TOKEN;
     this.adAccountId = process.env.META_AD_ACCOUNT_ID;
     this.businessId = process.env.META_BUSINESS_ID;
-    this.connected = this.validateCredentials();
+    this.shopDomain = null;
+  }
+
+  // Load credentials from database or environment
+  loadCredentials(shopDomain) {
+    this.shopDomain = shopDomain;
+    
+    if (shopDomain) {
+      const connection = getPlatformConnection(shopDomain, 'meta');
+      if (connection && connection.credentials) {
+        this.accessToken = connection.credentials.accessToken;
+        this.adAccountId = connection.credentials.adAccountId;
+        return true;
+      }
+    }
+    
+    // Fallback to environment variables (likely not configured)
+    return this.validateCredentials();
   }
 
   validateCredentials() {
     return !!(this.accessToken && this.adAccountId);
   }
 
-  async testConnection() {
-    if (!this.connected) {
-      return { connected: false, status: 'red', error: 'Missing credentials' };
+  async testConnection(shopDomain = null) {
+    if (shopDomain) {
+      this.loadCredentials(shopDomain);
+    }
+
+    if (!this.validateCredentials()) {
+      return { 
+        connected: false, 
+        status: 'red', 
+        error: 'Coming Soon - Meta Ads integration is not yet configured' 
+      };
     }
 
     try {
@@ -30,10 +57,11 @@ export class MetaService {
       );
 
       if (!response.ok) {
+        const errorText = await response.text();
         return {
           connected: false,
           status: 'red',
-          error: `HTTP ${response.status}`,
+          error: `HTTP ${response.status}: ${errorText}`,
         };
       }
 
@@ -42,16 +70,20 @@ export class MetaService {
       return {
         connected: true,
         status: 'green',
-        accountName: data.name || 'Meta Ads Account',
+        message: data.name || 'Meta Ads Account',
       };
     } catch (error) {
       return { connected: false, status: 'red', error: error.message };
     }
   }
 
-  async fetchCampaigns(dateRange) {
-    if (!this.connected) {
-      return { connected: false };
+  async fetchCampaigns(dateRange, shopDomain = null) {
+    if (shopDomain) {
+      this.loadCredentials(shopDomain);
+    }
+
+    if (!this.validateCredentials()) {
+      return { connected: false, error: 'Missing credentials' };
     }
 
     try {
@@ -102,9 +134,13 @@ export class MetaService {
     }
   }
 
-  async fetchDailyInsights(dateRange) {
-    if (!this.connected) {
-      return { connected: false };
+  async fetchDailyInsights(dateRange, shopDomain = null) {
+    if (shopDomain) {
+      this.loadCredentials(shopDomain);
+    }
+
+    if (!this.validateCredentials()) {
+      return { connected: false, error: 'Missing credentials' };
     }
 
     try {

@@ -1,32 +1,44 @@
 import { queueRequest, withRetry } from '../middleware/rateLimiter.js';
-import fs from 'fs';
-import path from 'path';
+import { getPlatformConnection } from '../db/database.js';
 
 export class GA4Service {
   constructor() {
+    // Fallback to environment variables if available
     this.propertyId = process.env.GA4_PROPERTY_ID;
-    this.serviceAccountKeyPath = process.env.GA4_SERVICE_ACCOUNT_KEY_PATH;
+    this.clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+    this.clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
     this.accessToken = null;
+    this.refreshToken = null;
     this.tokenExpiry = 0;
-    this.connected = this.validateCredentials();
-    this.serviceAccountKey = this.loadServiceAccountKey();
+    this.shopDomain = null;
+  }
+
+  // Load credentials from database or environment
+  loadCredentials(shopDomain) {
+    this.shopDomain = shopDomain;
+    
+    if (shopDomain) {
+      const connection = getPlatformConnection(shopDomain, 'ga4');
+      if (connection && connection.credentials) {
+        this.accessToken = connection.credentials.accessToken;
+        this.refreshToken = connection.credentials.refreshToken;
+        this.tokenExpiry = connection.credentials.expiresAt ? new Date(connection.credentials.expiresAt).getTime() : 0;
+        this.propertyId = connection.credentials.propertyId || this.propertyId;
+        return true;
+      }
+    }
+    
+    // Fallback to environment variables - requires property ID
+    return this.validateCredentials();
   }
 
   validateCredentials() {
-    return !!this.propertyId && !!this.serviceAccountKeyPath;
-  }
-
-  loadServiceAccountKey() {
-    if (!this.serviceAccountKeyPath) return null;
-
-    try {
-      const resolvedPath = path.resolve(this.serviceAccountKeyPath);
-      const keyData = fs.readFileSync(resolvedPath, 'utf-8');
-      return JSON.parse(keyData);
-    } catch (error) {
-      console.error('[GA4] Error loading service account key:', error.message);
-      return null;
-    }
+    return !!(
+      this.propertyId &&
+      this.clientId &&
+      this.clientSecret &&
+      (this.refreshToken || this.accessToken)
+    );
   }
 
   async getAccessToken() {
@@ -34,73 +46,94 @@ export class GA4Service {
       return this.accessToken;
     }
 
-    if (!this.serviceAccountKey) {
-      throw new Error('Service account key not loaded');
+    if (!this.refreshToken) {
+      throw new Error('No refresh token available');
     }
 
     try {
-      const now = Math.floor(Date.now() / 1000);
-      const expiry = now + 3600;
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: this.clientId,
+          client_secret: this.clientSecret,
+          refresh_token: this.refreshToken,
+          grant_type: 'refresh_token',
+        }),
+      });
 
-      const header = {
-        alg: 'RS256',
-        typ: 'JWT',
-      };
+      if (!response.ok) {
+        throw new Error(`Failed to get access token: ${response.status}`);
+      }
 
-      const payload = {
-        iss: this.serviceAccountKey.client_email,
-        scope: 'https://www.googleapis.com/auth/analytics.readonly',
-        aud: 'https://oauth2.googleapis.com/token',
-        exp: expiry,
-        iat: now,
-      };
+      const data = await response.json();
+      this.accessToken = data.access_token;
+      this.tokenExpiry = Date.now() + data.expires_in * 1000 - 60000; // Refresh 1 min before expiry
 
-      // Note: In production, use a proper JWT library like 'jsonwebtoken'
-      // This is a simplified version that won't work without proper signing
-      const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64');
-      const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64');
-
-      console.warn('[GA4] JWT signing not implemented. Service account authentication requires setup.');
-
-      return null;
+      return this.accessToken;
     } catch (error) {
       console.error('[GA4] Error getting access token:', error.message);
       throw error;
     }
   }
 
-  async testConnection() {
-    if (!this.connected) {
-      return { connected: false, status: 'red', error: 'Missing credentials' };
+  async testConnection(shopDomain = null) {
+    if (shopDomain) {
+      this.loadCredentials(shopDomain);
+    }
+
+    if (!this.validateCredentials()) {
+      return { connected: false, status: 'red', error: 'Missing credentials or property ID' };
     }
 
     try {
-      // In production, this would verify the service account key is valid
+      const accessToken = await this.getAccessToken();
+
+      // Test by fetching property metadata
+      const response = await withRetry(() =>
+        queueRequest('ga4', () =>
+          fetch(
+            `https://analyticsdata.googleapis.com/v1beta/properties/${this.propertyId}/metadata`,
+            {
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+            }
+          )
+        )
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return {
+          connected: false,
+          status: 'red',
+          error: `HTTP ${response.status}: ${errorText}`,
+        };
+      }
+
       return {
         connected: true,
         status: 'green',
-        propertyId: this.propertyId,
+        message: `GA4 Property ${this.propertyId}`,
       };
     } catch (error) {
       return { connected: false, status: 'red', error: error.message };
     }
   }
 
-  async fetchDailyMetrics(dateRange) {
-    if (!this.connected) {
-      return { connected: false };
+  async fetchDailyMetrics(dateRange, shopDomain = null) {
+    if (shopDomain) {
+      this.loadCredentials(shopDomain);
+    }
+
+    if (!this.validateCredentials()) {
+      return { connected: false, error: 'Missing credentials' };
     }
 
     try {
       const accessToken = await this.getAccessToken();
-
-      if (!accessToken) {
-        console.warn('[GA4] Access token could not be generated');
-        return {
-          connected: false,
-          error: 'Service account authentication not configured',
-        };
-      }
 
       const body = {
         dateRanges: [
@@ -113,7 +146,7 @@ export class GA4Service {
         metrics: [
           { name: 'sessions' },
           { name: 'totalRevenue' },
-          { name: 'conversionRate' },
+          { name: 'conversions' },
         ],
       };
 
@@ -149,20 +182,17 @@ export class GA4Service {
     }
   }
 
-  async fetchChannelBreakdown(dateRange) {
-    if (!this.connected) {
-      return { connected: false };
+  async fetchChannelBreakdown(dateRange, shopDomain = null) {
+    if (shopDomain) {
+      this.loadCredentials(shopDomain);
+    }
+
+    if (!this.validateCredentials()) {
+      return { connected: false, error: 'Missing credentials' };
     }
 
     try {
       const accessToken = await this.getAccessToken();
-
-      if (!accessToken) {
-        return {
-          connected: false,
-          error: 'Service account authentication not configured',
-        };
-      }
 
       const body = {
         dateRanges: [
@@ -218,13 +248,13 @@ export class GA4Service {
       const date = row.dimensionValues[0].value;
       const sessions = parseInt(row.metricValues[0].value) || 0;
       const revenue = parseFloat(row.metricValues[1].value) || 0;
-      const conversionRate = parseFloat(row.metricValues[2].value) || 0;
+      const conversions = parseInt(row.metricValues[2].value) || 0;
 
       return {
         date,
         sessions,
         revenue: Math.round(revenue * 100) / 100,
-        conversionRate: Math.round(conversionRate * 100) / 100,
+        conversions,
         revenuePerSession:
           sessions > 0 ? Math.round((revenue / sessions) * 100) / 100 : 0,
       };

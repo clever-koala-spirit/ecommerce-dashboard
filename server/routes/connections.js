@@ -4,6 +4,7 @@ import { metaService } from '../services/meta.js';
 import { googleAdsService } from '../services/google.js';
 import { klaviyoService } from '../services/klaviyo.js';
 import { ga4Service } from '../services/ga4.js';
+import { tiktokService } from '../services/tiktok.js';
 import { getDataCoverage, logSync, getLastSyncLog } from '../db/database.js';
 
 const router = express.Router();
@@ -14,6 +15,7 @@ const services = {
   google: googleAdsService,
   klaviyo: klaviyoService,
   ga4: ga4Service,
+  tiktok: tiktokService,
 };
 
 // GET /api/connections - Returns status of all connections
@@ -27,11 +29,11 @@ router.get('/', async (req, res) => {
       try {
         let testResult;
 
-        // Pass access token for Shopify, other services use their own auth
+        // Pass access token for Shopify, other services use shop domain to load OAuth credentials
         if (name === 'shopify') {
           testResult = await service.testConnection(shopData.accessToken, shopDomain);
         } else {
-          testResult = await service.testConnection();
+          testResult = await service.testConnection(shopDomain);
         }
 
         const lastSync = getLastSyncLog(shopDomain, name);
@@ -89,11 +91,11 @@ router.post('/:source/test', async (req, res) => {
 
     let result;
 
-    // Pass access token for Shopify
+    // Pass access token for Shopify, shop domain for other services
     if (source === 'shopify') {
       result = await service.testConnection(shopData.accessToken, shopDomain);
     } else {
-      result = await service.testConnection();
+      result = await service.testConnection(shopDomain);
     }
 
     res.json({
@@ -119,11 +121,11 @@ router.post('/:source/sync', async (req, res) => {
 
     let testResult;
 
-    // Pass access token for Shopify
+    // Pass access token for Shopify, shop domain for other services
     if (source === 'shopify') {
       testResult = await service.testConnection(shopData.accessToken, shopDomain);
     } else {
-      testResult = await service.testConnection();
+      testResult = await service.testConnection(shopDomain);
     }
 
     if (!testResult.connected) {
@@ -168,11 +170,11 @@ router.get('/:source/data', async (req, res) => {
 
     let testResult;
 
-    // Pass access token for Shopify
+    // Pass access token for Shopify, shop domain for other services
     if (source === 'shopify') {
       testResult = await service.testConnection(shopData.accessToken, shopDomain);
     } else {
-      testResult = await service.testConnection();
+      testResult = await service.testConnection(shopDomain);
     }
 
     if (!testResult.connected) {
@@ -197,16 +199,19 @@ router.get('/:source/data', async (req, res) => {
         data = await service.fetchOrders(dateRange, shopData.accessToken, shopDomain);
         break;
       case 'meta':
-        data = await service.fetchDailyInsights(dateRange);
+        data = await service.fetchDailyInsights(dateRange, shopDomain);
         break;
       case 'google':
-        data = await service.fetchDailyMetrics(dateRange);
+        data = await service.fetchDailyMetrics(dateRange, shopDomain);
         break;
       case 'klaviyo':
-        data = await service.fetchMetrics(dateRange);
+        data = await service.fetchMetrics(dateRange, shopDomain);
         break;
       case 'ga4':
-        data = await service.fetchDailyMetrics(dateRange);
+        data = await service.fetchDailyMetrics(dateRange, shopDomain);
+        break;
+      case 'tiktok':
+        data = await service.fetchDailyMetrics(dateRange, shopDomain);
         break;
       default:
         return res.status(400).json({ error: 'Unknown source' });

@@ -121,6 +121,27 @@ router.get('/:platform/start', (req, res) => {
       return res.status(400).json({ error: 'Platform configuration missing' });
     }
 
+    // Handle platforms that are coming soon
+    if (platform === 'tiktok' && (!config.clientId || !config.clientSecret)) {
+      log.warn('OAuth credentials not configured', { platform });
+      return res.status(501).json({
+        error: `TikTok Ads integration is being developed and will be available soon.`,
+        platform,
+        configured: false,
+        comingSoon: true,
+      });
+    }
+    
+    if (platform === 'meta' && (!config.clientId || !config.clientSecret)) {
+      log.warn('OAuth credentials not configured', { platform });
+      return res.status(501).json({
+        error: `Meta Ads integration is being developed and will be available soon.`,
+        platform,
+        configured: false,
+        comingSoon: true,
+      });
+    }
+
     // Validate credentials are configured
     if (!config.clientId || !config.clientSecret) {
       log.warn('OAuth credentials not configured', { platform });
@@ -333,9 +354,33 @@ async function fetchPlatformInfo(platform, tokenData) {
         credentials.accountName = primaryAccount.name;
         credentials.currency = primaryAccount.currency;
       }
-    } else if (platform === 'google' || platform === 'ga4') {
-      // For Google, we get the token. Customer ID needs manual setup or fetching from Google Ads API
-      credentials.scope = tokenData.scope || 'https://www.googleapis.com/auth/adwords https://www.googleapis.com/auth/analytics.readonly';
+    } else if (platform === 'google') {
+      // For Google Ads, we need to get accessible customers
+      try {
+        const customersResponse = await fetch('https://googleads.googleapis.com/v15/customers:listAccessibleCustomers', {
+          headers: {
+            'Authorization': `Bearer ${tokenData.access_token}`,
+            'Content-Type': 'application/json',
+            'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN || 'MISSING_DEV_TOKEN',
+          },
+        });
+
+        if (customersResponse.ok) {
+          const customersData = await customersResponse.json();
+          if (customersData.resourceNames && customersData.resourceNames.length > 0) {
+            // Extract customer ID from the first accessible customer
+            const firstCustomer = customersData.resourceNames[0];
+            credentials.customerId = firstCustomer.replace('customers/', '');
+          }
+        }
+      } catch (error) {
+        console.warn('[OAuth] Could not fetch Google Ads customers:', error.message);
+      }
+      
+      credentials.scope = tokenData.scope || 'https://www.googleapis.com/auth/adwords';
+    } else if (platform === 'ga4') {
+      // For GA4, we might need to get available properties in the future
+      credentials.scope = tokenData.scope || 'https://www.googleapis.com/auth/analytics.readonly';
     } else if (platform === 'klaviyo') {
       credentials.scope = tokenData.scope || 'campaigns:read flows:read metrics:read';
     } else if (platform === 'tiktok') {
