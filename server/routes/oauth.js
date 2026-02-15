@@ -76,7 +76,7 @@ function getOAuthConfig(platform) {
     tiktok: {
       authUrl: 'https://business-api.tiktok.com/portal/auth',
       tokenUrl: 'https://business-api.tiktok.com/open_api/v1.3/oauth2/access_token/',
-      scope: '',
+      scope: 'read:ads_data,read:campaign_data,read:report_data',
       clientId: process.env.TIKTOK_APP_ID,
       clientSecret: process.env.TIKTOK_APP_SECRET,
       usesPKCE: false,
@@ -121,24 +121,22 @@ router.get('/:platform/start', (req, res) => {
       return res.status(400).json({ error: 'Platform configuration missing' });
     }
 
-    // Handle platforms that are coming soon
+    // Handle platforms that are not configured yet
     if (platform === 'tiktok' && (!config.clientId || !config.clientSecret)) {
       log.warn('OAuth credentials not configured', { platform });
       return res.status(501).json({
-        error: `TikTok Ads integration is being developed and will be available soon.`,
+        error: `TikTok API credentials not configured. Contact admin.`,
         platform,
         configured: false,
-        comingSoon: true,
       });
     }
     
     if (platform === 'meta' && (!config.clientId || !config.clientSecret)) {
       log.warn('OAuth credentials not configured', { platform });
       return res.status(501).json({
-        error: `Meta Ads integration is being developed and will be available soon.`,
+        error: `Meta API credentials not configured. Contact admin.`,
         platform,
         configured: false,
-        comingSoon: true,
       });
     }
 
@@ -279,24 +277,45 @@ router.get('/:platform/callback', validateOAuthCallback, async (req, res) => {
     deleteOAuthState(platform, state); // Clean up state
 
     // Exchange authorization code for access token
-    const tokenPayload = {
-      client_id: config.clientId,
-      client_secret: config.clientSecret,
-      code,
-      redirect_uri: `${process.env.APP_URL || 'http://localhost:4000'}/api/oauth/${platform}/callback`,
-      grant_type: 'authorization_code',
-    };
+    let tokenPayload;
+    let fetchOptions;
 
-    // Add PKCE verifier if used
-    if (pkceVerifier) {
-      tokenPayload.code_verifier = pkceVerifier;
+    if (platform === 'tiktok') {
+      // TikTok uses JSON body format
+      tokenPayload = {
+        app_id: config.clientId,
+        secret: config.clientSecret,
+        auth_code: code,
+        grant_type: 'authorization_code',
+      };
+      fetchOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(tokenPayload),
+      };
+    } else {
+      // Standard OAuth2 flow for other platforms
+      tokenPayload = {
+        client_id: config.clientId,
+        client_secret: config.clientSecret,
+        code,
+        redirect_uri: `${process.env.APP_URL || 'http://localhost:4000'}/api/oauth/${platform}/callback`,
+        grant_type: 'authorization_code',
+      };
+
+      // Add PKCE verifier if used
+      if (pkceVerifier) {
+        tokenPayload.code_verifier = pkceVerifier;
+      }
+
+      fetchOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(tokenPayload).toString(),
+      };
     }
 
-    const tokenResponse = await fetch(config.tokenUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(tokenPayload).toString(),
-    });
+    const tokenResponse = await fetch(config.tokenUrl, fetchOptions);
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.json().catch(() => ({}));
@@ -384,11 +403,28 @@ async function fetchPlatformInfo(platform, tokenData) {
     } else if (platform === 'klaviyo') {
       credentials.scope = tokenData.scope || 'campaigns:read flows:read metrics:read';
     } else if (platform === 'tiktok') {
-      // TikTok returns advertiser_ids in the token response
-      if (tokenData.data?.advertiser_ids?.length > 0) {
-        credentials.advertiserId = tokenData.data.advertiser_ids[0];
+      // TikTok API v1.3 response format
+      if (tokenData.code === 0 && tokenData.data) {
+        credentials.accessToken = tokenData.data.access_token;
+        credentials.refreshToken = tokenData.data.refresh_token || null;
+        credentials.expiresAt = tokenData.data.expires_in ? 
+          new Date(Date.now() + tokenData.data.expires_in * 1000) : null;
+        
+        // TikTok returns advertiser_ids in the token response
+        if (tokenData.data.advertiser_ids?.length > 0) {
+          credentials.advertiserId = tokenData.data.advertiser_ids[0];
+          credentials.advertiserName = `TikTok Advertiser ${tokenData.data.advertiser_ids[0]}`;
+        }
+        
+        // Store the scope for reference
+        credentials.scope = tokenData.data.scope || 'read:ads_data,read:campaign_data,read:report_data';
+      } else {
+        // Fallback for older response format
+        credentials.accessToken = tokenData.access_token;
+        if (tokenData.advertiser_ids?.length > 0) {
+          credentials.advertiserId = tokenData.advertiser_ids[0];
+        }
       }
-      credentials.accessToken = tokenData.data?.access_token || tokenData.access_token;
     } else if (platform === 'shopify') {
       credentials.shopDomain = tokenData.shop || null;
     }

@@ -41,6 +41,7 @@ const dates = generateDateArray(365);
 const baseShopifyRevenue = 45000;
 const baseMetaSpend = 17500;
 const baseGoogleSpend = 10000;
+const baseTikTokSpend = 8500;
 
 // Build each array separately to avoid self-reference
 const shopifyData = dates.map((date, index) => {
@@ -118,7 +119,30 @@ const googleData = dates.map((date, index) => {
   };
 });
 
-// Klaviyo and GA4 reference shopify/meta/google arrays directly
+const tiktokData = dates.map((date, index) => {
+  const growthFactor = 1 + (index / 365) * 0.25; // TikTok grows faster
+  const seasonalMultiplier = getSeasonalMultiplier(date);
+  const dailySpend = addNoise((baseTikTokSpend / 30) * growthFactor * seasonalMultiplier, 0.25);
+  const impressions = Math.floor(addNoise(dailySpend * (800 + Math.random() * 200), 0.2)); // Higher impression rates
+  const clicks = Math.floor(impressions * (0.008 + Math.random() * 0.012)); // TikTok typically has lower CTR
+  const cpm = (dailySpend / impressions) * 1000;
+  const ctr = (clicks / impressions) * 100;
+  const conversions = Math.max(1, Math.floor(clicks * (0.06 + Math.random() * 0.04))); // Slightly lower conversion rate
+  const conversionValue = conversions * (70 + Math.random() * 35);
+  const roas = conversionValue / dailySpend;
+
+  return {
+    date,
+    spend: Math.round(dailySpend * 100) / 100,
+    impressions, cpm: Math.round(cpm * 100) / 100,
+    ctr: Math.round(ctr * 100) / 100, clicks, conversions,
+    conversionValue: Math.round(conversionValue * 100) / 100,
+    roas: Math.round(roas * 100) / 100,
+    cpa: Math.round((dailySpend / Math.max(1, conversions)) * 100) / 100,
+  };
+});
+
+// Klaviyo and GA4 reference shopify/meta/google/tiktok arrays directly
 const klaviyoData = dates.map((date, index) => {
   const growthFactor = 1 + (index / 365) * 0.15;
   const shopifyDay = shopifyData[index];
@@ -140,8 +164,9 @@ const ga4Data = dates.map((date, index) => {
   const shopifyDay = shopifyData[index];
   const metaDay = metaData[index];
   const googleDay = googleData[index];
+  const tiktokDay = tiktokData[index];
 
-  const paidSessions = (metaDay?.clicks || 0) + (googleDay?.clicks || 0);
+  const paidSessions = (metaDay?.clicks || 0) + (googleDay?.clicks || 0) + (tiktokDay?.clicks || 0);
   const organicSessions = Math.floor(paidSessions * (0.6 + Math.random() * 0.2));
   const directSessions = Math.floor(paidSessions * (0.15 + Math.random() * 0.1));
   const socialSessions = Math.floor(paidSessions * (0.08 + Math.random() * 0.06));
@@ -164,6 +189,7 @@ export const mockData = {
   shopify: shopifyData,
   meta: metaData,
   google: googleData,
+  tiktok: tiktokData,
   klaviyo: klaviyoData,
   ga4: ga4Data,
 
@@ -180,6 +206,13 @@ export const mockData = {
     { id: 'GOOGLE-CAM-002', name: 'Search - Generic Keywords', type: 'Search', status: 'enabled', spend: 30000, conversionValue: 105000, roas: 3.5, clicks: 2100, cpa: 32.1 },
     { id: 'GOOGLE-CAM-003', name: 'Shopping - All Products', type: 'Shopping', status: 'enabled', spend: 24000, conversionValue: 96000, roas: 4.0, clicks: 1680, cpa: 28.6 },
     { id: 'GOOGLE-CAM-004', name: 'Performance Max', type: 'PMax', status: 'enabled', spend: 14400, conversionValue: 57600, roas: 4.0, clicks: 1008, cpa: 28.6 },
+  ],
+
+  tiktokCampaigns: [
+    { id: 'TIKTOK-CAM-001', name: 'Video Creative - Gen Z Audience', type: 'CONVERSIONS', status: 'ENABLE', spend: 38000, conversionValue: 126000, roas: 3.3, clicks: 1520, cpa: 45.2, impressions: 195000 },
+    { id: 'TIKTOK-CAM-002', name: 'User Generated Content', type: 'CONVERSIONS', status: 'ENABLE', spend: 29000, conversionValue: 93500, roas: 3.2, clicks: 1305, cpa: 46.8, impressions: 168000 },
+    { id: 'TIKTOK-CAM-003', name: 'Trend Hijacking Campaign', type: 'CONVERSIONS', status: 'ENABLE', spend: 22000, conversionValue: 68200, roas: 3.1, clicks: 990, cpa: 48.9, impressions: 142000 },
+    { id: 'TIKTOK-CAM-004', name: 'Product Showcase - Mobile', type: 'TRAFFIC', status: 'ENABLE', spend: 18500, conversionValue: 55500, roas: 3.0, clicks: 925, cpa: 50.0, impressions: 120000 },
   ],
 
   klaviyoFlows: [

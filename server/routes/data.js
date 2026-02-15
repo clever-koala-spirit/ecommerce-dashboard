@@ -2,6 +2,7 @@ import express from 'express';
 import { shopifyService } from '../services/shopify.js';
 import { metaService } from '../services/meta.js';
 import { googleAdsService } from '../services/google.js';
+import { tiktokService } from '../services/tiktok.js';
 import { klaviyoService } from '../services/klaviyo.js';
 import { ga4Service } from '../services/ga4.js';
 import { getCachedOrFetch, invalidateCache } from '../middleware/cache.js';
@@ -82,10 +83,20 @@ router.get('/dashboard', async (req, res) => {
       300
     );
 
+    const tiktokData = await getCachedOrFetch(
+      `${cacheKeyPrefix}:tiktok:30d`,
+      async () => {
+        const result = await tiktokService.fetchDailyMetrics(dateRange, shopDomain);
+        return result.data || mockData.tiktok;
+      },
+      300
+    );
+
     const dashboardData = {
       shopify: shopifyData,
       meta: metaData,
       google: googleData,
+      tiktok: tiktokData,
       klaviyo: klaviyoData,
       ga4: ga4Data,
       timestamp: new Date().toISOString(),
