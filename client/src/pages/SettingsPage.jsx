@@ -103,6 +103,9 @@ export default function SettingsPage() {
   const [aiApiKey, setAiApiKey] = useState(store?.aiApiKey || '');
   const [showAiKey, setShowAiKey] = useState(false);
 
+  // "Coming soon" modal state
+  const [comingSoonPlatform, setComingSoonPlatform] = useState(null);
+
   // Initiate OAuth flow for a platform
   const initiateOAuthFlow = async (platformKey) => {
     try {
@@ -110,19 +113,52 @@ export default function SettingsPage() {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
       const params = new URLSearchParams();
       if (shop?.shopifyDomain) params.set('shop', shop.shopifyDomain);
+
       if (platformKey === 'shopify') {
-        // For Shopify connection, we might need the shop domain
         const shopDomain = prompt('Enter your Shopify store domain (e.g., mystore.myshopify.com):');
         if (!shopDomain) {
           setConnectingPlatform(null);
           return;
         }
         params.set('shopDomain', shopDomain);
+        window.location.href = `${apiUrl}/api/oauth/${platformKey}/start?${params.toString()}`;
+        return;
       }
-      window.location.href = `${apiUrl}/api/oauth/${platformKey}/start?${params.toString()}`;
+
+      // For non-Shopify platforms, check if the backend has credentials configured
+      const checkRes = await fetch(`${apiUrl}/api/oauth/${platformKey}/start`, { redirect: 'manual' });
+      if (checkRes.status === 501 || checkRes.type === 'opaqueredirect') {
+        // 501 means not configured; opaqueredirect means it works (redirect to OAuth provider)
+        if (checkRes.type === 'opaqueredirect') {
+          // Actually has credentials — do the real redirect
+          window.location.href = `${apiUrl}/api/oauth/${platformKey}/start?${params.toString()}`;
+          return;
+        }
+        // Not configured — show coming soon
+        setComingSoonPlatform(platformKey);
+        setConnectingPlatform(null);
+        return;
+      }
+
+      // If we got here with a non-redirect response, try to read it
+      if (checkRes.ok || checkRes.status >= 300) {
+        window.location.href = `${apiUrl}/api/oauth/${platformKey}/start?${params.toString()}`;
+      } else {
+        const data = await checkRes.json().catch(() => ({}));
+        if (data.configured === false) {
+          setComingSoonPlatform(platformKey);
+          setConnectingPlatform(null);
+        } else {
+          window.location.href = `${apiUrl}/api/oauth/${platformKey}/start?${params.toString()}`;
+        }
+      }
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error(`Failed to initiate ${platformKey} OAuth:`, error);
+      }
+      // Network error or CORS — show coming soon as fallback for non-Shopify
+      if (platformKey !== 'shopify') {
+        setComingSoonPlatform(platformKey);
       }
       setConnectingPlatform(null);
     }
@@ -518,6 +554,60 @@ export default function SettingsPage() {
           </div>
         </section>
       </div>
+      {/* Coming Soon Modal */}
+      {comingSoonPlatform && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+          onClick={() => setComingSoonPlatform(null)}
+        >
+          <div
+            style={{
+              background: 'var(--color-bg-card, #1e1e2e)',
+              border: '1px solid var(--color-border, #333)',
+              borderRadius: '16px',
+              padding: '32px',
+              maxWidth: '420px',
+              width: '90%',
+              textAlign: 'center',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>
+              {PLATFORMS[comingSoonPlatform]?.emoji || '🔗'}
+            </div>
+            <h3 style={{ color: 'var(--color-text-primary, #fff)', fontSize: '20px', margin: '0 0 8px' }}>
+              {PLATFORMS[comingSoonPlatform]?.name} — Coming Soon
+            </h3>
+            <p style={{ color: 'var(--color-text-secondary, #94a3b8)', fontSize: '14px', lineHeight: '1.6', margin: '0 0 24px' }}>
+              We're working on adding {PLATFORMS[comingSoonPlatform]?.name} integration.
+              This will be available in an upcoming update.
+            </p>
+            <button
+              onClick={() => setComingSoonPlatform(null)}
+              style={{
+                padding: '10px 24px',
+                borderRadius: '8px',
+                border: 'none',
+                background: 'var(--color-accent, #6366f1)',
+                color: 'white',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+              }}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -5,10 +5,13 @@ import ProfitForecast from '../components/forecast/ProfitForecast';
 import ChannelForecastChart from '../components/forecast/ChannelForecastChart';
 import BudgetSimulator from '../components/forecast/BudgetSimulator';
 import InsightsEngine from '../components/forecast/InsightsEngine';
+import SampleDataBanner from '../components/SampleDataBanner';
 
 export default function ForecastPage() {
   return (
     <div className="p-6">
+      <SampleDataBanner />
+
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2 text-slate-100">
