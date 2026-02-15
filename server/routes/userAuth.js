@@ -605,11 +605,8 @@ router.get('/oauth/google', (req, res) => {
     const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
     
     if (!clientId || !clientSecret) {
-      return res.status(501).json({ 
-        error: 'Google OAuth not configured yet. Please use email login.',
-        provider: 'google',
-        configured: false
-      });
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Google login is coming soon. Please use email login.')}`);
     }
 
     const redirectUri = `${process.env.APP_URL || 'http://localhost:4000'}/api/auth/oauth/google/callback`;
@@ -727,11 +724,8 @@ router.get('/oauth/shopify', (req, res) => {
     const clientSecret = process.env.SHOPIFY_APP_CLIENT_SECRET;
     
     if (!clientId || !clientSecret) {
-      return res.status(501).json({ 
-        error: 'Shopify OAuth not configured yet. Please use email login.',
-        provider: 'shopify',
-        configured: false
-      });
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Shopify login is coming soon. Please use email login.')}`);
     }
 
     // For Shopify Partners OAuth (not embedded app)
@@ -846,11 +840,8 @@ router.get('/oauth/facebook', (req, res) => {
     const appSecret = process.env.FACEBOOK_APP_SECRET;
     
     if (!appId || !appSecret) {
-      return res.status(501).json({ 
-        error: 'Facebook OAuth not configured yet. Please use email login.',
-        provider: 'facebook',
-        configured: false
-      });
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Facebook login is coming soon. Please use email login.')}`);
     }
 
     const redirectUri = `${process.env.APP_URL || 'http://localhost:4000'}/api/auth/oauth/facebook/callback`;
@@ -964,11 +955,8 @@ router.get('/oauth/apple', (req, res) => {
     const clientSecret = process.env.APPLE_CLIENT_SECRET;
     
     if (!clientId || !clientSecret) {
-      return res.status(501).json({ 
-        error: 'Apple OAuth not configured yet. Please use email login.',
-        provider: 'apple',
-        configured: false
-      });
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Apple login is coming soon. Please use email login.')}`);
     }
 
     const redirectUri = `${process.env.APP_URL || 'http://localhost:4000'}/api/auth/oauth/apple/callback`;
