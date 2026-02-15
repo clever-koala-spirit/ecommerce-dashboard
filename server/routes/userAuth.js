@@ -193,9 +193,19 @@ router.get('/shopify/session', (req, res) => {
 
     log.info('Shopify session: issued JWT for shop', { shop, userId: user.id });
 
-    // Redirect to frontend auth-callback with token
+    // Break out of Shopify iframe and redirect to frontend
     const frontendUrl = process.env.FRONTEND_URL || 'https://slayseason.com';
-    res.redirect(`${frontendUrl}/auth-callback?token=${encodeURIComponent(token)}&shop=${encodeURIComponent(shop)}`);
+    const targetUrl = `${frontendUrl}/auth-callback?token=${encodeURIComponent(token)}&shop=${encodeURIComponent(shop)}`;
+    res.send(`<!DOCTYPE html><html><head><title>Redirecting...</title></head><body>
+      <script>
+        if (window.top !== window.self) {
+          window.top.location.href = ${JSON.stringify(targetUrl)};
+        } else {
+          window.location.href = ${JSON.stringify(targetUrl)};
+        }
+      </script>
+      <noscript><a href="${targetUrl}">Click here to continue</a></noscript>
+    </body></html>`);
   } catch (err) {
     log.error('Shopify session error', err, { shop: req.query.shop });
     res.status(500).json({ error: 'Failed to create session' });

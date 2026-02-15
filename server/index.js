@@ -108,8 +108,23 @@ app.get('/api/health', (req, res) => {
 app.get('/', (req, res) => {
   const shop = req.query.shop;
   if (shop) {
-    // Shopify is opening the app — redirect to session endpoint which issues a JWT
-    return res.redirect(`/api/auth/shopify/session?shop=${encodeURIComponent(shop)}`);
+    // Shopify opens apps in an iframe — break out and go to session endpoint
+    // Use top.location to escape the Shopify admin iframe
+    const sessionUrl = `https://api.slayseason.com/api/auth/shopify/session?shop=${encodeURIComponent(shop)}`;
+    return res.send(`<!DOCTYPE html><html><head><title>Loading Slay Season...</title>
+      <style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0a0b0f;color:#fff;font-family:system-ui}</style>
+    </head><body>
+      <p>Loading Slay Season...</p>
+      <script>
+        var url = ${JSON.stringify(sessionUrl)};
+        if (window.top !== window.self) {
+          window.top.location.href = url;
+        } else {
+          window.location.href = url;
+        }
+      </script>
+      <noscript><a href="${sessionUrl}">Click here to continue</a></noscript>
+    </body></html>`);
   }
   // No shop param — serve frontend
   const indexPath = path.join(clientDistPath, 'index.html');

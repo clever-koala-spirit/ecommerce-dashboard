@@ -29,6 +29,7 @@ export const securityHeaders = helmet({
   },
   crossOriginEmbedderPolicy: false, // Required for Shopify embedding
   crossOriginOpenerPolicy: false,
+  xFrameOptions: false, // Let CSP frame-ancestors handle this (X-Frame-Options conflicts with Shopify embedding)
 });
 
 // --- Rate limiting: General API ---
