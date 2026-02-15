@@ -229,9 +229,31 @@ ${formData.message}
                       <MapPin className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="font-semibold text-white">Company</p>
+                      <p className="font-semibold text-white">Australia (HQ)</p>
                       <p className="text-[#8b92b0] text-sm">Convictlabs Holdings LLC</p>
-                      <p className="text-[#8b92b0] text-sm">Remote-first team</p>
+                      <p className="text-[#8b92b0] text-sm">Melbourne, VIC, Australia</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 bg-indigo-500/10 rounded-lg flex items-center justify-center text-indigo-400">
+                      <Phone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">Phone Support</p>
+                      <p className="text-[#8b92b0] text-sm">AU: <a href="tel:0342403039" className="text-indigo-400 hover:text-indigo-300">03 4240 3039</a></p>
+                      <p className="text-[#8b92b0] text-sm">US: <a href="tel:+18303902778" className="text-indigo-400 hover:text-indigo-300">+1 (830) 390-2778</a></p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center text-purple-400">
+                      <MapPin className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">United States</p>
+                      <p className="text-[#8b92b0] text-sm">Slay Season US</p>
+                      <p className="text-[#8b92b0] text-sm">Support across United States</p>
                     </div>
                   </div>
                 </div>

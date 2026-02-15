@@ -215,7 +215,7 @@ const AboutPage = () => {
               Small Team, <span className="text-purple-400">Big Impact</span>
             </h2>
             <p className="text-lg text-[#8b92b0] max-w-2xl mx-auto">
-              We're a tight-knit team of former operators who've built, scaled, and exited DTC brands. We know your challenges because we've lived them.
+              We're a tight-knit team of former operators who've built, scaled, and exited DTC brands. Headquartered in Melbourne, Australia with support across Australia and the United States. We know your challenges because we've lived them.
             </p>
           </div>
 

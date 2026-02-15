@@ -187,10 +187,10 @@ const HelpPage = () => {
     },
     {
       title: 'Phone Support',
-      description: 'Schedule a call with our support team',
-      availability: 'Pro plan only • Same-day scheduling',
+      description: 'Call our support team directly',
+      availability: 'AU: 03 4240 3039 • US: +1 (830) 390-2778',
       icon: <Phone className="w-5 h-5" />,
-      action: 'Schedule Call',
+      action: 'Call Now',
       color: 'purple'
     },
     {
