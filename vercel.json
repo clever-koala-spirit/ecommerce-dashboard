@@ -4,6 +4,7 @@
   "framework": "vite",
   "installCommand": "cd client && npm install",
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "http://34.151.172.195/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
