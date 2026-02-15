@@ -6,7 +6,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import { createUser, getUserByEmail, getUserById, updateUserLastLogin, updateUserPassword, createResetToken, getResetToken, markResetTokenUsed } from '../db/database.js';
+import { createUser, getUserByEmail, getUserById, updateUserLastLogin, updateUserPassword, createResetToken, getResetToken, markResetTokenUsed, getShop } from '../db/database.js';
 import emailService from '../services/email.js';
 import { log } from '../utils/logger.js';
 import { 
@@ -136,6 +136,69 @@ router.post('/login', validateLogin, (req, res) => {
   } catch (err) {
     log.error('Login error', err, { email: req.body.email?.replace(/(..).*(@.*)/, '$1***$2') });
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/auth/shopify/session
+ * Issue a JWT for an active Shopify shop (used when merchant clicks app in Shopify admin)
+ * No login required — the shop's presence in our DB with an active access token IS the auth.
+ */
+router.get('/shopify/session', (req, res) => {
+  try {
+    const { shop } = req.query;
+
+    if (!shop) {
+      return res.status(400).json({ error: 'shop parameter is required' });
+    }
+
+    // Validate shop domain format
+    const shopRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/;
+    if (!shopRegex.test(shop)) {
+      return res.status(400).json({ error: 'Invalid shop domain' });
+    }
+
+    // Look up shop in DB
+    const shopData = getShop(shop);
+    if (!shopData || !shopData.isActive || !shopData.accessToken) {
+      log.info('Shopify session: shop not found or inactive, redirecting to OAuth install', { shop });
+      // Shop not installed yet — redirect to OAuth install flow
+      return res.redirect(`/api/auth?shop=${encodeURIComponent(shop)}`);
+    }
+
+    // Shop is active — create or find a user account for this shop
+    const shopEmail = shopData.shopEmail || `${shop.replace('.myshopify.com', '')}@shop.slayseason.com`;
+    const shopName = shopData.shopName || shop.replace('.myshopify.com', '');
+    
+    let user = getUserByEmail(shopEmail);
+    if (!user) {
+      // Auto-create a user for this shop
+      const userId = crypto.randomUUID();
+      const salt = crypto.randomBytes(16).toString('hex');
+      const tempPassword = crypto.randomBytes(32).toString('hex');
+      const hashedPassword = hashPassword(tempPassword, salt);
+      createUser(userId, shopName, shopEmail, hashedPassword, salt);
+      user = { id: userId, name: shopName, email: shopEmail };
+      log.info('Created auto-user for Shopify shop', { shop, userId, email: shopEmail });
+    }
+
+    // Issue JWT
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, name: user.name, shopDomain: shop },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    updateUserLastLogin(user.id);
+
+    log.info('Shopify session: issued JWT for shop', { shop, userId: user.id });
+
+    // Redirect to frontend auth-callback with token
+    const frontendUrl = process.env.FRONTEND_URL || 'https://slayseason.com';
+    res.redirect(`${frontendUrl}/auth-callback?token=${encodeURIComponent(token)}&shop=${encodeURIComponent(shop)}`);
+  } catch (err) {
+    log.error('Shopify session error', err, { shop: req.query.shop });
+    res.status(500).json({ error: 'Failed to create session' });
   }
 });
 

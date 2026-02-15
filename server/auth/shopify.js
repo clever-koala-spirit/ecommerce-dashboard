@@ -67,11 +67,11 @@ export function handleAuthStart(req, res) {
     return res.status(400).json({ error: 'Invalid shop domain. Must be xxx.myshopify.com' });
   }
 
-  // If shop already has a valid token, skip OAuth and go to dashboard
+  // If shop already has a valid token, skip OAuth and issue a session
   const existingShop = getShop(shop);
   if (existingShop && existingShop.accessToken && existingShop.isActive) {
-    console.log(`[Auth] Shop already connected: ${shop} — redirecting to dashboard`);
-    return res.redirect(`https://slayseason.com/dashboard?shop=${encodeURIComponent(shop)}`);
+    console.log(`[Auth] Shop already connected: ${shop} — redirecting to session endpoint`);
+    return res.redirect(`/api/auth/shopify/session?shop=${encodeURIComponent(shop)}`);
   }
 
   // Generate cryptographic nonce to prevent CSRF
@@ -161,8 +161,8 @@ export async function handleAuthCallback(req, res) {
     // Register mandatory GDPR webhooks
     await registerWebhooks(shop, access_token);
 
-    // Redirect to the Slay Season dashboard
-    res.redirect(`https://slayseason.com/dashboard?shop=${encodeURIComponent(shop)}`);
+    // Redirect to session endpoint to issue a JWT, then to dashboard
+    res.redirect(`/api/auth/shopify/session?shop=${encodeURIComponent(shop)}`);
 
   } catch (error) {
     console.error('[Auth] OAuth callback error:', error);

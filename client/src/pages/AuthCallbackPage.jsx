@@ -21,6 +21,10 @@ export default function AuthCallbackPage() {
 
     if (token) {
       // Save the token and redirect to dashboard
+      const shop = searchParams.get('shop');
+      if (shop) {
+        localStorage.setItem('ss_shop', shop);
+      }
       setToken(token);
       localStorage.setItem('ss_token', token);
       navigate('/dashboard');

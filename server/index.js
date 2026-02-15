@@ -108,8 +108,8 @@ app.get('/api/health', (req, res) => {
 app.get('/', (req, res) => {
   const shop = req.query.shop;
   if (shop) {
-    // Shopify is opening the app — redirect to dashboard
-    return res.redirect(`https://slayseason.com/dashboard?shop=${encodeURIComponent(shop)}`);
+    // Shopify is opening the app — redirect to session endpoint which issues a JWT
+    return res.redirect(`/api/auth/shopify/session?shop=${encodeURIComponent(shop)}`);
   }
   // No shop param — serve frontend
   const indexPath = path.join(clientDistPath, 'index.html');
