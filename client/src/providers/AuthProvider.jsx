@@ -74,8 +74,53 @@ export function AuthProvider({ children }) {
     setIsAuthenticated(false);
   }, []);
 
+  // Set token directly (used by OAuth callback)
+  const setToken = useCallback(async (token) => {
+    localStorage.setItem('ss_token', token);
+    try {
+      const res = await fetch(`${API_URL}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+        setIsAuthenticated(true);
+      }
+    } catch (err) {
+      // Token might still be valid, set authenticated optimistically
+      setIsAuthenticated(true);
+    }
+  }, [API_URL]);
+
+  // Request SMS OTP
+  const requestOtp = useCallback(async (phone) => {
+    const res = await fetch(`${API_URL}/auth/otp/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+    return data;
+  }, [API_URL]);
+
+  // Verify SMS OTP
+  const verifyOtp = useCallback(async (phone, code) => {
+    const res = await fetch(`${API_URL}/auth/otp/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, code }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Invalid OTP');
+    localStorage.setItem('ss_token', data.token);
+    setUser(data.user);
+    setIsAuthenticated(true);
+    return data;
+  }, [API_URL]);
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, signup, logout, setToken, requestOtp, verifyOtp }}>
       {children}
     </AuthContext.Provider>
   );

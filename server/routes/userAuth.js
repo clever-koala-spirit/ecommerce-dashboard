@@ -408,6 +408,126 @@ router.post('/reset-password', validateResetPassword, (req, res) => {
 });
 
 /**
+ * SMS OTP Authentication
+ * Send and verify one-time passwords via SMS
+ */
+
+// In-memory OTP store (use Redis in production)
+const otpStore = new Map();
+
+/**
+ * POST /api/auth/otp/request
+ * Request an OTP code sent via SMS
+ */
+router.post('/otp/request', (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({ error: 'Phone number is required' });
+    }
+
+    // Normalize phone number
+    const normalizedPhone = phone.replace(/[^\d+]/g, '');
+    if (normalizedPhone.length < 10) {
+      return res.status(400).json({ error: 'Invalid phone number' });
+    }
+
+    // Generate 6-digit OTP
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    otpStore.set(normalizedPhone, { otp, expiresAt, attempts: 0 });
+
+    // In production, send SMS via Twilio/etc
+    // For now, log it in dev mode
+    if (process.env.NODE_ENV !== 'production') {
+      log.info('OTP generated (dev mode)', { phone: normalizedPhone, otp });
+    }
+
+    // TODO: Integrate Twilio SMS sending
+    // await twilioClient.messages.create({
+    //   body: `Your Slay Season code is: ${otp}`,
+    //   from: process.env.TWILIO_PHONE_NUMBER,
+    //   to: normalizedPhone
+    // });
+
+    res.json({ success: true, message: 'OTP sent successfully' });
+  } catch (err) {
+    log.error('OTP request error', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/auth/otp/verify
+ * Verify OTP and authenticate user
+ */
+router.post('/otp/verify', (req, res) => {
+  try {
+    const { phone, code } = req.body;
+
+    if (!phone || !code) {
+      return res.status(400).json({ error: 'Phone and code are required' });
+    }
+
+    const normalizedPhone = phone.replace(/[^\d+]/g, '');
+    const stored = otpStore.get(normalizedPhone);
+
+    if (!stored) {
+      return res.status(400).json({ error: 'No OTP requested for this number. Please request a new code.' });
+    }
+
+    if (Date.now() > stored.expiresAt) {
+      otpStore.delete(normalizedPhone);
+      return res.status(400).json({ error: 'OTP has expired. Please request a new code.' });
+    }
+
+    stored.attempts++;
+    if (stored.attempts > 5) {
+      otpStore.delete(normalizedPhone);
+      return res.status(429).json({ error: 'Too many attempts. Please request a new code.' });
+    }
+
+    if (stored.otp !== code) {
+      return res.status(400).json({ error: 'Invalid OTP code' });
+    }
+
+    otpStore.delete(normalizedPhone);
+
+    // Find or create user by phone (use phone as email placeholder)
+    const phoneEmail = `${normalizedPhone}@phone.slayseason.com`;
+    let user = getUserByEmail(phoneEmail);
+
+    if (!user) {
+      const userId = crypto.randomUUID();
+      const salt = crypto.randomBytes(16).toString('hex');
+      const tempPassword = crypto.randomBytes(32).toString('hex');
+      const hashedPassword = hashPassword(tempPassword, salt);
+
+      createUser(userId, `User ${normalizedPhone.slice(-4)}`, phoneEmail, hashedPassword, salt);
+      user = { id: userId, name: `User ${normalizedPhone.slice(-4)}`, email: phoneEmail };
+    }
+
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, name: user.name },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    updateUserLastLogin(user.id);
+
+    res.json({
+      token,
+      user: { id: user.id, name: user.name, email: user.email, phone: normalizedPhone },
+    });
+  } catch (err) {
+    log.error('OTP verify error', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
  * OAuth Routes
  * Handle social authentication with various providers
  */
@@ -587,9 +707,66 @@ router.get('/oauth/shopify/callback', async (req, res) => {
       return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=missing_code`);
     }
 
-    // For now, just redirect back with a message that Shopify OAuth needs more setup
-    // In production, you'd exchange the code for access token and get user info
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?message=shopify_oauth_in_progress`);
+    const clientId = process.env.SHOPIFY_APP_CLIENT_ID;
+    const clientSecret = process.env.SHOPIFY_APP_CLIENT_SECRET;
+    const redirectUri = `${process.env.APP_URL || 'http://localhost:4000'}/api/auth/oauth/shopify/callback`;
+
+    // Exchange code for access token
+    const tokenResponse = await fetch('https://accounts.shopify.com/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code: code,
+        grant_type: 'authorization_code',
+        redirect_uri: redirectUri
+      })
+    });
+
+    const tokenData = await tokenResponse.json();
+    if (!tokenResponse.ok) {
+      log.error('Shopify token exchange failed', tokenData);
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=token_exchange`);
+    }
+
+    // Get user info from Shopify
+    const userResponse = await fetch('https://accounts.shopify.com/oauth/userinfo', {
+      headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+    });
+
+    let userData = {};
+    if (userResponse.ok) {
+      userData = await userResponse.json();
+    }
+
+    const emailLower = (userData.email || '').toLowerCase().trim();
+    if (!emailLower) {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=no_email`);
+    }
+
+    // Find or create user
+    let user = getUserByEmail(emailLower);
+    if (!user) {
+      const userId = crypto.randomUUID();
+      const salt = crypto.randomBytes(16).toString('hex');
+      const tempPassword = crypto.randomBytes(32).toString('hex');
+      const hashedPassword = hashPassword(tempPassword, salt);
+      const name = [userData.given_name, userData.family_name].filter(Boolean).join(' ') || 'Shopify User';
+      
+      createUser(userId, name, emailLower, hashedPassword, salt);
+      user = { id: userId, name, email: emailLower };
+    }
+
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, name: user.name },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    updateUserLastLogin(user.id);
+
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth-callback?token=${token}`);
   } catch (err) {
     log.error('Shopify OAuth callback error', err);
     res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=callback_error`);
@@ -767,9 +944,67 @@ router.post('/oauth/apple/callback', async (req, res) => {
       return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=missing_code`);
     }
 
-    // Apple OAuth implementation is more complex and requires JWT signing
-    // For now, just redirect back with a message that Apple OAuth needs more setup
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?message=apple_oauth_in_progress`);
+    const clientId = process.env.APPLE_CLIENT_ID;
+    const clientSecret = process.env.APPLE_CLIENT_SECRET; // In production, generate dynamically with private key
+    const redirectUri = `${process.env.APP_URL || 'http://localhost:4000'}/api/auth/oauth/apple/callback`;
+
+    // Exchange code for tokens
+    const tokenResponse = await fetch('https://appleid.apple.com/auth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code: code,
+        grant_type: 'authorization_code',
+        redirect_uri: redirectUri
+      })
+    });
+
+    const tokenData = await tokenResponse.json();
+    if (!tokenResponse.ok) {
+      log.error('Apple token exchange failed', tokenData);
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=token_exchange`);
+    }
+
+    // Decode the id_token to get user info (it's a JWT)
+    const idToken = tokenData.id_token;
+    const payload = JSON.parse(Buffer.from(idToken.split('.')[1], 'base64url').toString());
+
+    const emailLower = (payload.email || '').toLowerCase().trim();
+    if (!emailLower) {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=no_email`);
+    }
+
+    // Apple only sends user info on first authorization
+    let userName = 'Apple User';
+    if (user && typeof user === 'string') {
+      try {
+        const appleUser = JSON.parse(user);
+        userName = [appleUser.name?.firstName, appleUser.name?.lastName].filter(Boolean).join(' ') || userName;
+      } catch (e) { /* ignore */ }
+    }
+
+    let dbUser = getUserByEmail(emailLower);
+    if (!dbUser) {
+      const userId = crypto.randomUUID();
+      const salt = crypto.randomBytes(16).toString('hex');
+      const tempPassword = crypto.randomBytes(32).toString('hex');
+      const hashedPassword = hashPassword(tempPassword, salt);
+      
+      createUser(userId, userName, emailLower, hashedPassword, salt);
+      dbUser = { id: userId, name: userName, email: emailLower };
+    }
+
+    const jwtToken = jwt.sign(
+      { userId: dbUser.id, email: dbUser.email, name: dbUser.name },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    updateUserLastLogin(dbUser.id);
+
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth-callback?token=${jwtToken}`);
   } catch (err) {
     log.error('Apple OAuth callback error', err);
     res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=callback_error`);

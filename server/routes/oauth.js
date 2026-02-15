@@ -70,6 +70,22 @@ function getOAuthConfig(platform) {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       usesPKCE: true,
     },
+    tiktok: {
+      authUrl: 'https://business-api.tiktok.com/portal/auth',
+      tokenUrl: 'https://business-api.tiktok.com/open_api/v1.3/oauth2/access_token/',
+      scope: '',
+      clientId: process.env.TIKTOK_APP_ID,
+      clientSecret: process.env.TIKTOK_APP_SECRET,
+      usesPKCE: false,
+    },
+    shopify: {
+      authUrl: null, // Dynamic based on shop domain
+      tokenUrl: null,
+      scope: 'read_orders,read_products,read_customers,read_analytics',
+      clientId: process.env.SHOPIFY_APP_CLIENT_ID,
+      clientSecret: process.env.SHOPIFY_APP_CLIENT_SECRET,
+      usesPKCE: false,
+    },
   };
 
   return config[platform];
@@ -87,7 +103,7 @@ router.get('/:platform/start', (req, res) => {
     const { shopDomain } = req;
 
     // Validate platform
-    const validPlatforms = ['meta', 'google', 'klaviyo', 'ga4'];
+    const validPlatforms = ['meta', 'google', 'klaviyo', 'ga4', 'tiktok', 'shopify'];
     if (!validPlatforms.includes(platform)) {
       log.security('oauth_invalid_platform_attempt', {
         platform,
@@ -146,6 +162,23 @@ router.get('/:platform/start', (req, res) => {
     // Platform-specific parameters
     if (platform === 'meta') {
       params.set('display', 'popup');
+    }
+
+    if (platform === 'tiktok') {
+      // TikTok uses app_id instead of client_id
+      params.delete('client_id');
+      params.set('app_id', config.clientId);
+    }
+
+    if (platform === 'shopify') {
+      // Shopify needs the shop domain to construct the auth URL
+      const shopDomainParam = req.query.shopDomain || shopDomain;
+      if (!shopDomainParam) {
+        return res.status(400).json({ error: 'Shop domain is required for Shopify connection' });
+      }
+      const shopifyAuthUrl = `https://${shopDomainParam}/admin/oauth/authorize`;
+      const authUrlFinal = `${shopifyAuthUrl}?${params.toString()}`;
+      return res.redirect(authUrlFinal);
     }
 
     const authUrl = `${config.authUrl}?${params.toString()}`;
@@ -293,9 +326,15 @@ async function fetchPlatformInfo(platform, tokenData) {
       // For Google, we get the token. Customer ID needs manual setup or fetching from Google Ads API
       credentials.scope = tokenData.scope || 'https://www.googleapis.com/auth/adwords https://www.googleapis.com/auth/analytics.readonly';
     } else if (platform === 'klaviyo') {
-      // Klaviyo OAuth returns access token directly
-      // Customer ID can be fetched from the API if needed
       credentials.scope = tokenData.scope || 'campaigns:read flows:read metrics:read';
+    } else if (platform === 'tiktok') {
+      // TikTok returns advertiser_ids in the token response
+      if (tokenData.data?.advertiser_ids?.length > 0) {
+        credentials.advertiserId = tokenData.data.advertiser_ids[0];
+      }
+      credentials.accessToken = tokenData.data?.access_token || tokenData.access_token;
+    } else if (platform === 'shopify') {
+      credentials.shopDomain = tokenData.shop || null;
     }
   } catch (error) {
     log.warn('Could not fetch platform account info', {
