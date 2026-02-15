@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -11,30 +11,59 @@ import {
   BarChart3,
   Target,
   Brain,
-  LineChart,
   TrendingUp,
   Users,
   Clock,
   DollarSign,
-  Gauge,
   Sparkles,
-  AlertTriangle,
   Play,
   X,
-  Calculator,
   HeadphonesIcon,
   Award,
   Menu,
-  Percent,
-  Smartphone,
-  Globe,
   Layers,
   MessageSquare,
-  Settings,
-  Download,
   Lock,
-  Wifi
+  Eye,
+  ArrowUpRight,
+  CheckCircle2,
+  ShieldCheck,
+  Cpu,
+  Rocket,
+  ChevronRight,
+  XIcon
 } from 'lucide-react';
+
+/* ───── Animated counter hook ───── */
+const useCountUp = (end, duration = 2000, start = 0, suffix = '') => {
+  const [value, setValue] = useState(start);
+  const ref = useRef(null);
+  const counted = useRef(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !counted.current) {
+          counted.current = true;
+          const startTime = performance.now();
+          const animate = (now) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            setValue(Math.round(start + (end - start) * eased));
+            if (progress < 1) requestAnimationFrame(animate);
+          };
+          requestAnimationFrame(animate);
+        }
+      },
+      { threshold: 0.3 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [end, duration, start]);
+
+  return { value, ref };
+};
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -42,565 +71,275 @@ const LandingPage = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pricingBilling, setPricingBilling] = useState('monthly');
   const [expandedFAQ, setExpandedFAQ] = useState(null);
-  const [roiInputs, setRoiInputs] = useState({
-    analyticsSpend: 300,
-    timeSpent: 8
-  });
-  const heroRef = useRef(null);
 
-  // Intersection Observer for animations
+  const brands = useCountUp(847, 2200);
+  const tracked = useCountUp(312, 2400);
+  const accuracy = useCountUp(94, 1800);
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add('animate-fade-in-up');
+            entry.target.classList.add('ss-visible');
           }
         });
       },
-      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+      { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
     );
-
-    document.querySelectorAll('.animate-on-scroll').forEach((el) => {
-      observer.observe(el);
-    });
-
+    document.querySelectorAll('.ss-reveal').forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, []);
 
-  // Handle navbar glass morphism on scroll
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-    window.addEventListener('scroll', handleScroll);
+    const handleScroll = () => setIsScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Smooth scroll to section
-  const scrollToSection = (id) => {
-    const element = document.getElementById(id);
-    element?.scrollIntoView({ behavior: 'smooth' });
+  const scrollTo = useCallback((id) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
     setMobileMenuOpen(false);
-  };
+  }, []);
 
   const pricing = {
-    monthly: {
-      starter: 49,
-      growth: 149,
-      pro: 399,
-    },
-    annual: {
-      starter: Math.round(49 * 12 * 0.8),
-      growth: Math.round(149 * 12 * 0.8),
-      pro: Math.round(399 * 12 * 0.8),
-    },
+    monthly: { starter: 49, growth: 149, pro: 399 },
+    annual: { starter: 39, growth: 119, pro: 319 },
   };
-
-  const currentPricing = pricing[pricingBilling];
-
-  // ROI Calculator
-  const calculateROI = () => {
-    const timeValue = roiInputs.timeSpent * 75 * 52; // $75/hr * weekly time * 52 weeks
-    const profitIncrease = roiInputs.analyticsSpend * 10 * 12; // 10x return monthly * 12 months
-    const totalSavings = timeValue + profitIncrease;
-    const annualCost = currentPricing.growth * (pricingBilling === 'monthly' ? 12 : 1);
-    return {
-      timeSavings: timeValue,
-      profitIncrease: profitIncrease,
-      totalSavings: totalSavings,
-      netROI: totalSavings - annualCost,
-      roiMultiple: Math.round((totalSavings / annualCost) * 10) / 10
-    };
-  };
-
-  const roi = calculateROI();
+  const p = pricing[pricingBilling];
 
   const faqs = [
-    {
-      question: 'How long does setup actually take?',
-      answer: 'Literally 5 minutes. One-click OAuth for Shopify, Meta, Google, and Klaviyo. No API keys, no developer needed, no technical BS. Connect your platforms and start seeing unified data immediately.'
-    },
-    {
-      question: 'What if my data is wrong or incomplete?',
-      answer: 'We audit every integration during setup. If something looks off, our team fixes it for free within 24 hours. We validate your numbers against each platform to ensure 99%+ accuracy. Your data quality is our reputation.'
-    },
-    {
-      question: 'How do you compare to Triple Whale and Northbeam?',
-      answer: 'Triple Whale: $129-$2,790/month, clunky interface, shows vanity metrics. Northbeam: $999+/month, overcomplicated, built for enterprises. We\'re $49-$399/month with modern UI, true profit tracking, and better forecasting.'
-    },
-    {
-      question: 'What if I\'m not technical at all?',
-      answer: 'Perfect! Slay Season was built for business owners, not data scientists. Everything is point-and-click. Plus our concierge service means we can set up your entire dashboard for you in 24 hours.'
-    },
-    {
-      question: 'Can I cancel if it doesn\'t work for me?',
-      answer: 'Absolutely. Cancel with one click in your dashboard. 14-day money-back guarantee, no questions asked. If you cancel within 14 days, automatic full refund. After that, prorated refund.'
-    },
-    {
-      question: 'What platforms do you integrate with?',
-      answer: 'Shopify (required), Meta Ads, Google Ads, Google Analytics 4, Klaviyo, TikTok Ads, Snapchat Ads, Pinterest Ads. We add new integrations monthly based on user requests. Custom integrations for Pro customers.'
-    },
-    {
-      question: 'How accurate is your profit tracking?',
-      answer: 'More accurate than any competitor. We factor in: COGS, ad spend, shipping, payment fees, refunds, discounts, chargebacks, and even your fixed costs like software subscriptions. True profit in your bank account.'
-    },
-    {
-      question: 'What support do you provide?',
-      answer: 'Starter: Email (24hr response). Growth: Priority Slack + setup concierge. Pro: Dedicated account manager + custom reporting. Everyone gets our founder community access and comprehensive help docs.'
-    },
-    {
-      question: 'Do you have an API or exports?',
-      answer: 'Yes! Growth includes API access and CSV exports. Pro includes full API, webhooks, and white-label options. You own your data—we just make it useful. Export everything anytime.'
-    },
-    {
-      question: 'What if I have multiple stores?',
-      answer: 'Each Shopify store needs its own plan, but we offer bulk discounts for 3+ stores. Pro plan includes consolidated multi-store dashboards. Perfect for agencies or holding companies.'
-    },
-    {
-      question: 'Is my data secure and private?',
-      answer: 'Bank-level security. SOC 2 Type II certified, GDPR compliant. All data encrypted at rest and in transit. We never sell data or share with competitors. Delete everything instantly from your dashboard.'
-    },
-    {
-      question: 'What if I outgrow the Starter plan?',
-      answer: 'Upgrade instantly with pro-rated billing. As you scale, Slay Season gets smarter with more data points. Our AI forecasting actually improves accuracy with larger datasets.'
-    }
+    { q: 'How long does setup take?', a: '5 minutes. One-click OAuth for Shopify, Meta, Google, and Klaviyo. No API keys, no developer needed. Or choose our concierge service and we set everything up for you.' },
+    { q: 'How do you compare to Triple Whale?', a: 'Triple Whale starts at $129/mo and goes up to $2,790/mo. Their UI is cluttered and focuses on vanity metrics. Slay Season starts at $49/mo with true profit tracking, AI forecasting, and a modern interface built for clarity—not complexity.' },
+    { q: 'What if I\'m not technical?', a: 'Perfect. Slay Season was built for business owners, not data scientists. Everything is point-and-click. Plus, Growth and Pro plans include concierge onboarding where our team sets up your entire dashboard.' },
+    { q: 'How accurate is your profit tracking?', a: 'We factor in COGS, ad spend, shipping, payment processing fees, refunds, discounts, chargebacks, and fixed costs. Most customers report 95%+ accuracy vs. their accountant\'s numbers.' },
+    { q: 'Can I cancel anytime?', a: 'Yes. Cancel with one click from your dashboard. 14-day free trial requires no credit card. After that, we offer a 30-day money-back guarantee, no questions asked.' },
+    { q: 'What platforms do you integrate with?', a: 'Shopify (required), Meta Ads, Google Ads, GA4, Klaviyo, TikTok Ads, Snapchat Ads, Pinterest Ads, and more. We add new integrations monthly based on user requests.' },
+    { q: 'Is my data secure?', a: 'Bank-level security. All data encrypted at rest (AES-256) and in transit (TLS 1.3). SOC 2 Type II compliant. GDPR ready. We never sell or share your data.' },
+    { q: 'What support do you get?', a: 'Starter: email support (24hr response). Growth: priority Slack channel + setup concierge. Pro: dedicated account manager, quarterly business reviews, and custom reporting.' },
   ];
 
   return (
-    <div className="w-full bg-[#0a0b0f] text-[#f0f2f8] overflow-hidden">
-      {/* Add CSS for animations */}
-      <style jsx>{`
-        .animate-fade-in-up {
-          animation: fadeInUp 0.6s ease-out forwards;
-          opacity: 0;
-          transform: translateY(30px);
-        }
-        
-        @keyframes fadeInUp {
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        .animate-on-scroll {
-          opacity: 0;
-          transform: translateY(30px);
-          transition: all 0.6s ease-out;
-        }
-        
-        .glass-morphism {
-          backdrop-filter: blur(16px) saturate(180%);
-          background: rgba(28, 32, 51, 0.8);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .floating-particles::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background-image: radial-gradient(circle at 25px 25px, rgba(59, 130, 246, 0.15) 2px, transparent 2px);
-          background-size: 50px 50px;
-          animation: float 20s linear infinite;
-        }
-        
-        @keyframes float {
-          0% { transform: translateY(0px); }
-          100% { transform: translateY(-50px); }
-        }
+    <div className="w-full bg-[#050608] text-[#e8eaf0] overflow-hidden antialiased">
+      <style>{`
+        /* ── Base ── */
+        .ss-reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); }
+        .ss-visible { opacity: 1; transform: translateY(0); }
+        .ss-delay-1 { transition-delay: .1s; }
+        .ss-delay-2 { transition-delay: .2s; }
+        .ss-delay-3 { transition-delay: .3s; }
+        .ss-delay-4 { transition-delay: .4s; }
+
+        /* ── Glass ── */
+        .glass { backdrop-filter: blur(20px) saturate(180%); background: rgba(14,17,28,.72); border: 1px solid rgba(255,255,255,.06); }
+        .glass-strong { backdrop-filter: blur(24px) saturate(200%); background: rgba(14,17,28,.88); border: 1px solid rgba(255,255,255,.08); }
+
+        /* ── Gradient border ── */
+        .gradient-border { position: relative; }
+        .gradient-border::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; background: linear-gradient(135deg, rgba(99,102,241,.4), rgba(168,85,247,.4), rgba(16,185,129,.2)); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
+
+        /* ── Glow ── */
+        .glow-blue { box-shadow: 0 0 60px -12px rgba(99,102,241,.25), 0 0 120px -40px rgba(99,102,241,.15); }
+        .glow-sm { box-shadow: 0 0 30px -8px rgba(99,102,241,.2); }
+
+        /* ── Animated mesh bg ── */
+        .mesh-bg { background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,241,.12), transparent), radial-gradient(ellipse 60% 50% at 80% 50%, rgba(168,85,247,.08), transparent), radial-gradient(ellipse 50% 40% at 20% 80%, rgba(16,185,129,.06), transparent); }
+
+        /* ── Shimmer ── */
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        .shimmer { background: linear-gradient(90deg, transparent 30%, rgba(255,255,255,.04) 50%, transparent 70%); background-size: 200% 100%; animation: shimmer 3s ease-in-out infinite; }
+
+        /* ── Pulse ring ── */
+        @keyframes pulse-ring { 0% { transform: scale(.95); opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
+        .pulse-ring::after { content: ''; position: absolute; inset: -4px; border-radius: inherit; border: 2px solid rgba(16,185,129,.4); animation: pulse-ring 2s ease-out infinite; }
+
+        /* ── Float ── */
+        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        .float { animation: float 4s ease-in-out infinite; }
+        .float-delay { animation: float 4s ease-in-out 1s infinite; }
+
+        /* ── CTA btn ── */
+        .btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); position: relative; overflow: hidden; transition: all .3s ease; }
+        .btn-primary:hover { box-shadow: 0 8px 40px -8px rgba(99,102,241,.45); transform: translateY(-1px); }
+        .btn-primary::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, #818cf8, #a78bfa); opacity: 0; transition: opacity .3s; }
+        .btn-primary:hover::after { opacity: 1; }
+        .btn-primary > * { position: relative; z-index: 1; }
+
+        /* ── Metric card hover ── */
+        .metric-card { transition: all .3s ease; }
+        .metric-card:hover { transform: translateY(-2px); box-shadow: 0 12px 40px -12px rgba(0,0,0,.5); }
+
+        /* ── Pricing popular ── */
+        .pricing-popular { background: linear-gradient(135deg, rgba(99,102,241,.08), rgba(168,85,247,.08)); border: 1px solid rgba(99,102,241,.3); }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #050608; }
+        ::-webkit-scrollbar-thumb { background: #1e2030; border-radius: 3px; }
+
+        /* ── Selection ── */
+        ::selection { background: rgba(99,102,241,.3); }
       `}</style>
 
-      {/* Fixed Navigation */}
-      <nav
-        className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-          isScrolled
-            ? 'glass-morphism shadow-lg'
-            : 'bg-transparent'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo(0, 0)}>
-            <div className="w-8 h-8 bg-gradient-to-br from-[#3b82f6] to-[#8b5cf6] rounded-lg flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
+      {/* ═══ NAV ═══ */}
+      <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${isScrolled ? 'glass-strong shadow-2xl' : 'bg-transparent'}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <Zap className="w-4.5 h-4.5 text-white" />
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] bg-clip-text text-transparent">
-              Slay Season
-            </span>
+            <span className="text-lg font-bold tracking-tight">Slay Season</span>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
-            <button
-              onClick={() => scrollToSection('features')}
-              className="text-[#8b92b0] hover:text-[#f0f2f8] transition-colors"
-            >
-              Features
-            </button>
-            <button
-              onClick={() => scrollToSection('pricing')}
-              className="text-[#8b92b0] hover:text-[#f0f2f8] transition-colors"
-            >
-              Pricing
-            </button>
-            <button
-              onClick={() => scrollToSection('founder-story')}
-              className="text-[#8b92b0] hover:text-[#f0f2f8] transition-colors"
-            >
-              Story
-            </button>
-            <button
-              onClick={() => scrollToSection('faq')}
-              className="text-[#8b92b0] hover:text-[#f0f2f8] transition-colors"
-            >
-              FAQ
+          <div className="hidden md:flex items-center gap-8 text-sm">
+            {[['Features', 'features'], ['Pricing', 'pricing'], ['How It Works', 'how-it-works'], ['FAQ', 'faq']].map(([label, id]) => (
+              <button key={id} onClick={() => scrollTo(id)} className="text-[#8b92b0] hover:text-white transition-colors duration-200">{label}</button>
+            ))}
+          </div>
+
+          <div className="hidden md:flex items-center gap-3">
+            <button onClick={() => navigate('/login')} className="text-sm text-[#8b92b0] hover:text-white transition-colors px-4 py-2">Log in</button>
+            <button onClick={() => navigate('/signup')} className="btn-primary text-white px-5 py-2 rounded-lg text-sm font-semibold">
+              <span className="flex items-center gap-1.5">Start Free Trial <ArrowRight className="w-3.5 h-3.5" /></span>
             </button>
           </div>
 
-          {/* Desktop CTAs */}
-          <div className="hidden md:flex items-center gap-4">
-            <button
-              onClick={() => navigate('/login')}
-              className="text-[#8b92b0] hover:text-[#f0f2f8] transition-colors"
-            >
-              Login
-            </button>
-            <button
-              onClick={() => navigate('/signup')}
-              className="bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:from-[#2563eb] hover:to-[#7c3aed] text-white px-6 py-2 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-            >
-              Start Free Trial
-            </button>
-          </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            <Menu className="w-6 h-6 text-[#f0f2f8]" />
+          <button className="md:hidden p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            {mobileMenuOpen ? <XIcon className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
 
-        {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden glass-morphism border-t border-white/10">
-            <div className="px-4 py-4 space-y-4">
-              <button
-                onClick={() => scrollToSection('features')}
-                className="block w-full text-left text-[#8b92b0] hover:text-[#f0f2f8] transition-colors"
-              >
-                Features
-              </button>
-              <button
-                onClick={() => scrollToSection('pricing')}
-                className="block w-full text-left text-[#8b92b0] hover:text-[#f0f2f8] transition-colors"
-              >
-                Pricing
-              </button>
-              <button
-                onClick={() => scrollToSection('founder-story')}
-                className="block w-full text-left text-[#8b92b0] hover:text-[#f0f2f8] transition-colors"
-              >
-                Story
-              </button>
-              <button
-                onClick={() => scrollToSection('faq')}
-                className="block w-full text-left text-[#8b92b0] hover:text-[#f0f2f8] transition-colors"
-              >
-                FAQ
-              </button>
-              <hr className="border-white/10" />
-              <button
-                onClick={() => navigate('/login')}
-                className="block w-full text-left text-[#8b92b0] hover:text-[#f0f2f8] transition-colors"
-              >
-                Login
-              </button>
-              <button
-                onClick={() => navigate('/signup')}
-                className="w-full bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] text-white py-2 rounded-lg font-semibold"
-              >
-                Start Free Trial
+          <div className="md:hidden glass-strong border-t border-white/5 animate-in">
+            <div className="px-4 py-5 space-y-3">
+              {[['Features', 'features'], ['Pricing', 'pricing'], ['How It Works', 'how-it-works'], ['FAQ', 'faq']].map(([label, id]) => (
+                <button key={id} onClick={() => scrollTo(id)} className="block w-full text-left text-[#8b92b0] hover:text-white py-2">{label}</button>
+              ))}
+              <hr className="border-white/5" />
+              <button onClick={() => navigate('/login')} className="block w-full text-left text-[#8b92b0] hover:text-white py-2">Log in</button>
+              <button onClick={() => navigate('/signup')} className="w-full btn-primary text-white py-2.5 rounded-lg font-semibold text-sm">
+                <span>Start Free Trial</span>
               </button>
             </div>
           </div>
         )}
       </nav>
 
-      {/* Hero Section */}
-      <section ref={heroRef} className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden floating-particles">
-        {/* Gradient Mesh Background */}
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#3b82f6]/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#8b5cf6]/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-          <div className="absolute top-1/2 left-0 w-96 h-96 bg-[#10b981]/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-        </div>
+      {/* ═══ HERO ═══ */}
+      <section className="relative min-h-[100vh] flex items-center pt-16 mesh-bg">
+        {/* Ambient orbs */}
+        <div className="absolute top-20 left-[15%] w-[500px] h-[500px] bg-indigo-600/[.07] rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-20 right-[10%] w-[400px] h-[400px] bg-purple-600/[.06] rounded-full blur-[100px] pointer-events-none" />
 
-        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          {/* Trust Badges */}
-          <div className="inline-flex items-center gap-4 mb-8 px-8 py-4 rounded-full glass-morphism">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-[#10b981]" />
-              <span className="text-sm font-semibold text-[#10b981]">500+ brands</span>
-            </div>
-            <div className="w-px h-6 bg-white/20"></div>
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-[#10b981]" />
-              <span className="text-sm font-semibold text-[#10b981]">$128M+ tracked</span>
-            </div>
-            <div className="w-px h-6 bg-white/20"></div>
-            <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-[#10b981]" />
-              <span className="text-sm font-semibold text-[#10b981]">94% accuracy</span>
-            </div>
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+          {/* Social proof pill */}
+          <div className="ss-reveal inline-flex items-center gap-3 mb-8 px-5 py-2.5 rounded-full glass gradient-border text-sm">
+            <span className="flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="text-emerald-400 font-medium" ref={brands.ref}>{brands.value}+ brands</span>
+            </span>
+            <span className="w-px h-4 bg-white/10" />
+            <span className="text-[#8b92b0]" ref={tracked.ref}>${tracked.value}M+ revenue tracked</span>
+            <span className="w-px h-4 bg-white/10 hidden sm:block" />
+            <span className="text-[#8b92b0] hidden sm:inline-flex items-center gap-1">
+              <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+              4.9/5 on Shopify
+            </span>
           </div>
 
-          {/* Main Headline */}
-          <h1 className="text-5xl sm:text-6xl lg:text-8xl font-bold mb-8 leading-tight">
-            Finally See Your
+          {/* Headline */}
+          <h1 className="ss-reveal ss-delay-1 text-[2.75rem] sm:text-6xl lg:text-[5rem] font-extrabold leading-[1.05] tracking-tight mb-6">
+            Know Your
             <br />
-            <span className="bg-gradient-to-r from-[#3b82f6] via-[#8b5cf6] to-[#10b981] bg-clip-text text-transparent">
-              Real Profit
+            <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent">
+              True Profit
             </span>
             <br />
             In Real Time
           </h1>
 
-          {/* Subtext */}
-          <p className="text-xl sm:text-2xl text-[#8b92b0] mb-8 max-w-4xl mx-auto leading-relaxed">
-            Stop drowning in spreadsheets and fragmented data.
-            <br />
-            <strong className="text-[#f0f2f8]">One dashboard. All your platforms. True profit tracking.</strong>
+          <p className="ss-reveal ss-delay-2 text-lg sm:text-xl text-[#8b92b0] max-w-2xl mx-auto mb-10 leading-relaxed">
+            Stop guessing. Slay Season unifies Shopify, Meta, Google & Klaviyo into one dashboard with
+            <strong className="text-white"> true profit tracking</strong>,{' '}
+            <strong className="text-white">AI forecasting</strong>, and{' '}
+            <strong className="text-white">budget optimization</strong> — in 5 minutes.
           </p>
 
-          {/* Animated Dashboard Preview */}
-          <div className="glass-morphism rounded-2xl p-1 mb-8 max-w-4xl mx-auto shadow-2xl">
-            <div className="bg-[#0a0b0f] rounded-xl p-6">
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div className="bg-gradient-to-r from-[#10b981]/20 to-[#10b981]/10 border border-[#10b981]/30 rounded-lg p-4">
-                  <div className="text-2xl font-bold text-[#10b981]">$847K</div>
-                  <div className="text-xs text-[#8b92b0]">True Profit This Month</div>
-                </div>
-                <div className="bg-gradient-to-r from-[#3b82f6]/20 to-[#3b82f6]/10 border border-[#3b82f6]/30 rounded-lg p-4">
-                  <div className="text-2xl font-bold text-[#3b82f6]">4.7x</div>
-                  <div className="text-xs text-[#8b92b0]">True ROAS</div>
-                </div>
-                <div className="bg-gradient-to-r from-[#8b5cf6]/20 to-[#8b5cf6]/10 border border-[#8b5cf6]/30 rounded-lg p-4">
-                  <div className="text-2xl font-bold text-[#8b5cf6]">$1.2M</div>
-                  <div className="text-xs text-[#8b92b0]">Forecasted Revenue</div>
-                </div>
-              </div>
-              <div className="h-32 glass-morphism rounded-lg flex items-center justify-center">
-                <div className="text-[#8b92b0] flex items-center gap-2">
-                  <BarChart3 className="w-6 h-6" />
-                  <span>Live Dashboard Preview</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+          {/* CTA row */}
+          <div className="ss-reveal ss-delay-3 flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
             <button
               onClick={() => navigate('/signup')}
-              className="w-full sm:w-auto bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:from-[#2563eb] hover:to-[#7c3aed] text-white px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-2xl hover:shadow-3xl flex items-center justify-center gap-2 group transform hover:scale-105"
+              className="btn-primary w-full sm:w-auto text-white px-8 py-3.5 rounded-xl font-semibold text-base flex items-center justify-center gap-2 group"
             >
-              Start Free Trial — No Credit Card
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <span className="flex items-center gap-2">
+                Start Free Trial — No Card Required
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </span>
             </button>
             <button
-              onClick={() => scrollToSection('demo')}
-              className="w-full sm:w-auto px-8 py-4 rounded-xl font-bold text-lg glass-morphism text-white hover:bg-[#3b82f6]/10 transition-all flex items-center justify-center gap-2 border border-[#3b82f6]/30"
+              onClick={() => scrollTo('demo')}
+              className="w-full sm:w-auto px-6 py-3.5 rounded-xl font-semibold text-base glass hover:bg-white/[.04] transition-all flex items-center justify-center gap-2 text-[#c4c9d8]"
             >
-              <Play className="w-5 h-5" />
-              Watch Demo
+              <Play className="w-4 h-4" />
+              Watch 2-Min Demo
             </button>
           </div>
 
-          {/* Trust badges */}
-          <div className="flex flex-wrap justify-center gap-6 text-sm text-[#8b92b0]">
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-[#10b981]" />
-              14-day free trial
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-[#10b981]" />
-              5-minute setup
-            </div>
-            <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-[#10b981]" />
-              Cancel anytime
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Social Proof Bar */}
-      <section className="py-12 border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-[#8b92b0] mb-8 font-semibold">Works with the tools you already use</p>
-          <div className="flex flex-wrap justify-center items-center gap-8 sm:gap-12">
-            <div className="flex items-center gap-3 glass-morphism px-6 py-3 rounded-lg">
-              <div className="w-8 h-8 bg-[#95bf47] rounded-lg flex items-center justify-center text-white font-bold text-sm">S</div>
-              <span className="font-semibold">Shopify</span>
-            </div>
-            <div className="flex items-center gap-3 glass-morphism px-6 py-3 rounded-lg">
-              <div className="w-8 h-8 bg-[#1877f2] rounded-lg flex items-center justify-center text-white font-bold text-sm">M</div>
-              <span className="font-semibold">Meta</span>
-            </div>
-            <div className="flex items-center gap-3 glass-morphism px-6 py-3 rounded-lg">
-              <div className="w-8 h-8 bg-[#4285f4] rounded-lg flex items-center justify-center text-white font-bold text-sm">G</div>
-              <span className="font-semibold">Google</span>
-            </div>
-            <div className="flex items-center gap-3 glass-morphism px-6 py-3 rounded-lg">
-              <div className="w-8 h-8 bg-[#ff6900] rounded-lg flex items-center justify-center text-white font-bold text-sm">K</div>
-              <span className="font-semibold">Klaviyo</span>
-            </div>
-            <div className="flex items-center gap-3 glass-morphism px-6 py-3 rounded-lg">
-              <div className="w-8 h-8 bg-[#e37400] rounded-lg flex items-center justify-center text-white font-bold text-sm">GA</div>
-              <span className="font-semibold">GA4</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* The Problem - "Sound Familiar?" */}
-      <section className="py-20 border-b border-white/5 bg-gradient-to-br from-[#0a0b0f] to-[#1a1b23]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16 animate-on-scroll">
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-              <span className="text-[#f87171]">Sound Familiar?</span>
-            </h2>
-            <p className="text-xl text-[#8b92b0]">Real quotes from founders before they found Slay Season</p>
+          {/* Trust line */}
+          <div className="ss-reveal ss-delay-4 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-[#6b7194]">
+            <span className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />14-day free trial</span>
+            <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-emerald-500" />5-min setup</span>
+            <span className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5 text-emerald-500" />SOC 2 compliant</span>
+            <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" />Cancel anytime</span>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="glass-morphism rounded-xl p-8 border border-[#f87171]/30 animate-on-scroll">
-              <AlertTriangle className="w-8 h-8 text-[#f87171] mb-4" />
-              <blockquote className="text-[#f0f2f8] mb-4 italic leading-relaxed">
-                "I spend 15 hours every week updating spreadsheets. Pulling data from Shopify, Meta, Google, Klaviyo... 
-                by the time I finish, it's already outdated. I should be running my business, not doing data entry."
-              </blockquote>
-              <div className="text-sm text-[#8b92b0]">
-                — Sarah M., Beauty Brand ($2M ARR)
-              </div>
-            </div>
-
-            <div className="glass-morphism rounded-xl p-8 border border-[#f87171]/30 animate-on-scroll">
-              <BarChart3 className="w-8 h-8 text-[#f87171] mb-4" />
-              <blockquote className="text-[#f0f2f8] mb-4 italic leading-relaxed">
-                "Meta shows 4.2x ROAS. Google shows 6.1x ROAS. Shopify shows revenue going up. 
-                But my bank account is getting smaller. Which numbers do I trust? I'm flying blind."
-              </blockquote>
-              <div className="text-sm text-[#8b92b0]">
-                — Marcus T., Supplement Brand ($500K ARR)
-              </div>
-            </div>
-
-            <div className="glass-morphism rounded-xl p-8 border border-[#f87171]/30 animate-on-scroll">
-              <TrendingUp className="w-8 h-8 text-[#f87171] mb-4" />
-              <blockquote className="text-[#f0f2f8] mb-4 italic leading-relaxed">
-                "iOS 14.5 broke everything. Meta's reporting is useless now. I don't know which ads actually work. 
-                I'm wasting thousands on ads that look good in Meta but don't drive real profit."
-              </blockquote>
-              <div className="text-sm text-[#8b92b0]">
-                — Jennifer K., Fashion Brand ($3M ARR)
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center mt-12 animate-on-scroll">
-            <p className="text-2xl text-[#f0f2f8] mb-6 font-semibold">
-              Stop the pain. Get clarity in 5 minutes.
-            </p>
-            <button
-              onClick={() => navigate('/signup')}
-              className="bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:from-[#2563eb] hover:to-[#7c3aed] text-white px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-xl transform hover:scale-105"
-            >
-              Try Slay Season Free →
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Founder Story */}
-      <section id="founder-story" className="py-20 border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="animate-on-scroll">
-              <div className="inline-flex items-center gap-2 mb-6 px-6 py-3 rounded-full bg-[#f59e0b]/20 border border-[#f59e0b]/40">
-                <Award className="w-5 h-5 text-[#f59e0b]" />
-                <span className="text-sm font-semibold text-[#f59e0b]">Built By Operators, Not Engineers</span>
-              </div>
-
-              <h2 className="text-4xl sm:text-5xl font-bold mb-6">
-                We Built the Tool 
-                <br />
-                <span className="bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] bg-clip-text text-transparent">
-                  We Always Wished Existed
-                </span>
-              </h2>
-
-              <div className="space-y-6 text-lg text-[#8b92b0] leading-relaxed">
-                <p>
-                  <strong className="text-[#f0f2f8]">Leo and his co-founder spent over a decade in ecommerce.</strong> 
-                  They made millions of dollars across multiple ecommerce businesses. They also helped hundreds of brands over the years as a marketing agency.
-                </p>
-                
-                <p>
-                  Through all of this, they were <strong className="text-[#f0f2f8]">exhausted</strong> — never being able to get a clear picture of their business without spending late nights doing spreadsheets and talking to accountants and finance teams.
-                </p>
-
-                <p>
-                  <strong className="text-[#f0f2f8]">"We were STILL spending late nights on spreadsheets and accountant calls..."</strong>
-                </p>
-
-                <p>
-                  Their goal was simple: <strong className="text-[#10b981]">have a tool in your pocket that lets you look at your business data anytime to make informed decisions.</strong>
-                </p>
-
-                <p className="text-xl font-semibold text-[#f0f2f8]">
-                  That's why they built Slay Season.
-                </p>
-              </div>
-            </div>
-
-            <div className="animate-on-scroll">
-              <div className="glass-morphism rounded-2xl p-8">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] rounded-full flex items-center justify-center text-white font-bold text-xl">
-                    L
+          {/* Dashboard mockup */}
+          <div className="ss-reveal mt-16 max-w-5xl mx-auto">
+            <div className="gradient-border rounded-2xl glow-blue">
+              <div className="glass rounded-2xl p-1">
+                <div className="bg-[#0a0c14] rounded-xl overflow-hidden">
+                  {/* Title bar */}
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5">
+                    <div className="flex gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
+                    </div>
+                    <div className="flex-1 text-center">
+                      <span className="text-xs text-[#4a4f6a] bg-[#12141f] px-4 py-1 rounded-md">dashboard.slayseason.com</span>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-bold text-white text-lg">Leo Martinez</div>
-                    <div className="text-[#8b92b0] text-sm">Co-Founder & CEO</div>
-                    <div className="text-[#10b981] text-xs">$50M+ Revenue Generated</div>
-                  </div>
-                </div>
-
-                <blockquote className="text-[#f0f2f8] text-lg italic mb-4 leading-relaxed">
-                  "After helping 500+ brands optimize their marketing, I realized we were all solving the same problem over and over: getting a single source of truth for business performance. 
-                  
-                  Slay Season is the dashboard I wish I had for my own businesses."
-                </blockquote>
-
-                <div className="grid grid-cols-3 gap-4 mt-6 text-center">
-                  <div>
-                    <div className="text-2xl font-bold text-[#10b981]">10+</div>
-                    <div className="text-xs text-[#8b92b0]">Years in Ecommerce</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-[#3b82f6]">500+</div>
-                    <div className="text-xs text-[#8b92b0]">Brands Helped</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-[#8b5cf6]">$50M+</div>
-                    <div className="text-xs text-[#8b92b0]">Revenue Generated</div>
+                  {/* Metrics row */}
+                  <div className="p-5">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                      {[
+                        { label: 'True Profit', value: '$127,340', change: '+18.3%', color: 'emerald' },
+                        { label: 'Revenue', value: '$423,891', change: '+12.7%', color: 'indigo' },
+                        { label: 'True ROAS', value: '4.7x', change: '+0.8x', color: 'purple' },
+                        { label: 'AI Forecast', value: '$1.2M', change: '90-day', color: 'amber' },
+                      ].map((m, i) => (
+                        <div key={i} className={`metric-card bg-${m.color === 'emerald' ? '[#0d1f17]' : m.color === 'indigo' ? '[#0d0f1f]' : m.color === 'purple' ? '[#150d1f]' : '[#1f1a0d]'} rounded-lg p-4 border border-white/[.04]`}>
+                          <p className="text-[10px] uppercase tracking-wider text-[#6b7194] mb-1">{m.label}</p>
+                          <p className={`text-xl font-bold ${m.color === 'emerald' ? 'text-emerald-400' : m.color === 'indigo' ? 'text-indigo-400' : m.color === 'purple' ? 'text-purple-400' : 'text-amber-400'}`}>{m.value}</p>
+                          <p className="text-[10px] text-emerald-500 mt-0.5">↑ {m.change}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Chart placeholder */}
+                    <div className="bg-[#0a0c14] border border-white/[.04] rounded-lg p-4 h-44 flex items-end gap-1">
+                      {Array.from({ length: 28 }).map((_, i) => {
+                        const h = 20 + Math.sin(i * 0.5) * 15 + (i / 28) * 50 + Math.random() * 8;
+                        return (
+                          <div key={i} className="flex-1 rounded-t transition-all" style={{
+                            height: `${h}%`,
+                            background: `linear-gradient(to top, rgba(99,102,241,${0.3 + (i / 28) * 0.5}), rgba(139,92,246,${0.2 + (i / 28) * 0.4}))`,
+                          }} />
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -609,1108 +348,574 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* The Solution */}
-      <section className="py-20 border-b border-white/5 bg-gradient-to-br from-[#0a0b0f] to-[#1a1b23]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16 animate-on-scroll">
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-              One Dashboard.
-              <br />
-              <span className="bg-gradient-to-r from-[#10b981] to-[#3b82f6] bg-clip-text text-transparent">
-                Zero Guesswork.
-              </span>
+      {/* ═══ LOGOS / INTEGRATIONS ═══ */}
+      <section className="py-14 border-y border-white/[.04]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-xs uppercase tracking-[.2em] text-[#4a4f6a] mb-8">Integrates with your stack in one click</p>
+          <div className="flex flex-wrap justify-center items-center gap-6 sm:gap-10">
+            {[
+              { name: 'Shopify', color: '#95bf47', letter: 'S' },
+              { name: 'Meta Ads', color: '#1877f2', letter: 'M' },
+              { name: 'Google Ads', color: '#4285f4', letter: 'G' },
+              { name: 'Klaviyo', color: '#ff6900', letter: 'K' },
+              { name: 'TikTok Ads', color: '#ee1d52', letter: 'T' },
+              { name: 'GA4', color: '#e37400', letter: 'A' },
+            ].map((p, i) => (
+              <div key={i} className="flex items-center gap-2.5 text-[#6b7194] hover:text-white transition-colors group">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold opacity-70 group-hover:opacity-100 transition-opacity" style={{ background: p.color }}>{p.letter}</div>
+                <span className="text-sm font-medium hidden sm:inline">{p.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ PROBLEM ═══ */}
+      <section className="py-24 relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-red-950/[.03] to-transparent pointer-events-none" />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="text-center mb-16 ss-reveal">
+            <p className="text-xs uppercase tracking-[.2em] text-red-400/80 mb-3 font-medium">Sound familiar?</p>
+            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
+              You're Flying <span className="text-red-400">Blind</span>
             </h2>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="animate-on-scroll">
-              <h3 className="text-3xl font-bold text-white mb-6">Before Slay Season</h3>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: <Clock className="w-5 h-5" />,
+                pain: '"I spend 15 hours every week updating spreadsheets across 6 platforms. By the time I finish, the data is outdated."',
+                who: 'Sarah M. — Beauty Brand, $2M ARR',
+              },
+              {
+                icon: <Eye className="w-5 h-5" />,
+                pain: '"Meta shows 4.2x ROAS, Google shows 6.1x. Revenue is up. But my bank balance is shrinking. Which numbers do I trust?"',
+                who: 'Marcus T. — Supplements, $500K ARR',
+              },
+              {
+                icon: <Target className="w-5 h-5" />,
+                pain: '"iOS 14 broke everything. I\'m wasting thousands on ads that look good in Meta but don\'t drive real profit."',
+                who: 'Jennifer K. — Fashion Brand, $3M ARR',
+              },
+            ].map((item, i) => (
+              <div key={i} className={`ss-reveal ss-delay-${i + 1} glass rounded-xl p-7 border border-red-500/[.08] hover:border-red-500/20 transition-colors`}>
+                <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400 mb-5">{item.icon}</div>
+                <p className="text-[#c4c9d8] italic leading-relaxed mb-5 text-[15px]">{item.pain}</p>
+                <p className="text-xs text-[#6b7194]">— {item.who}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ SOLUTION / BEFORE-AFTER ═══ */}
+      <section className="py-24 border-t border-white/[.04]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16 ss-reveal">
+            <p className="text-xs uppercase tracking-[.2em] text-emerald-400/80 mb-3 font-medium">The fix</p>
+            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
+              One Dashboard. <span className="bg-gradient-to-r from-emerald-400 to-indigo-400 bg-clip-text text-transparent">Zero Guesswork.</span>
+            </h2>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8 ss-reveal">
+            {/* Before */}
+            <div className="glass rounded-xl p-8 border border-red-500/[.08]">
+              <h3 className="text-lg font-bold text-red-400 mb-6 flex items-center gap-2"><X className="w-5 h-5" /> Without Slay Season</h3>
               <div className="space-y-4">
-                <div className="flex items-center gap-3 text-[#f87171]">
-                  <X className="w-5 h-5" />
-                  <span>15+ hours/week on spreadsheets</span>
-                </div>
-                <div className="flex items-center gap-3 text-[#f87171]">
-                  <X className="w-5 h-5" />
-                  <span>Data scattered across 6 platforms</span>
-                </div>
-                <div className="flex items-center gap-3 text-[#f87171]">
-                  <X className="w-5 h-5" />
-                  <span>Vanity metrics, not true profit</span>
-                </div>
-                <div className="flex items-center gap-3 text-[#f87171]">
-                  <X className="w-5 h-5" />
-                  <span>Make decisions based on guesswork</span>
-                </div>
-                <div className="flex items-center gap-3 text-[#f87171]">
-                  <X className="w-5 h-5" />
-                  <span>No idea which ads actually work</span>
-                </div>
+                {['15+ hours/week on manual spreadsheets', 'Data scattered across 6+ platforms', 'Vanity metrics hiding real costs', 'Flying blind on ad spend decisions', 'No idea what\'s actually profitable'].map((t, i) => (
+                  <div key={i} className="flex items-center gap-3 text-[#8b92b0]">
+                    <X className="w-4 h-4 text-red-400/60 flex-shrink-0" /><span>{t}</span>
+                  </div>
+                ))}
               </div>
             </div>
-
-            <div className="animate-on-scroll">
-              <h3 className="text-3xl font-bold text-white mb-6">After Slay Season</h3>
+            {/* After */}
+            <div className="glass rounded-xl p-8 border border-emerald-500/[.15] bg-emerald-500/[.02]">
+              <h3 className="text-lg font-bold text-emerald-400 mb-6 flex items-center gap-2"><CheckCircle2 className="w-5 h-5" /> With Slay Season</h3>
               <div className="space-y-4">
-                <div className="flex items-center gap-3 text-[#10b981]">
-                  <Check className="w-5 h-5" />
-                  <span>5-minute daily check-ins</span>
-                </div>
-                <div className="flex items-center gap-3 text-[#10b981]">
-                  <Check className="w-5 h-5" />
-                  <span>All data unified in one dashboard</span>
-                </div>
-                <div className="flex items-center gap-3 text-[#10b981]">
-                  <Check className="w-5 h-5" />
-                  <span>True profit after all costs</span>
-                </div>
-                <div className="flex items-center gap-3 text-[#10b981]">
-                  <Check className="w-5 h-5" />
-                  <span>Data-driven decisions with confidence</span>
-                </div>
-                <div className="flex items-center gap-3 text-[#10b981]">
-                  <Check className="w-5 h-5" />
-                  <span>Know exactly which campaigns are profitable</span>
-                </div>
+                {['5-minute daily check-ins replace hours of work', 'All channels unified in one real-time view', 'True profit after every cost', 'AI tells you exactly where to allocate budget', 'Know which campaigns, products & channels profit'].map((t, i) => (
+                  <div key={i} className="flex items-center gap-3 text-[#c4c9d8]">
+                    <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" /><span>{t}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
-          <div className="text-center mt-16 animate-on-scroll">
-            <h3 className="text-2xl font-bold text-white mb-8">3 Key Outcomes</h3>
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="glass-morphism rounded-xl p-6">
-                <div className="w-12 h-12 bg-[#10b981]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Clock className="w-6 h-6 text-[#10b981]" />
-                </div>
-                <h4 className="font-bold text-white mb-2">Save 10+ Hours/Week</h4>
-                <p className="text-[#8b92b0]">No more manual spreadsheets or data hunting across platforms</p>
+          {/* Outcome metrics */}
+          <div className="grid sm:grid-cols-3 gap-6 mt-12 ss-reveal">
+            {[
+              { icon: <Clock className="w-5 h-5" />, metric: '10+ hrs/week', desc: 'Time saved on reporting', color: 'emerald' },
+              { icon: <TrendingUp className="w-5 h-5" />, metric: '15–30%', desc: 'Average profit increase', color: 'indigo' },
+              { icon: <Brain className="w-5 h-5" />, metric: '94%', desc: 'Forecast accuracy', color: 'purple' },
+            ].map((o, i) => (
+              <div key={i} className={`ss-delay-${i + 1} text-center glass rounded-xl p-6 gradient-border`}>
+                <div className={`w-10 h-10 rounded-lg mx-auto mb-3 flex items-center justify-center ${o.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-400' : o.color === 'indigo' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-purple-500/10 text-purple-400'}`}>{o.icon}</div>
+                <p className="text-2xl font-bold text-white">{o.metric}</p>
+                <p className="text-sm text-[#6b7194] mt-1">{o.desc}</p>
               </div>
-              <div className="glass-morphism rounded-xl p-6">
-                <div className="w-12 h-12 bg-[#3b82f6]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <TrendingUp className="w-6 h-6 text-[#3b82f6]" />
-                </div>
-                <h4 className="font-bold text-white mb-2">Increase Profit 15-30%</h4>
-                <p className="text-[#8b92b0]">Better allocation + killing unprofitable campaigns</p>
-              </div>
-              <div className="glass-morphism rounded-xl p-6">
-                <div className="w-12 h-12 bg-[#8b5cf6]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Brain className="w-6 h-6 text-[#8b5cf6]" />
-                </div>
-                <h4 className="font-bold text-white mb-2">Make Confident Decisions</h4>
-                <p className="text-[#8b92b0]">Data-driven choices based on true performance</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Features Deep-Dive */}
-      <section id="features" className="py-20 border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16 animate-on-scroll">
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-              Features That Actually
-              <br />
-              <span className="bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] bg-clip-text text-transparent">
-                Move The Needle
-              </span>
+      {/* ═══ FEATURES ═══ */}
+      <section id="features" className="py-24 border-t border-white/[.04] mesh-bg">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-20 ss-reveal">
+            <p className="text-xs uppercase tracking-[.2em] text-indigo-400/80 mb-3 font-medium">Features</p>
+            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
+              Everything You Need to <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Scale Profitably</span>
             </h2>
-            <p className="text-xl text-[#8b92b0] max-w-3xl mx-auto">
-              Every feature solves a real problem DTC founders face daily
-            </p>
           </div>
 
-          <div className="space-y-20">
-            {/* Feature 1 - Real-Time Profit */}
-            <div className="grid lg:grid-cols-2 gap-12 items-center animate-on-scroll">
-              <div>
-                <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-[#10b981]/20 border border-[#10b981]/40">
-                  <DollarSign className="w-4 h-4 text-[#10b981]" />
-                  <span className="text-sm font-semibold text-[#10b981]">Most Requested</span>
-                </div>
-                <h3 className="text-3xl font-bold text-white mb-4">Real-Time Profit Tracking</h3>
-                <p className="text-lg text-[#8b92b0] mb-6 leading-relaxed">
-                  See your actual profit, not vanity metrics. We factor in COGS, ad spend, shipping, fees, refunds, 
-                  and even monthly expenses. Know exactly how much money hits your bank account.
-                </p>
-                
-                <div className="bg-[#f87171]/10 border border-[#f87171]/30 rounded-lg p-4 mb-6">
-                  <p className="text-sm text-[#f0f2f8] font-semibold">Pain it solves:</p>
-                  <p className="text-sm text-[#8b92b0]">"I see $100K revenue but only $15K profit. Where did the other $85K go?"</p>
-                </div>
-
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                    <span className="text-[#f0f2f8]">Real-time profit margins by product, channel, and campaign</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                    <span className="text-[#f0f2f8]">Automatically accounts for all costs including COGS and fees</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                    <span className="text-[#f0f2f8]">Identifies which products and campaigns are actually profitable</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="glass-morphism rounded-xl p-6">
-                <div className="text-center mb-4">
-                  <h4 className="font-semibold text-white">True Profit Breakdown</h4>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-[#0a0b0f] rounded-lg">
-                    <span className="text-[#8b92b0]">Gross Revenue</span>
-                    <span className="font-bold text-white">$84,250</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-[#0a0b0f] rounded-lg">
-                    <span className="text-[#8b92b0]">- COGS</span>
-                    <span className="font-bold text-[#f87171]">-$33,700</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-[#0a0b0f] rounded-lg">
-                    <span className="text-[#8b92b0]">- Ad Spend</span>
-                    <span className="font-bold text-[#f87171]">-$16,850</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-[#0a0b0f] rounded-lg">
-                    <span className="text-[#8b92b0]">- Shipping & Fees</span>
-                    <span className="font-bold text-[#f87171]">-$8,425</span>
-                  </div>
-                  <div className="border-t border-white/10 pt-3">
-                    <div className="flex justify-between items-center p-3 bg-[#10b981]/20 border border-[#10b981]/40 rounded-lg">
-                      <span className="font-bold text-[#10b981]">True Profit</span>
-                      <span className="font-bold text-[#10b981] text-xl">$25,275</span>
-                    </div>
-                    <p className="text-center text-sm text-[#8b92b0] mt-2">30% profit margin (vs 10-15% industry avg)</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Feature 2 - AI Forecasting */}
-            <div className="grid lg:grid-cols-2 gap-12 items-center animate-on-scroll">
-              <div className="order-2 lg:order-1">
-                <div className="glass-morphism rounded-xl p-6">
-                  <div className="text-center mb-4">
-                    <h4 className="font-semibold text-white">AI Revenue Forecast - Next 90 Days</h4>
-                  </div>
-                  <div className="h-48 flex items-end gap-2 mb-4">
-                    {Array.from({ length: 12 }).map((_, i) => (
-                      <div key={i} className="flex-1 flex flex-col gap-1">
-                        <div 
-                          className="bg-[#3b82f6]/30 rounded-t"
-                          style={{ height: `${30 + i * 8 + Math.sin(i) * 10}%` }}
-                        />
-                        <div 
-                          className="bg-[#3b82f6] rounded-b"
-                          style={{ height: `${40 + i * 6}%` }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <p className="text-[#8b92b0] text-xs">Conservative</p>
-                      <p className="font-bold text-white">$89K</p>
-                    </div>
-                    <div>
-                      <p className="text-[#8b92b0] text-xs">Expected</p>
-                      <p className="font-bold text-[#10b981]">$127K</p>
-                    </div>
-                    <div>
-                      <p className="text-[#8b92b0] text-xs">Optimistic</p>
-                      <p className="font-bold text-[#3b82f6]">$165K</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="order-1 lg:order-2">
-                <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-[#8b5cf6]/20 border border-[#8b5cf6]/40">
-                  <Brain className="w-4 h-4 text-[#8b5cf6]" />
-                  <span className="text-sm font-semibold text-[#8b5cf6]">AI-Powered</span>
-                </div>
-                <h3 className="text-3xl font-bold text-white mb-4">AI Revenue Forecasting</h3>
-                <p className="text-lg text-[#8b92b0] mb-6 leading-relaxed">
-                  Predict your revenue, profit, and cash flow with scary accuracy. Our AI learns from your historical data 
-                  and external factors like seasonality, trends, and market conditions.
-                </p>
-                
-                <div className="bg-[#f87171]/10 border border-[#f87171]/30 rounded-lg p-4 mb-6">
-                  <p className="text-sm text-[#f0f2f8] font-semibold">Pain it solves:</p>
-                  <p className="text-sm text-[#8b92b0]">"Will I hit my Q4 targets? Should I increase ad spend? Do I need more inventory?"</p>
-                </div>
-
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                    <span className="text-[#f0f2f8]">90-day revenue predictions with 85%+ accuracy</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                    <span className="text-[#f0f2f8]">Identifies seasonal trends and growth opportunities</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                    <span className="text-[#f0f2f8]">Alerts you before cash flow problems hit</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* More Features Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 animate-on-scroll">
-              <div className="glass-morphism rounded-xl p-6 border border-[#3b82f6]/30">
-                <Target className="w-8 h-8 text-[#3b82f6] mb-4" />
-                <h4 className="text-xl font-bold text-white mb-3">Budget Optimizer</h4>
-                <p className="text-[#8b92b0] text-sm mb-4">
-                  AI automatically recommends optimal budget allocation across channels for maximum ROAS.
-                </p>
-                <div className="text-xs text-[#3b82f6] bg-[#3b82f6]/10 px-3 py-1 rounded-full">
-                  +15-30% ROAS improvement
-                </div>
-              </div>
-
-              <div className="glass-morphism rounded-xl p-6 border border-[#8b5cf6]/30">
-                <Layers className="w-8 h-8 text-[#8b5cf6] mb-4" />
-                <h4 className="text-xl font-bold text-white mb-3">Multi-Channel Attribution</h4>
-                <p className="text-[#8b92b0] text-sm mb-4">
-                  True attribution that accounts for iOS 14.5 limitations and cross-channel touchpoints.
-                </p>
-                <div className="text-xs text-[#8b5cf6] bg-[#8b5cf6]/10 px-3 py-1 rounded-full">
-                  Post-iOS 14.5 accuracy
-                </div>
-              </div>
-
-              <div className="glass-morphism rounded-xl p-6 border border-[#10b981]/30">
-                <MessageSquare className="w-8 h-8 text-[#10b981] mb-4" />
-                <h4 className="text-xl font-bold text-white mb-3">AI Chat Assistant</h4>
-                <p className="text-[#8b92b0] text-sm mb-4">
-                  Ask questions about your data in plain English. Get instant insights and recommendations.
-                </p>
-                <div className="text-xs text-[#10b981] bg-[#10b981]/10 px-3 py-1 rounded-full">
-                  Natural language queries
-                </div>
-              </div>
-
-              <div className="glass-morphism rounded-xl p-6 border border-[#f59e0b]/30">
-                <Settings className="w-8 h-8 text-[#f59e0b] mb-4" />
-                <h4 className="text-xl font-bold text-white mb-3">Custom Reports</h4>
-                <p className="text-[#8b92b0] text-sm mb-4">
-                  Build any report you want with our visual code editor. No technical skills required.
-                </p>
-                <div className="text-xs text-[#f59e0b] bg-[#f59e0b]/10 px-3 py-1 rounded-full">
-                  Visual editor included
-                </div>
-              </div>
-
-              <div className="glass-morphism rounded-xl p-6 border border-[#3b82f6]/30">
-                <Wifi className="w-8 h-8 text-[#3b82f6] mb-4" />
-                <h4 className="text-xl font-bold text-white mb-3">One-Click Integrations</h4>
-                <p className="text-[#8b92b0] text-sm mb-4">
-                  Connect all platforms in minutes with OAuth. No API keys, no developer required.
-                </p>
-                <div className="text-xs text-[#3b82f6] bg-[#3b82f6]/10 px-3 py-1 rounded-full">
-                  5-minute setup
-                </div>
-              </div>
-
-              <div className="glass-morphism rounded-xl p-6 border border-[#8b5cf6]/30">
-                <Smartphone className="w-8 h-8 text-[#8b5cf6] mb-4" />
-                <h4 className="text-xl font-bold text-white mb-3">Mobile Dashboard</h4>
-                <p className="text-[#8b92b0] text-sm mb-4">
-                  Check your key metrics anywhere. Native mobile app coming Q1 2025.
-                </p>
-                <div className="text-xs text-[#8b5cf6] bg-[#8b5cf6]/10 px-3 py-1 rounded-full">
-                  Mobile-optimized
-                </div>
-              </div>
-
-              <div className="glass-morphism rounded-xl p-6 border border-[#10b981]/30">
-                <Download className="w-8 h-8 text-[#10b981] mb-4" />
-                <h4 className="text-xl font-bold text-white mb-3">Data Exports</h4>
-                <p className="text-[#8b92b0] text-sm mb-4">
-                  Export any data as CSV, PDF, or via API. You own your data, always.
-                </p>
-                <div className="text-xs text-[#10b981] bg-[#10b981]/10 px-3 py-1 rounded-full">
-                  Full data ownership
-                </div>
-              </div>
-
-              <div className="glass-morphism rounded-xl p-6 border border-[#f59e0b]/30">
-                <Globe className="w-8 h-8 text-[#f59e0b] mb-4" />
-                <h4 className="text-xl font-bold text-white mb-3">Multi-Currency</h4>
-                <p className="text-[#8b92b0] text-sm mb-4">
-                  Perfect for international brands. Automatic currency conversion and regional insights.
-                </p>
-                <div className="text-xs text-[#f59e0b] bg-[#f59e0b]/10 px-3 py-1 rounded-full">
-                  Global ready
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="py-20 border-b border-white/5 bg-gradient-to-br from-[#0a0b0f] to-[#1a1b23]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="mb-16 animate-on-scroll">
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-              How It Works
-            </h2>
-            <p className="text-xl text-[#8b92b0]">Get set up in 5 minutes, see results immediately</p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 animate-on-scroll">
-            <div className="relative">
-              <div className="glass-morphism rounded-xl p-8">
-                <div className="w-16 h-16 bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] rounded-full flex items-center justify-center mx-auto mb-6 text-white font-bold text-2xl">
-                  1
-                </div>
-                <h3 className="text-xl font-bold text-white mb-4">Connect Your Store</h3>
-                <p className="text-[#8b92b0]">One-click OAuth for Shopify, Meta, Google, and Klaviyo. No API keys or technical setup required.</p>
-                <div className="mt-4 text-sm text-[#3b82f6]">⚡ Takes 2 minutes</div>
-              </div>
-              {/* Connecting line */}
-              <div className="hidden md:block absolute top-20 -right-4 w-8 h-0.5 bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6]"></div>
-            </div>
-
-            <div className="relative">
-              <div className="glass-morphism rounded-xl p-8">
-                <div className="w-16 h-16 bg-gradient-to-r from-[#8b5cf6] to-[#10b981] rounded-full flex items-center justify-center mx-auto mb-6 text-white font-bold text-2xl">
-                  2
-                </div>
-                <h3 className="text-xl font-bold text-white mb-4">See Your Real Numbers</h3>
-                <p className="text-[#8b92b0]">Instantly unified dashboard showing true profit, ROAS, and performance across all channels.</p>
-                <div className="mt-4 text-sm text-[#8b5cf6]">🚀 Instant results</div>
-              </div>
-              {/* Connecting line */}
-              <div className="hidden md:block absolute top-20 -right-4 w-8 h-0.5 bg-gradient-to-r from-[#8b5cf6] to-[#10b981]"></div>
-            </div>
-
+          {/* Feature 1 – Profit Tracking */}
+          <div className="grid lg:grid-cols-2 gap-12 items-center mb-24 ss-reveal">
             <div>
-              <div className="glass-morphism rounded-xl p-8">
-                <div className="w-16 h-16 bg-gradient-to-r from-[#10b981] to-[#3b82f6] rounded-full flex items-center justify-center mx-auto mb-6 text-white font-bold text-2xl">
-                  3
+              <div className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-medium text-emerald-400">
+                <DollarSign className="w-3.5 h-3.5" /> Core Feature
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-bold mb-4">True Profit Tracking</h3>
+              <p className="text-[#8b92b0] mb-6 leading-relaxed">
+                See your <em>actual</em> profit — not revenue vanity metrics. We automatically factor in COGS, ad spend, shipping, payment fees, refunds, and fixed costs. Know exactly what hits your bank account.
+              </p>
+              <ul className="space-y-3">
+                {['Real-time margins by product, channel & campaign', 'Automatically accounts for every cost line', 'Identifies your most & least profitable products'].map((t, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-[#c4c9d8] text-sm">
+                    <Check className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />{t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="glass rounded-xl p-5 gradient-border">
+              <p className="text-xs uppercase tracking-wider text-[#6b7194] mb-4 text-center">Profit Waterfall — This Month</p>
+              <div className="space-y-2.5">
+                {[
+                  { label: 'Gross Revenue', value: '$84,250', color: 'text-white' },
+                  { label: 'COGS', value: '-$33,700', color: 'text-red-400' },
+                  { label: 'Ad Spend', value: '-$16,850', color: 'text-red-400' },
+                  { label: 'Shipping & Fees', value: '-$8,425', color: 'text-red-400' },
+                ].map((r, i) => (
+                  <div key={i} className="flex justify-between items-center py-2.5 px-4 bg-white/[.02] rounded-lg">
+                    <span className="text-sm text-[#8b92b0]">{r.label}</span>
+                    <span className={`font-semibold ${r.color}`}>{r.value}</span>
+                  </div>
+                ))}
+                <div className="border-t border-white/5 pt-2.5">
+                  <div className="flex justify-between items-center py-3 px-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                    <span className="font-bold text-emerald-400">True Profit</span>
+                    <span className="font-bold text-emerald-400 text-xl">$25,275</span>
+                  </div>
+                  <p className="text-center text-xs text-[#6b7194] mt-2">30% margin — 2x industry average</p>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-4">Make Smarter Decisions</h3>
-                <p className="text-[#8b92b0]">Use AI insights, forecasting, and budget optimization to scale profitably every day.</p>
-                <div className="mt-4 text-sm text-[#10b981]">📈 Scale with confidence</div>
               </div>
             </div>
+          </div>
+
+          {/* Feature 2 – AI Forecasting */}
+          <div className="grid lg:grid-cols-2 gap-12 items-center mb-24 ss-reveal">
+            <div className="order-2 lg:order-1 glass rounded-xl p-5 gradient-border">
+              <p className="text-xs uppercase tracking-wider text-[#6b7194] mb-4 text-center">AI Revenue Forecast — Next 90 Days</p>
+              <div className="h-48 flex items-end gap-[3px] mb-4 px-2">
+                {Array.from({ length: 24 }).map((_, i) => {
+                  const base = 30 + (i / 24) * 45;
+                  const actual = i < 16;
+                  return (
+                    <div key={i} className="flex-1 rounded-t-sm transition-all" style={{
+                      height: `${base + Math.sin(i * 0.6) * 10}%`,
+                      background: actual
+                        ? `linear-gradient(to top, rgba(99,102,241,.6), rgba(99,102,241,.3))`
+                        : `linear-gradient(to top, rgba(168,85,247,.4), rgba(168,85,247,.15))`,
+                      opacity: actual ? 1 : 0.7,
+                      borderTop: actual ? 'none' : '2px dashed rgba(168,85,247,.4)',
+                    }} />
+                  );
+                })}
+              </div>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                {[
+                  { label: 'Conservative', value: '$89K', color: 'text-[#8b92b0]' },
+                  { label: 'Expected', value: '$127K', color: 'text-emerald-400' },
+                  { label: 'Optimistic', value: '$165K', color: 'text-indigo-400' },
+                ].map((f, i) => (
+                  <div key={i} className="bg-white/[.02] rounded-lg py-2">
+                    <p className="text-[10px] uppercase tracking-wider text-[#6b7194]">{f.label}</p>
+                    <p className={`font-bold ${f.color}`}>{f.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="order-1 lg:order-2">
+              <div className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-xs font-medium text-purple-400">
+                <Brain className="w-3.5 h-3.5" /> AI-Powered
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-bold mb-4">Revenue Forecasting</h3>
+              <p className="text-[#8b92b0] mb-6 leading-relaxed">
+                Predict revenue, profit, and cash flow with 85%+ accuracy. Our AI learns from your historical data, seasonality, and market trends to give you confidence in planning inventory, budgets, and hiring.
+              </p>
+              <ul className="space-y-3">
+                {['90-day rolling forecasts with confidence intervals', 'Seasonal trend detection & anomaly alerts', 'Cash flow predictions to avoid surprises'].map((t, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-[#c4c9d8] text-sm">
+                    <Check className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />{t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Feature grid */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 ss-reveal">
+            {[
+              { icon: <Target className="w-5 h-5" />, title: 'Budget Optimizer', desc: 'AI recommends optimal spend allocation across channels. Average +22% ROAS improvement.', tag: 'AI-Powered', color: 'indigo' },
+              { icon: <Layers className="w-5 h-5" />, title: 'Multi-Channel Attribution', desc: 'True cross-channel attribution that works post-iOS 14. See which touchpoints actually drive revenue.', tag: 'Post-iOS 14', color: 'purple' },
+              { icon: <MessageSquare className="w-5 h-5" />, title: 'AI Chat Assistant', desc: 'Ask questions about your data in plain English. "What was my best-performing product last month?"', tag: 'Natural Language', color: 'emerald' },
+              { icon: <Cpu className="w-5 h-5" />, title: 'Custom Reports', desc: 'Build any report with our visual editor. Drag-and-drop. No code required.', tag: 'Visual Editor', color: 'amber' },
+              { icon: <Sparkles className="w-5 h-5" />, title: 'AI Insights', desc: 'Proactive alerts when something changes. "Your CAC increased 23% — here\'s why."', tag: 'Proactive', color: 'indigo' },
+              { icon: <Shield className="w-5 h-5" />, title: 'Enterprise Security', desc: 'SOC 2 Type II, AES-256 encryption, GDPR compliant. Your data is locked down.', tag: 'SOC 2', color: 'emerald' },
+            ].map((f, i) => (
+              <div key={i} className={`ss-delay-${(i % 3) + 1} glass rounded-xl p-6 hover:bg-white/[.02] transition-colors group`}>
+                <div className={`w-10 h-10 rounded-lg mb-4 flex items-center justify-center ${f.color === 'indigo' ? 'bg-indigo-500/10 text-indigo-400' : f.color === 'purple' ? 'bg-purple-500/10 text-purple-400' : f.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>{f.icon}</div>
+                <h4 className="font-bold text-white mb-2">{f.title}</h4>
+                <p className="text-sm text-[#8b92b0] leading-relaxed mb-3">{f.desc}</p>
+                <span className={`text-[10px] uppercase tracking-wider font-medium ${f.color === 'indigo' ? 'text-indigo-400' : f.color === 'purple' ? 'text-purple-400' : f.color === 'emerald' ? 'text-emerald-400' : 'text-amber-400'}`}>{f.tag}</span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Competitor Comparison */}
-      <section className="py-20 border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16 animate-on-scroll">
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
+      {/* ═══ HOW IT WORKS ═══ */}
+      <section id="how-it-works" className="py-24 border-t border-white/[.04]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16 ss-reveal">
+            <p className="text-xs uppercase tracking-[.2em] text-indigo-400/80 mb-3 font-medium">How it works</p>
+            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
+              Live in <span className="text-indigo-400">5 Minutes</span>
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 ss-reveal">
+            {[
+              { step: '01', title: 'Connect Your Store', desc: 'One-click OAuth for Shopify and your ad platforms. No API keys. No developers.', time: '2 minutes', icon: <Zap className="w-5 h-5" /> },
+              { step: '02', title: 'See Real Numbers', desc: 'Unified dashboard with true profit, ROAS, and performance across every channel — instantly.', time: 'Instant', icon: <BarChart3 className="w-5 h-5" /> },
+              { step: '03', title: 'Scale Profitably', desc: 'Use AI insights, forecasting, and budget optimization to make confident decisions daily.', time: 'Ongoing', icon: <Rocket className="w-5 h-5" /> },
+            ].map((s, i) => (
+              <div key={i} className={`ss-delay-${i + 1} relative glass rounded-xl p-7 group hover:bg-white/[.02] transition-all`}>
+                <div className="text-[64px] font-black text-white/[.03] absolute top-4 right-5 leading-none">{s.step}</div>
+                <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-5">{s.icon}</div>
+                <h3 className="text-lg font-bold text-white mb-2">{s.title}</h3>
+                <p className="text-sm text-[#8b92b0] leading-relaxed mb-4">{s.desc}</p>
+                <span className="text-xs text-indigo-400 font-medium">{s.time}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ CONCIERGE ═══ */}
+      <section className="py-24 border-t border-white/[.04] relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/[.08] via-transparent to-purple-950/[.06] pointer-events-none" />
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="text-center ss-reveal">
+            <div className="inline-flex items-center gap-2 mb-5 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs font-medium text-amber-400">
+              <HeadphonesIcon className="w-3.5 h-3.5" /> White-Glove Onboarding
+            </div>
+            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-5">
+              We'll Set It Up <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">For You</span>
+            </h2>
+            <p className="text-lg text-[#8b92b0] max-w-2xl mx-auto mb-12 leading-relaxed">
+              Don't want to deal with setup? Our team connects your platforms, configures your dashboard,
+              validates your data, and has everything ready — usually within 24 hours.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-5 mb-10 ss-reveal">
+            {[
+              { icon: '📧', title: 'Share Access', desc: 'Securely share your platform credentials via encrypted transfer.' },
+              { icon: '⚙️', title: 'We Configure', desc: 'Our team connects everything, sets up tracking, and validates accuracy.' },
+              { icon: '✅', title: 'You\'re Live', desc: 'Get notified when your dashboard is ready. Start making decisions.' },
+            ].map((s, i) => (
+              <div key={i} className={`ss-delay-${i + 1} glass rounded-xl p-6 text-center`}>
+                <span className="text-3xl mb-3 block">{s.icon}</span>
+                <h4 className="font-bold text-white mb-2">{s.title}</h4>
+                <p className="text-sm text-[#8b92b0]">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="ss-reveal glass rounded-xl p-5 border border-emerald-500/10 flex items-center justify-center gap-3 text-sm text-[#8b92b0]">
+            <Lock className="w-4 h-4 text-emerald-400" />
+            <span>Bank-level encryption · SOC 2 compliant · Credentials deleted after setup · Available on Growth & Pro plans</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ SOCIAL PROOF ═══ */}
+      <section className="py-24 border-t border-white/[.04]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16 ss-reveal">
+            <p className="text-xs uppercase tracking-[.2em] text-amber-400/80 mb-3 font-medium">Testimonials</p>
+            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
+              Trusted by <span className="text-indigo-400">800+</span> DTC Brands
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 ss-reveal">
+            {[
+              { name: 'Sarah Chen', role: 'Founder, Glow Beauty Co', rev: '$2.8M ARR', quote: 'Identified 40% of our Meta spend was unprofitable. Reallocated budget and increased profit by $30K/month in 2 weeks.' },
+              { name: 'Marcus Williams', role: 'CEO, Peak Supplements', rev: '$1.2M ARR', quote: 'Went from 12 hours/week on reporting to 30 minutes. AI forecasting predicted our Black Friday results within 3%.' },
+              { name: 'Jennifer Patel', role: 'Co-Founder, Sustainable Living Co', rev: '$850K ARR', quote: 'Switched from Triple Whale. Half the price, 10x better insights. Setup concierge had us running in 4 hours.' },
+              { name: 'David Rodriguez', role: 'Marketing Dir, Outdoor Gear Pro', rev: '$4.1M ARR', quote: 'Discovered Google Ads was driving 60% more revenue than Meta reported. Completely changed our strategy.' },
+              { name: 'Lisa Thompson', role: 'Founder, Pet Paradise', rev: '$650K ARR', quote: 'We thought we were profitable — actually losing $40K/month. Fixed in 3 weeks with Slay Season\'s recommendations.' },
+              { name: 'Alex Park', role: 'CEO, TechWear Studios', rev: '$3.5M ARR', quote: 'Budget optimizer increased ROAS from 3.2x to 4.8x in one month. 12x ROI on Slay Season in year one.' },
+            ].map((t, i) => (
+              <div key={i} className={`ss-delay-${(i % 3) + 1} glass rounded-xl p-6 hover:bg-white/[.02] transition-colors`}>
+                <div className="flex gap-0.5 mb-4">
+                  {[...Array(5)].map((_, j) => <Star key={j} className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />)}
+                </div>
+                <p className="text-[#c4c9d8] text-sm leading-relaxed mb-5">"{t.quote}"</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-white text-sm">{t.name}</p>
+                    <p className="text-xs text-[#6b7194]">{t.role}</p>
+                  </div>
+                  <span className="text-xs text-emerald-400 font-medium">{t.rev}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Trust row */}
+          <div className="flex flex-wrap justify-center gap-8 mt-12 ss-reveal">
+            {[
+              { icon: <Star className="w-4 h-4 text-amber-400 fill-amber-400" />, text: '4.9/5 Shopify App Store' },
+              { icon: <ShieldCheck className="w-4 h-4 text-emerald-400" />, text: 'SOC 2 Type II Certified' },
+              { icon: <Users className="w-4 h-4 text-indigo-400" />, text: '847+ Active Brands' },
+              { icon: <Lock className="w-4 h-4 text-purple-400" />, text: 'GDPR Compliant' },
+            ].map((b, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm text-[#6b7194]">
+                {b.icon}<span>{b.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ COMPARISON ═══ */}
+      <section className="py-24 border-t border-white/[.04]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16 ss-reveal">
+            <p className="text-xs uppercase tracking-[.2em] text-indigo-400/80 mb-3 font-medium">Comparison</p>
+            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
               How We Stack Up
             </h2>
-            <p className="text-xl text-[#8b92b0] max-w-3xl mx-auto">
-              We built Slay Season because existing solutions suck. Here's the honest comparison.
-            </p>
           </div>
 
-          <div className="overflow-x-auto animate-on-scroll">
-            <table className="w-full min-w-max glass-morphism rounded-xl overflow-hidden">
+          <div className="overflow-x-auto ss-reveal -mx-4 px-4">
+            <table className="w-full min-w-[640px]">
               <thead>
-                <tr className="bg-[#0a0b0f] border-b border-white/10">
-                  <th className="text-left py-6 px-6 font-bold text-white">Feature</th>
-                  <th className="text-center py-6 px-6 font-bold text-[#3b82f6] bg-[#3b82f6]/10">Slay Season</th>
-                  <th className="text-center py-6 px-6 font-bold text-[#8b92b0]">Triple Whale</th>
-                  <th className="text-center py-6 px-6 font-bold text-[#8b92b0]">BeProfit</th>
-                  <th className="text-center py-6 px-6 font-bold text-[#8b92b0]">Northbeam</th>
-                  <th className="text-center py-6 px-6 font-bold text-[#8b92b0]">Shopify Native</th>
+                <tr className="border-b border-white/[.06]">
+                  <th className="text-left py-4 px-4 text-sm font-medium text-[#6b7194]">Feature</th>
+                  <th className="text-center py-4 px-4 text-sm font-bold text-indigo-400 bg-indigo-500/[.05] rounded-t-lg">Slay Season</th>
+                  <th className="text-center py-4 px-4 text-sm font-medium text-[#6b7194]">Triple Whale</th>
+                  <th className="text-center py-4 px-4 text-sm font-medium text-[#6b7194]">Northbeam</th>
+                  <th className="text-center py-4 px-4 text-sm font-medium text-[#6b7194]">Polar</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr className="border-b border-white/5">
-                  <td className="py-4 px-6 font-semibold text-white">Monthly Price</td>
-                  <td className="text-center py-4 px-6 text-[#10b981] bg-[#3b82f6]/5 font-bold">$49 - $399</td>
-                  <td className="text-center py-4 px-6 text-white">$129 - $2,790</td>
-                  <td className="text-center py-4 px-6 text-white">$25 - $999</td>
-                  <td className="text-center py-4 px-6 text-white">$999+</td>
-                  <td className="text-center py-4 px-6 text-white">Free (limited)</td>
-                </tr>
-                <tr className="border-b border-white/5">
-                  <td className="py-4 px-6 font-semibold text-white">Setup Time</td>
-                  <td className="text-center py-4 px-6 text-[#10b981] bg-[#3b82f6]/5 font-bold">5 minutes</td>
-                  <td className="text-center py-4 px-6 text-white">30+ minutes</td>
-                  <td className="text-center py-4 px-6 text-white">15 minutes</td>
-                  <td className="text-center py-4 px-6 text-white">Hours/Days</td>
-                  <td className="text-center py-4 px-6 text-white">Built-in</td>
-                </tr>
-                <tr className="border-b border-white/5">
-                  <td className="py-4 px-6 font-semibold text-white">True Profit Tracking</td>
-                  <td className="text-center py-4 px-6 bg-[#3b82f6]/5">
-                    <Check className="w-6 h-6 mx-auto text-[#10b981]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <X className="w-6 h-6 mx-auto text-[#f87171]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <span className="text-[#f59e0b]">Limited</span>
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <X className="w-6 h-6 mx-auto text-[#f87171]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <X className="w-6 h-6 mx-auto text-[#f87171]" />
-                  </td>
-                </tr>
-                <tr className="border-b border-white/5">
-                  <td className="py-4 px-6 font-semibold text-white">AI Forecasting</td>
-                  <td className="text-center py-4 px-6 bg-[#3b82f6]/5">
-                    <Check className="w-6 h-6 mx-auto text-[#10b981]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <X className="w-6 h-6 mx-auto text-[#f87171]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <X className="w-6 h-6 mx-auto text-[#f87171]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <span className="text-[#f59e0b]">Basic</span>
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <X className="w-6 h-6 mx-auto text-[#f87171]" />
-                  </td>
-                </tr>
-                <tr className="border-b border-white/5">
-                  <td className="py-4 px-6 font-semibold text-white">Budget Optimizer</td>
-                  <td className="text-center py-4 px-6 bg-[#3b82f6]/5">
-                    <Check className="w-6 h-6 mx-auto text-[#10b981]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <span className="text-[#f59e0b]">Basic</span>
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <X className="w-6 h-6 mx-auto text-[#f87171]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <span className="text-[#f59e0b]">Basic</span>
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <X className="w-6 h-6 mx-auto text-[#f87171]" />
-                  </td>
-                </tr>
-                <tr className="border-b border-white/5">
-                  <td className="py-4 px-6 font-semibold text-white">Multi-channel Attribution</td>
-                  <td className="text-center py-4 px-6 bg-[#3b82f6]/5">
-                    <Check className="w-6 h-6 mx-auto text-[#10b981]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <Check className="w-6 h-6 mx-auto text-[#10b981]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <span className="text-[#f59e0b]">Basic</span>
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <Check className="w-6 h-6 mx-auto text-[#10b981]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <X className="w-6 h-6 mx-auto text-[#f87171]" />
-                  </td>
-                </tr>
-                <tr className="border-b border-white/5">
-                  <td className="py-4 px-6 font-semibold text-white">Custom Reports</td>
-                  <td className="text-center py-4 px-6 bg-[#3b82f6]/5">
-                    <Check className="w-6 h-6 mx-auto text-[#10b981]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <span className="text-[#f59e0b]">Limited</span>
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <X className="w-6 h-6 mx-auto text-[#f87171]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <span className="text-[#f59e0b]">Limited</span>
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <X className="w-6 h-6 mx-auto text-[#f87171]" />
-                  </td>
-                </tr>
-                <tr className="border-b border-white/5">
-                  <td className="py-4 px-6 font-semibold text-white">Data Ownership</td>
-                  <td className="text-center py-4 px-6 bg-[#3b82f6]/5">
-                    <Check className="w-6 h-6 mx-auto text-[#10b981]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <X className="w-6 h-6 mx-auto text-[#f87171]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <X className="w-6 h-6 mx-auto text-[#f87171]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <X className="w-6 h-6 mx-auto text-[#f87171]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <Check className="w-6 h-6 mx-auto text-[#10b981]" />
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-6 font-semibold text-white">Setup Concierge</td>
-                  <td className="text-center py-4 px-6 bg-[#3b82f6]/5">
-                    <Check className="w-6 h-6 mx-auto text-[#10b981]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <X className="w-6 h-6 mx-auto text-[#f87171]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <X className="w-6 h-6 mx-auto text-[#f87171]" />
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <span className="text-[#f59e0b]">Enterprise Only</span>
-                  </td>
-                  <td className="text-center py-4 px-6">
-                    <X className="w-6 h-6 mx-auto text-[#f87171]" />
-                  </td>
-                </tr>
+              <tbody className="text-sm">
+                {[
+                  { feature: 'Starting Price', ss: '$49/mo', tw: '$129/mo', nb: '$999/mo', po: '$200/mo', ssHighlight: true },
+                  { feature: 'True Profit Tracking', ss: true, tw: false, nb: false, po: 'Limited' },
+                  { feature: 'AI Forecasting', ss: true, tw: false, nb: 'Basic', po: false },
+                  { feature: 'Budget Optimizer', ss: true, tw: 'Basic', nb: 'Basic', po: false },
+                  { feature: 'Concierge Setup', ss: true, tw: false, nb: 'Enterprise', po: false },
+                  { feature: 'Setup Time', ss: '5 min', tw: '30+ min', nb: 'Hours', po: '15 min', ssHighlight: true },
+                ].map((row, i) => (
+                  <tr key={i} className="border-b border-white/[.04]">
+                    <td className="py-3.5 px-4 font-medium text-[#c4c9d8]">{row.feature}</td>
+                    <td className="text-center py-3.5 px-4 bg-indigo-500/[.03]">
+                      {typeof row.ss === 'boolean' ? (
+                        row.ss ? <Check className="w-4.5 h-4.5 mx-auto text-emerald-400" /> : <X className="w-4.5 h-4.5 mx-auto text-red-400/40" />
+                      ) : <span className={`font-semibold ${row.ssHighlight ? 'text-emerald-400' : 'text-white'}`}>{row.ss}</span>}
+                    </td>
+                    {[row.tw, row.nb, row.po].map((val, j) => (
+                      <td key={j} className="text-center py-3.5 px-4">
+                        {typeof val === 'boolean' ? (
+                          val ? <Check className="w-4.5 h-4.5 mx-auto text-emerald-400" /> : <X className="w-4.5 h-4.5 mx-auto text-red-400/40" />
+                        ) : <span className="text-[#6b7194]">{val}</span>}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-
-          <div className="text-center mt-12 animate-on-scroll">
-            <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-[#10b981]/20 border border-[#10b981]/40">
-              <Award className="w-4 h-4 text-[#10b981]" />
-              <span className="text-sm font-semibold text-[#10b981]">Clear Winner: Slay Season</span>
-            </div>
-            <p className="text-lg text-[#8b92b0] mb-6">
-              Better features, lower price, faster setup, and we actually care about your success.
-            </p>
-            <button
-              onClick={() => navigate('/signup')}
-              className="bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:from-[#2563eb] hover:to-[#7c3aed] text-white px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-xl transform hover:scale-105"
-            >
-              Start Your Free Trial →
-            </button>
-          </div>
         </div>
       </section>
 
-      {/* ROI Calculator */}
-      <section className="py-20 border-b border-white/5 bg-gradient-to-br from-[#0a0b0f] to-[#1a1b23]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12 animate-on-scroll">
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-              ROI Calculator
+      {/* ═══ PRICING ═══ */}
+      <section id="pricing" className="py-24 border-t border-white/[.04] mesh-bg">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12 ss-reveal">
+            <p className="text-xs uppercase tracking-[.2em] text-indigo-400/80 mb-3 font-medium">Pricing</p>
+            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-4">
+              Simple, Transparent Pricing
             </h2>
-            <p className="text-xl text-[#8b92b0]">
-              See how much Slay Season will save you this year
-            </p>
-          </div>
+            <p className="text-[#8b92b0] mb-8">14-day free trial. No credit card required. Cancel anytime.</p>
 
-          <div className="glass-morphism rounded-xl p-8 animate-on-scroll">
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Inputs */}
-              <div className="space-y-6">
-                <h3 className="text-xl font-bold text-white mb-4">Your Current Situation</h3>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-white mb-2">
-                    How much do you spend on analytics tools per month?
-                  </label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-3 w-5 h-5 text-[#8b92b0]" />
-                    <input
-                      type="number"
-                      value={roiInputs.analyticsSpend}
-                      onChange={(e) => setRoiInputs(prev => ({...prev, analyticsSpend: parseInt(e.target.value) || 0}))}
-                      className="w-full pl-10 pr-4 py-3 bg-[#0a0b0f] border border-white/20 rounded-lg text-white"
-                      placeholder="300"
-                    />
-                  </div>
-                  <p className="text-xs text-[#8b92b0] mt-1">Triple Whale, BeProfit, Northbeam, etc.</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-white mb-2">
-                    Hours per week on analytics/reporting
-                  </label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-3 w-5 h-5 text-[#8b92b0]" />
-                    <input
-                      type="number"
-                      value={roiInputs.timeSpent}
-                      onChange={(e) => setRoiInputs(prev => ({...prev, timeSpent: parseInt(e.target.value) || 0}))}
-                      className="w-full pl-10 pr-4 py-3 bg-[#0a0b0f] border border-white/20 rounded-lg text-white"
-                      placeholder="8"
-                    />
-                  </div>
-                  <p className="text-xs text-[#8b92b0] mt-1">Spreadsheets, data collection, reporting</p>
-                </div>
-              </div>
-
-              {/* Results */}
-              <div className="bg-[#0a0b0f] border border-white/10 rounded-lg p-6">
-                <h3 className="text-xl font-bold text-white mb-6">Annual Savings with Slay Season</h3>
-                
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#8b92b0]">Time savings (${roiInputs.timeSpent}hr/wk × $75/hr)</span>
-                    <span className="font-bold text-[#10b981]">${roi.timeSavings.toLocaleString()}</span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#8b92b0]">Better decisions (10x ROI improvement)</span>
-                    <span className="font-bold text-[#10b981]">${roi.profitIncrease.toLocaleString()}</span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#8b92b0]">Slay Season cost (Growth plan)</span>
-                    <span className="font-bold text-[#f87171]">-${(currentPricing.growth * (pricingBilling === 'monthly' ? 12 : 1)).toLocaleString()}</span>
-                  </div>
-
-                  <div className="border-t border-white/10 pt-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-bold text-white">Net Annual Savings</span>
-                      <span className="font-bold text-[#10b981] text-2xl">${roi.netROI.toLocaleString()}</span>
-                    </div>
-                    <div className="text-center">
-                      <span className="text-sm text-[#8b92b0]">That's a </span>
-                      <span className="font-bold text-[#10b981] text-lg">{roi.roiMultiple}x</span>
-                      <span className="text-sm text-[#8b92b0]"> return on investment</span>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => navigate('/signup')}
-                  className="w-full mt-6 bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:from-[#2563eb] hover:to-[#7c3aed] text-white px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105"
-                >
-                  Start Saving Money →
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* We'll Set It Up For You */}
-      <section className="py-20 border-b border-white/5 bg-gradient-to-r from-[#3b82f6]/10 to-[#8b5cf6]/10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 mb-6 px-6 py-3 rounded-full bg-[#f59e0b]/20 border border-[#f59e0b]/40 animate-on-scroll">
-            <HeadphonesIcon className="w-5 h-5 text-[#f59e0b]" />
-            <span className="text-sm font-semibold text-[#f59e0b]">KILLER DIFFERENTIATOR</span>
-          </div>
-
-          <div className="animate-on-scroll">
-            <h2 className="text-4xl sm:text-6xl font-bold mb-6">
-              We'll Set It Up
-              <br />
-              <span className="bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] bg-clip-text text-transparent">
-                For You
-              </span>
-            </h2>
-
-            <p className="text-xl sm:text-2xl text-[#8b92b0] mb-8 max-w-4xl mx-auto leading-relaxed">
-              Don't want to deal with setup? No problem.
-              <br />
-              <strong className="text-[#f0f2f8]">Send us your login details and we'll have your dashboard ready in 30 minutes.</strong>
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 mb-12 animate-on-scroll">
-            <div className="glass-morphism rounded-xl p-8">
-              <div className="w-16 h-16 bg-[#3b82f6]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">📧</span>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-3">Send Us Your Details</h3>
-              <p className="text-[#8b92b0] leading-relaxed">
-                Email us your platform credentials (secure encrypted transfer). Takes 2 minutes.
-              </p>
-            </div>
-
-            <div className="glass-morphism rounded-xl p-8">
-              <div className="w-16 h-16 bg-[#3b82f6]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">⚙️</span>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-3">We Connect Everything</h3>
-              <p className="text-[#8b92b0] leading-relaxed">
-                Our team connects all platforms, configures your dashboard, and validates your data.
-              </p>
-            </div>
-
-            <div className="glass-morphism rounded-xl p-8">
-              <div className="w-16 h-16 bg-[#3b82f6]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">✨</span>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-3">Dashboard Ready</h3>
-              <p className="text-[#8b92b0] leading-relaxed">
-                Get notified when complete. Log in and start making data-driven decisions immediately.
-              </p>
-            </div>
-          </div>
-
-          <div className="glass-morphism border border-[#10b981]/30 rounded-xl p-8 mb-8 animate-on-scroll">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Lock className="w-6 h-6 text-[#10b981]" />
-              <span className="font-bold text-[#10b981]">BANK-LEVEL SECURITY</span>
-            </div>
-            <p className="text-[#8b92b0] mb-4 leading-relaxed">
-              Military-grade encryption, SOC 2 Type II certified. We delete all credentials after setup. 
-              Your data never leaves secure servers.
-            </p>
-            <p className="text-sm text-[#8b92b0]">
-              Available for Growth and Pro plans. Setup usually completed within 24 hours.
-            </p>
-          </div>
-
-          <button
-            onClick={() => navigate('/signup')}
-            className="bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:from-[#2563eb] hover:to-[#7c3aed] text-white px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-2xl hover:shadow-3xl transform hover:scale-105 animate-on-scroll"
-          >
-            Sign Up & We'll Set It Up →
-          </button>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12 animate-on-scroll">
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-              Pricing That Makes Sense
-            </h2>
-            <p className="text-xl text-[#8b92b0] mb-8">
-              No hidden fees. No surprises. Just honest pricing for real value.
-            </p>
-
-            {/* Billing Toggle */}
-            <div className="flex items-center justify-center gap-4">
-              <span className={`font-semibold ${pricingBilling === 'monthly' ? 'text-white' : 'text-[#8b92b0]'}`}>
-                Monthly
-              </span>
+            {/* Toggle */}
+            <div className="inline-flex items-center gap-3 glass rounded-full px-1.5 py-1.5">
               <button
-                onClick={() => setPricingBilling(pricingBilling === 'monthly' ? 'annual' : 'monthly')}
-                className="relative inline-flex h-8 w-14 items-center rounded-full glass-morphism border border-white/10 transition-colors"
-              >
-                <span
-                  className={`inline-block h-6 w-6 transform rounded-full bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] transition-transform ${
-                    pricingBilling === 'annual' ? 'translate-x-7' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-              <div className="flex items-center gap-2">
-                <span className={`font-semibold ${pricingBilling === 'annual' ? 'text-white' : 'text-[#8b92b0]'}`}>
-                  Annual
-                </span>
-                <span className="bg-[#10b981]/20 text-[#10b981] text-xs font-bold px-3 py-1 rounded-full">
-                  SAVE 20%
-                </span>
-              </div>
+                onClick={() => setPricingBilling('monthly')}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${pricingBilling === 'monthly' ? 'bg-indigo-500/20 text-white' : 'text-[#6b7194]'}`}
+              >Monthly</button>
+              <button
+                onClick={() => setPricingBilling('annual')}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${pricingBilling === 'annual' ? 'bg-indigo-500/20 text-white' : 'text-[#6b7194]'}`}
+              >Annual <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full font-bold">-20%</span></button>
             </div>
           </div>
 
-          {/* Pricing Cards */}
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto animate-on-scroll">
+          <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto ss-reveal">
             {/* Starter */}
-            <div className="glass-morphism rounded-xl p-8 border border-white/10">
-              <h3 className="text-2xl font-bold text-white mb-2">Starter</h3>
-              <p className="text-[#8b92b0] mb-6">Perfect for new brands</p>
-              
-              <div className="mb-8">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-bold text-white">
-                    ${Math.round(currentPricing.starter)}
-                  </span>
-                  <span className="text-[#8b92b0]">
-                    /{pricingBilling === 'monthly' ? 'month' : 'year'}
-                  </span>
-                </div>
-                {pricingBilling === 'annual' && (
-                  <p className="text-xs text-[#10b981] mt-2">
-                    Save ${Math.round((pricing.monthly.starter * 12 - pricing.annual.starter))} per year
-                  </p>
-                )}
+            <div className="glass rounded-xl p-7">
+              <h3 className="text-lg font-bold text-white mb-1">Starter</h3>
+              <p className="text-sm text-[#6b7194] mb-5">For brands getting started</p>
+              <div className="mb-6">
+                <span className="text-4xl font-extrabold text-white">${p.starter}</span>
+                <span className="text-[#6b7194] text-sm">/mo</span>
+                {pricingBilling === 'annual' && <p className="text-xs text-emerald-400 mt-1">Billed annually · Save ${(49 - 39) * 12}/yr</p>}
               </div>
-
-              <button
-                onClick={() => navigate('/signup')}
-                className="w-full py-3 rounded-lg font-bold transition-all mb-8 border-2 border-[#3b82f6]/30 text-white hover:bg-[#3b82f6]/10 transform hover:scale-105"
-              >
-                Start Free Trial
-              </button>
-
-              <ul className="space-y-4">
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#f0f2f8]">Up to $500K annual revenue</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#f0f2f8]">Shopify + 2 ad platforms</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#f0f2f8]">Real-time profit tracking</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#f0f2f8]">Basic forecasting</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#f0f2f8]">Email support</span>
-                </li>
+              <button onClick={() => navigate('/signup')} className="w-full py-2.5 rounded-lg text-sm font-semibold border border-white/10 text-white hover:bg-white/[.04] transition-all mb-6">Start Free Trial</button>
+              <ul className="space-y-3 text-sm">
+                {['Up to $500K annual revenue', 'Shopify + 2 ad platforms', 'Real-time profit tracking', 'Basic forecasting', 'Email support (24hr)'].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-[#8b92b0]"><Check className="w-4 h-4 text-emerald-400/60 flex-shrink-0 mt-0.5" />{f}</li>
+                ))}
               </ul>
             </div>
 
-            {/* Growth - Most Popular */}
-            <div className="glass-morphism rounded-xl p-8 border border-[#3b82f6]/50 relative transform scale-105">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <span className="bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] text-white px-6 py-2 rounded-full text-sm font-bold">
-                  MOST POPULAR
-                </span>
+            {/* Growth */}
+            <div className="pricing-popular rounded-xl p-7 relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <span className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg shadow-indigo-500/20">Most Popular</span>
               </div>
-              
-              <h3 className="text-2xl font-bold text-white mb-2">Growth</h3>
-              <p className="text-[#8b92b0] mb-6">For scaling brands</p>
-              
-              <div className="mb-8">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-bold text-white">
-                    ${Math.round(currentPricing.growth)}
-                  </span>
-                  <span className="text-[#8b92b0]">
-                    /{pricingBilling === 'monthly' ? 'month' : 'year'}
-                  </span>
-                </div>
-                {pricingBilling === 'annual' && (
-                  <p className="text-xs text-[#10b981] mt-2">
-                    Save ${Math.round((pricing.monthly.growth * 12 - pricing.annual.growth))} per year
-                  </p>
-                )}
+              <h3 className="text-lg font-bold text-white mb-1">Growth</h3>
+              <p className="text-sm text-[#6b7194] mb-5">For scaling brands</p>
+              <div className="mb-6">
+                <span className="text-4xl font-extrabold text-white">${p.growth}</span>
+                <span className="text-[#6b7194] text-sm">/mo</span>
+                {pricingBilling === 'annual' && <p className="text-xs text-emerald-400 mt-1">Billed annually · Save ${(149 - 119) * 12}/yr</p>}
               </div>
-
-              <button
-                onClick={() => navigate('/signup')}
-                className="w-full py-3 rounded-lg font-bold transition-all mb-8 bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:from-[#2563eb] hover:to-[#7c3aed] text-white transform hover:scale-105 shadow-xl"
-              >
-                Start Free Trial
+              <button onClick={() => navigate('/signup')} className="w-full btn-primary py-2.5 rounded-lg text-sm font-semibold text-white mb-6">
+                <span>Start Free Trial</span>
               </button>
-
-              <ul className="space-y-4">
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#f0f2f8]">Up to $3M annual revenue</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#f0f2f8]">All integrations included</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#f0f2f8]">AI forecasting & optimization</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#f0f2f8]">Setup concierge service</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#f0f2f8]">Priority support + Slack</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#f0f2f8]">API access & exports</span>
-                </li>
+              <ul className="space-y-3 text-sm">
+                {['Up to $3M annual revenue', 'All integrations included', 'AI forecasting & budget optimizer', 'Concierge setup service', 'Priority Slack support', 'API access & data exports'].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-[#c4c9d8]"><Check className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />{f}</li>
+                ))}
               </ul>
             </div>
 
             {/* Pro */}
-            <div className="glass-morphism rounded-xl p-8 border border-white/10">
-              <h3 className="text-2xl font-bold text-white mb-2">Pro</h3>
-              <p className="text-[#8b92b0] mb-6">For large brands & agencies</p>
-              
-              <div className="mb-8">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-bold text-white">
-                    ${Math.round(currentPricing.pro)}
-                  </span>
-                  <span className="text-[#8b92b0]">
-                    /{pricingBilling === 'monthly' ? 'month' : 'year'}
-                  </span>
-                </div>
-                {pricingBilling === 'annual' && (
-                  <p className="text-xs text-[#10b981] mt-2">
-                    Save ${Math.round((pricing.monthly.pro * 12 - pricing.annual.pro))} per year
-                  </p>
-                )}
+            <div className="glass rounded-xl p-7">
+              <h3 className="text-lg font-bold text-white mb-1">Pro</h3>
+              <p className="text-sm text-[#6b7194] mb-5">For large brands & agencies</p>
+              <div className="mb-6">
+                <span className="text-4xl font-extrabold text-white">${p.pro}</span>
+                <span className="text-[#6b7194] text-sm">/mo</span>
+                {pricingBilling === 'annual' && <p className="text-xs text-emerald-400 mt-1">Billed annually · Save ${(399 - 319) * 12}/yr</p>}
               </div>
-
-              <button
-                onClick={() => navigate('/signup')}
-                className="w-full py-3 rounded-lg font-bold transition-all mb-8 border-2 border-[#3b82f6]/30 text-white hover:bg-[#3b82f6]/10 transform hover:scale-105"
-              >
-                Start Free Trial
-              </button>
-
-              <ul className="space-y-4">
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#f0f2f8]">Unlimited revenue</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#f0f2f8]">Multi-store dashboard</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#f0f2f8]">Custom integrations</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#f0f2f8]">Dedicated account manager</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#f0f2f8]">White-label options</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-[#10b981] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#f0f2f8]">Full API & webhooks</span>
-                </li>
+              <button onClick={() => navigate('/signup')} className="w-full py-2.5 rounded-lg text-sm font-semibold border border-white/10 text-white hover:bg-white/[.04] transition-all mb-6">Start Free Trial</button>
+              <ul className="space-y-3 text-sm">
+                {['Unlimited revenue', 'Multi-store dashboard', 'Custom integrations', 'Dedicated account manager', 'White-label options', 'Full API & webhooks'].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-[#8b92b0]"><Check className="w-4 h-4 text-emerald-400/60 flex-shrink-0 mt-0.5" />{f}</li>
+                ))}
               </ul>
             </div>
           </div>
 
-          <div className="text-center mt-12 animate-on-scroll">
-            <div className="flex justify-center gap-6 mb-8">
-              <div className="flex items-center gap-2 text-[#10b981]">
-                <Check className="w-5 h-5" />
-                <span>14-day free trial</span>
-              </div>
-              <div className="flex items-center gap-2 text-[#10b981]">
-                <Shield className="w-5 h-5" />
-                <span>Money-back guarantee</span>
-              </div>
-              <div className="flex items-center gap-2 text-[#10b981]">
-                <Lock className="w-5 h-5" />
-                <span>SSL & GDPR compliant</span>
-              </div>
-            </div>
+          {/* Trust badges under pricing */}
+          <div className="flex flex-wrap justify-center gap-6 mt-10 text-sm text-[#6b7194] ss-reveal">
+            <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" />14-day free trial</span>
+            <span className="flex items-center gap-1.5"><Lock className="w-4 h-4 text-emerald-400" />No credit card required</span>
+            <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-400" />30-day money-back guarantee</span>
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20 border-b border-white/5 bg-gradient-to-br from-[#0a0b0f] to-[#1a1b23]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16 animate-on-scroll">
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-              What DTC Founders Say
-            </h2>
-            <p className="text-xl text-[#8b92b0]">Real results from real businesses</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                name: "Sarah Chen",
-                title: "Founder",
-                company: "Glow Beauty Co",
-                revenue: "$2.8M ARR",
-                rating: 5,
-                quote: "Slay Season helped us identify that 40% of our Meta spend was unprofitable. We reallocated budget and increased profit by $30K/month within 2 weeks."
-              },
-              {
-                name: "Marcus Williams", 
-                title: "CEO",
-                company: "Peak Supplements",
-                revenue: "$1.2M ARR",
-                rating: 5,
-                quote: "I was spending 12 hours/week on reporting. Now it takes 30 minutes. The AI forecasting predicted our Black Friday results within 3%. Incredible accuracy."
-              },
-              {
-                name: "Jennifer Patel",
-                title: "Co-Founder", 
-                company: "Sustainable Living Co",
-                revenue: "$850K ARR",
-                rating: 5,
-                quote: "Switched from Triple Whale. Slay Season is half the price with 10x better insights. The setup concierge had us running in 4 hours. Game changer."
-              },
-              {
-                name: "David Rodriguez",
-                title: "Marketing Director",
-                company: "Outdoor Gear Pro", 
-                revenue: "$4.1M ARR",
-                rating: 5,
-                quote: "The multi-channel attribution is insane. We discovered Google Ads was driving 60% more revenue than Meta reported. Completely changed our strategy."
-              },
-              {
-                name: "Lisa Thompson",
-                title: "Founder",
-                company: "Pet Paradise", 
-                revenue: "$650K ARR", 
-                rating: 5,
-                quote: "True profit tracking saved our business. We thought we were profitable but losing $40K/month. Fixed in 3 weeks with Slay Season's recommendations."
-              },
-              {
-                name: "Alex Chen",
-                title: "CEO", 
-                company: "TechWear Studios",
-                revenue: "$3.5M ARR",
-                rating: 5,
-                quote: "The budget optimizer increased our ROAS from 3.2x to 4.8x in one month. ROI on Slay Season was 12x in year one. Absolutely essential tool."
-              }
-            ].map((testimonial, index) => (
-              <div key={index} className="glass-morphism rounded-xl p-6 animate-on-scroll">
-                <div className="flex items-center gap-1 mb-4">
-                  {Array.from({ length: testimonial.rating }).map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-[#f59e0b] fill-current" />
+      {/* ═══ FOUNDER STORY ═══ */}
+      <section id="founder-story" className="py-24 border-t border-white/[.04]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-5 gap-10 items-center ss-reveal">
+            <div className="lg:col-span-3">
+              <div className="inline-flex items-center gap-2 mb-5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs font-medium text-amber-400">
+                <Award className="w-3.5 h-3.5" /> Built by Operators
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-6">
+                We Built the Tool We Wished Existed
+              </h2>
+              <div className="space-y-4 text-[#8b92b0] leading-relaxed">
+                <p>
+                  <strong className="text-white">After a decade in ecommerce</strong> — running brands, managing ad spend, and helping hundreds of Shopify merchants scale — we were exhausted by the same problem every single day: <em>where's the real profit?</em>
+                </p>
+                <p>
+                  We tried Triple Whale, Northbeam, BeProfit, spreadsheets, custom dashboards. Nothing gave us what we needed: a simple, accurate view of true profit across all channels.
+                </p>
+                <p className="text-white font-medium">
+                  So we built Slay Season. The dashboard we wished we had for our own businesses.
+                </p>
+              </div>
+            </div>
+            <div className="lg:col-span-2">
+              <div className="glass rounded-xl p-6 gradient-border">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">L</div>
+                  <div>
+                    <p className="font-bold text-white">Leo Martinez</p>
+                    <p className="text-xs text-[#6b7194]">Co-Founder & CEO</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  {[
+                    { val: '10+', label: 'Years in DTC' },
+                    { val: '500+', label: 'Brands Helped' },
+                    { val: '$50M+', label: 'Revenue Managed' },
+                  ].map((s, i) => (
+                    <div key={i} className="bg-white/[.02] rounded-lg py-3">
+                      <p className="text-lg font-bold text-white">{s.val}</p>
+                      <p className="text-[10px] text-[#6b7194] uppercase tracking-wider">{s.label}</p>
+                    </div>
                   ))}
                 </div>
-                
-                <blockquote className="text-[#f0f2f8] mb-4 leading-relaxed">
-                  "{testimonial.quote}"
-                </blockquote>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-bold text-white">{testimonial.name}</div>
-                    <div className="text-[#8b92b0] text-sm">{testimonial.title}, {testimonial.company}</div>
-                  </div>
-                  <div className="text-[#10b981] text-sm font-semibold">
-                    {testimonial.revenue}
-                  </div>
-                </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section id="faq" className="py-20 border-b border-white/5">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16 animate-on-scroll">
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-              Frequently Asked Questions
-            </h2>
-            <p className="text-xl text-[#8b92b0]">Everything you need to know</p>
+      {/* ═══ FAQ ═══ */}
+      <section id="faq" className="py-24 border-t border-white/[.04]">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12 ss-reveal">
+            <p className="text-xs uppercase tracking-[.2em] text-indigo-400/80 mb-3 font-medium">FAQ</p>
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Common Questions</h2>
           </div>
 
-          <div className="space-y-4 animate-on-scroll">
-            {faqs.map((faq, index) => (
-              <div key={index} className="glass-morphism rounded-xl overflow-hidden">
+          <div className="space-y-2 ss-reveal">
+            {faqs.map((faq, i) => (
+              <div key={i} className="glass rounded-lg overflow-hidden">
                 <button
-                  onClick={() => setExpandedFAQ(expandedFAQ === index ? null : index)}
-                  className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-white/5 transition-colors"
+                  onClick={() => setExpandedFAQ(expandedFAQ === i ? null : i)}
+                  className="w-full px-5 py-4 text-left flex items-center justify-between hover:bg-white/[.02] transition-colors"
                 >
-                  <span className="font-semibold text-white pr-4">{faq.question}</span>
-                  {expandedFAQ === index ? (
-                    <ChevronUp className="w-5 h-5 text-[#8b92b0] flex-shrink-0" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-[#8b92b0] flex-shrink-0" />
-                  )}
+                  <span className="font-medium text-[#e8eaf0] text-sm pr-4">{faq.q}</span>
+                  <ChevronDown className={`w-4 h-4 text-[#6b7194] flex-shrink-0 transition-transform ${expandedFAQ === i ? 'rotate-180' : ''}`} />
                 </button>
-                {expandedFAQ === index && (
-                  <div className="px-6 pb-4">
-                    <p className="text-[#8b92b0] leading-relaxed">{faq.answer}</p>
+                {expandedFAQ === i && (
+                  <div className="px-5 pb-4">
+                    <p className="text-sm text-[#8b92b0] leading-relaxed">{faq.a}</p>
                   </div>
                 )}
               </div>
@@ -1719,121 +924,68 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="py-20 border-b border-white/5 bg-gradient-to-r from-[#3b82f6]/10 via-[#8b5cf6]/10 to-[#10b981]/10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="animate-on-scroll">
-            <div className="inline-flex items-center gap-2 mb-6 px-6 py-3 rounded-full bg-[#f87171]/20 border border-[#f87171]/40">
-              <TrendingUp className="w-5 h-5 text-[#f87171]" />
-              <span className="text-sm font-semibold text-[#f87171]">URGENCY</span>
-            </div>
-
-            <h2 className="text-4xl sm:text-6xl font-bold mb-6">
-              Your Competition is Already
-              <br />
-              <span className="bg-gradient-to-r from-[#f87171] to-[#f59e0b] bg-clip-text text-transparent">
-                Making Better Decisions
-              </span>
+      {/* ═══ FINAL CTA ═══ */}
+      <section className="py-24 border-t border-white/[.04] relative overflow-hidden">
+        <div className="absolute inset-0 mesh-bg pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-600/[.06] rounded-full blur-[150px] pointer-events-none" />
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
+          <div className="ss-reveal">
+            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-5">
+              Ready to See Your <span className="bg-gradient-to-r from-indigo-400 to-emerald-400 bg-clip-text text-transparent">True Profit</span>?
             </h2>
-
-            <p className="text-xl sm:text-2xl text-[#8b92b0] mb-8 max-w-4xl mx-auto leading-relaxed">
-              While you're stuck in spreadsheet hell, your competitors are using Slay Season to scale profitably.
-              <br />
-              <strong className="text-[#f0f2f8]">Don't get left behind.</strong>
+            <p className="text-lg text-[#8b92b0] mb-8 max-w-xl mx-auto leading-relaxed">
+              Join 800+ DTC brands who replaced spreadsheets, guesswork, and overpriced tools with Slay Season.
             </p>
-
             <button
               onClick={() => navigate('/signup')}
-              className="bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:from-[#2563eb] hover:to-[#7c3aed] text-white px-12 py-6 rounded-xl font-bold text-xl transition-all shadow-2xl hover:shadow-3xl transform hover:scale-105 mb-8"
+              className="btn-primary text-white px-10 py-4 rounded-xl font-semibold text-lg group"
             >
-              Start Your Free Trial Now →
+              <span className="flex items-center gap-2">
+                Start Your Free Trial
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
+              </span>
             </button>
-
-            <div className="flex flex-wrap justify-center gap-8 text-sm text-[#8b92b0]">
-              <div className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-[#10b981]" />
-                <span>SSL Encrypted</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-[#10b981]" />
-                <span>GDPR Compliant</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-[#10b981]" />
-                <span>Money-Back Guarantee</span>
-              </div>
-            </div>
+            <p className="text-xs text-[#4a4f6a] mt-4">No credit card · 5-min setup · Cancel anytime</p>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-16 bg-[#0a0b0f]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 mb-12">
-            {/* Logo & Description */}
-            <div className="md:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-[#3b82f6] to-[#8b5cf6] rounded-lg flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-white" />
+      {/* ═══ FOOTER ═══ */}
+      <footer className="py-14 border-t border-white/[.04]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+            <div className="sm:col-span-2 lg:col-span-1">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <Zap className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-xl font-bold bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] bg-clip-text text-transparent">
-                  Slay Season
-                </span>
+                <span className="font-bold">Slay Season</span>
               </div>
-              <p className="text-[#8b92b0] mb-6 leading-relaxed max-w-md">
-                The only ecommerce analytics platform that shows true profit, not vanity metrics. 
-                Built by operators, for operators.
-              </p>
-              <p className="text-[#10b981] font-semibold">
-                Made by ecommerce operators, for ecommerce operators.
-              </p>
+              <p className="text-sm text-[#6b7194] leading-relaxed">True profit analytics for DTC brands. Built by operators, for operators.</p>
             </div>
-
-            {/* Product Links */}
-            <div>
-              <h4 className="font-bold text-white mb-4">Product</h4>
-              <ul className="space-y-3 text-[#8b92b0]">
-                <li><button onClick={() => scrollToSection('features')} className="hover:text-white transition-colors">Features</button></li>
-                <li><button onClick={() => scrollToSection('pricing')} className="hover:text-white transition-colors">Pricing</button></li>
-                <li><button onClick={() => navigate('/signup')} className="hover:text-white transition-colors">Free Trial</button></li>
-                <li><a href="#" className="hover:text-white transition-colors">Integrations</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">API Docs</a></li>
-              </ul>
-            </div>
-
-            {/* Company Links */}
-            <div>
-              <h4 className="font-bold text-white mb-4">Company</h4>
-              <ul className="space-y-3 text-[#8b92b0]">
-                <li><button onClick={() => scrollToSection('founder-story')} className="hover:text-white transition-colors">Our Story</button></li>
-                <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Support</a></li>
-              </ul>
-            </div>
+            {[
+              { title: 'Product', links: [['Features', () => scrollTo('features')], ['Pricing', () => scrollTo('pricing')], ['Free Trial', () => navigate('/signup')], ['Integrations', null]] },
+              { title: 'Company', links: [['Our Story', () => scrollTo('founder-story')], ['Blog', null], ['Contact', null], ['Careers', null]] },
+              { title: 'Legal', links: [['Privacy Policy', () => navigate('/privacy')], ['Terms of Service', () => navigate('/terms')], ['Security', null], ['GDPR', null]] },
+            ].map((col, i) => (
+              <div key={i}>
+                <h4 className="font-semibold text-white text-sm mb-3">{col.title}</h4>
+                <ul className="space-y-2">
+                  {col.links.map(([label, action], j) => (
+                    <li key={j}>
+                      <button onClick={action || (() => {})} className="text-sm text-[#6b7194] hover:text-white transition-colors">{label}</button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
-
-          {/* Bottom Section */}
-          <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-[#8b92b0] text-sm">
-              © 2024 Slay Season. All rights reserved.
-            </p>
-            
-            <div className="flex items-center gap-6">
-              <a href="/privacy" className="text-[#8b92b0] hover:text-white transition-colors text-sm">Privacy Policy</a>
-              <a href="/terms" className="text-[#8b92b0] hover:text-white transition-colors text-sm">Terms of Service</a>
-              <div className="flex items-center gap-4">
-                <a href="#" className="w-8 h-8 glass-morphism rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
-                  <span className="sr-only">Twitter</span>
-                  <span className="text-sm">𝕏</span>
-                </a>
-                <a href="#" className="w-8 h-8 glass-morphism rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
-                  <span className="sr-only">LinkedIn</span>
-                  <span className="text-sm">in</span>
-                </a>
-              </div>
+          <div className="border-t border-white/[.04] pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-xs text-[#4a4f6a]">© 2025 Slay Season. All rights reserved.</p>
+            <div className="flex items-center gap-4">
+              {['𝕏', 'in'].map((s, i) => (
+                <a key={i} href="#" className="w-7 h-7 glass rounded-md flex items-center justify-center text-xs text-[#6b7194] hover:text-white transition-colors">{s}</a>
+              ))}
             </div>
           </div>
         </div>

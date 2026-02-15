@@ -1,6 +1,6 @@
 name = "slayseason"
 client_id = "99d59e211a3d5de70d462211eade9d39"
-application_url = "https://api.slayseason.com/api/auth"
+application_url = "https://api.slayseason.com"
 embedded = false
 
 [auth]
