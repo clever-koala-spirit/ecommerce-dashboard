@@ -11,8 +11,7 @@ class BillingService {
     this.prices = {
       starter: process.env.STRIPE_PRICE_STARTER || 'price_starter',
       growth: process.env.STRIPE_PRICE_GROWTH || 'price_growth', 
-      scale: process.env.STRIPE_PRICE_SCALE || 'price_scale',
-      enterprise: process.env.STRIPE_PRICE_ENTERPRISE || 'price_enterprise'
+      scale: process.env.STRIPE_PRICE_SCALE || 'price_scale'
     };
 
     if (!process.env.STRIPE_SECRET_KEY) {

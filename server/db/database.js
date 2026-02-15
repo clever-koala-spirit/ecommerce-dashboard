@@ -131,7 +131,7 @@ export async function initDB() {
       platform TEXT NOT NULL,
       state TEXT NOT NULL,
       verifier TEXT,
-      shop_domain TEXT NOT NULL,
+      shop_domain TEXT DEFAULT NULL,
       expires_at TIMESTAMP NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(platform, state)
@@ -287,6 +287,21 @@ export async function initDB() {
   } catch (e) {
     // Ignore migration errors on fresh DB
   }
+
+  // Migration: make oauth_states.shop_domain nullable
+  try {
+    db.run(`DROP TABLE IF EXISTS oauth_states`);
+    db.run(`CREATE TABLE IF NOT EXISTS oauth_states (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      platform TEXT NOT NULL,
+      state TEXT NOT NULL,
+      verifier TEXT,
+      shop_domain TEXT DEFAULT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(platform, state)
+    )`);
+  } catch (e) { /* ignore */ }
 
   // Indexes for performance
   db.run(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);`);

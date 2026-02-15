@@ -9,7 +9,7 @@
 
 import express from 'express';
 import crypto from 'crypto';
-import { savePlatformConnection, getPlatformConnection, saveOAuthState, getOAuthState, deleteOAuthState } from '../db/database.js';
+import { savePlatformConnection, getPlatformConnection, saveOAuthState, getOAuthState, deleteOAuthState, getDB } from '../db/database.js';
 import { log } from '../utils/logger.js';
 import { validateOAuthInitiate, validateOAuthCallback } from '../middleware/validation.js';
 
@@ -103,7 +103,18 @@ function getOAuthConfig(platform) {
 router.get('/:platform/start', (req, res) => {
   try {
     const { platform } = req.params;
-    const { shopDomain } = req;
+
+    // Get shopDomain from user's DB record instead of middleware
+    const db = getDB();
+    let shopDomain = req.query.shopDomain;
+    if (req.userId) {
+      try {
+        const result = db.exec('SELECT shop_domain FROM users WHERE id = ?', [req.userId]);
+        if (result.length > 0 && result[0].values.length > 0) {
+          shopDomain = result[0].values[0][0] || shopDomain;
+        }
+      } catch (e) { /* fallback to query param */ }
+    }
 
     // Validate platform
     const validPlatforms = ['meta', 'google', 'klaviyo', 'ga4', 'tiktok', 'shopify'];
@@ -160,7 +171,7 @@ router.get('/:platform/start', (req, res) => {
     }
 
     // Store state in database for verification in callback (replaces in-memory store)
-    saveOAuthState(platform, state, pkce?.verifier || null, shopDomain);
+    saveOAuthState(platform, state, pkce?.verifier || null, shopDomain || null);
 
     log.oauth(platform, 'flow_started', {
       shopDomain,
@@ -217,8 +228,7 @@ router.get('/:platform/start', (req, res) => {
     res.redirect(authUrl);
   } catch (error) {
     log.error('OAuth flow initialization failed', error, { 
-      platform: req.params.platform,
-      shopDomain: req.shopDomain
+      platform: req.params.platform
     });
     res.status(500).json({ error: 'OAuth initialization failed' });
   }
@@ -446,7 +456,14 @@ async function fetchPlatformInfo(platform, tokenData) {
  */
 router.post('/klaviyo/connect', async (req, res) => {
   try {
-    const { shopDomain } = req;
+    const db = getDB();
+    let shopDomain = null;
+    if (req.userId) {
+      try {
+        const result = db.exec('SELECT shop_domain FROM users WHERE id = ?', [req.userId]);
+        if (result.length > 0 && result[0].values.length > 0) shopDomain = result[0].values[0][0];
+      } catch (e) { /* ignore */ }
+    }
     const { apiKey } = req.body;
 
     if (!apiKey || typeof apiKey !== 'string' || apiKey.trim().length < 5) {
@@ -490,7 +507,7 @@ router.post('/klaviyo/connect', async (req, res) => {
       message: `Connected to Klaviyo: ${accountName}`,
     });
   } catch (error) {
-    log.error('Klaviyo API key connection failed', error, { shopDomain: req.shopDomain });
+    log.error('Klaviyo API key connection failed', error, { shopDomain });
     res.status(500).json({ error: 'Failed to connect Klaviyo' });
   }
 });
@@ -502,7 +519,14 @@ router.post('/klaviyo/connect', async (req, res) => {
 router.post('/:platform/disconnect', async (req, res) => {
   try {
     const { platform } = req.params;
-    const { shopDomain } = req;
+    const db = getDB();
+    let shopDomain = null;
+    if (req.userId) {
+      try {
+        const result = db.exec('SELECT shop_domain FROM users WHERE id = ?', [req.userId]);
+        if (result.length > 0 && result[0].values.length > 0) shopDomain = result[0].values[0][0];
+      } catch (e) { /* ignore */ }
+    }
 
     // Set platform connection status to 'inactive'
     // This is handled via the connections service
@@ -513,8 +537,8 @@ router.post('/:platform/disconnect', async (req, res) => {
     }
 
     // Mark as disconnected in database
-    const db = (await import('../db/database.js')).getDB();
-    db.run(
+    const dbConn = getDB();
+    dbConn.run(
       `UPDATE platform_connections SET status = 'inactive', updated_at = CURRENT_TIMESTAMP WHERE shop_domain = ? AND platform = ? AND status = 'active'`,
       [shopDomain, platform]
     );
