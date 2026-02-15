@@ -108,23 +108,55 @@ app.get('/api/health', (req, res) => {
 app.get('/', (req, res) => {
   const shop = req.query.shop;
   if (shop) {
-    // Shopify opens apps in an iframe — break out and go to session endpoint
-    // Use top.location to escape the Shopify admin iframe
+    // Embedded app: serve App Bridge page with a link to the session endpoint
+    // App Bridge intercepts target="_top" links and handles navigation properly
     const sessionUrl = `https://api.slayseason.com/api/auth/shopify/session?shop=${encodeURIComponent(shop)}`;
-    return res.send(`<!DOCTYPE html><html><head><title>Loading Slay Season...</title>
-      <style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0a0b0f;color:#fff;font-family:system-ui}</style>
-    </head><body>
-      <p>Loading Slay Season...</p>
-      <script>
-        var url = ${JSON.stringify(sessionUrl)};
-        if (window.top !== window.self) {
-          window.top.location.href = url;
-        } else {
-          window.location.href = url;
-        }
-      </script>
-      <noscript><a href="${sessionUrl}">Click here to continue</a></noscript>
-    </body></html>`);
+    return res.send(`<!DOCTYPE html>
+<html><head>
+  <meta charset="utf-8">
+  <meta name="shopify-api-key" content="${process.env.SHOPIFY_API_KEY}">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>Slay Season</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f6f6f7; color: #202223; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .container { text-align: center; padding: 40px; }
+    .logo { width: 56px; height: 56px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+    .logo span { color: white; font-weight: 700; font-size: 20px; }
+    h1 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+    p { color: #6d7175; font-size: 14px; margin-bottom: 24px; }
+    .btn { display: inline-block; padding: 12px 32px; background: #5c6ac4; color: white; text-decoration: none; border-radius: 8px; font-size: 15px; font-weight: 600; transition: background 0.15s; }
+    .btn:hover { background: #4959bd; }
+    .spinner { width: 32px; height: 32px; border: 3px solid #e0e0e0; border-top-color: #5c6ac4; border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .status { color: #8c9196; font-size: 13px; margin-top: 16px; }
+  </style>
+</head><body>
+  <div class="container">
+    <div class="logo"><span>SS</span></div>
+    <h1>Slay Season</h1>
+    <p>E-commerce analytics dashboard</p>
+    <div class="spinner" id="spinner"></div>
+    <a id="dashboardLink" href="${sessionUrl.replace(/"/g, '&quot;')}" target="_top" class="btn" style="display:none;">Open Dashboard</a>
+    <div class="status" id="status">Connecting...</div>
+  </div>
+  <script>
+    // Wait for App Bridge to initialize, then auto-navigate
+    var link = document.getElementById('dashboardLink');
+    var spinner = document.getElementById('spinner');
+    var status = document.getElementById('status');
+
+    setTimeout(function() {
+      // Show the button as fallback
+      link.style.display = 'inline-block';
+      spinner.style.display = 'none';
+      status.textContent = 'Click the button to open your dashboard';
+
+      // Try auto-click after App Bridge has had time to set up
+      try { link.click(); } catch(e) {}
+    }, 800);
+  </script>
+</body></html>`);
   }
   // No shop param — serve frontend
   const indexPath = path.join(clientDistPath, 'index.html');
