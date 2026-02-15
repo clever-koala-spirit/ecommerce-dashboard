@@ -199,8 +199,15 @@ app.get('/app', verifyShopifyRequest, (req, res) => {
 app.use('/api/connections', apiRateLimiter, requireShopAuth, connectionsRouter);
 app.use('/api/data', apiRateLimiter, requireShopAuth, dataRouter);
 app.use('/api/ai', apiRateLimiter, requireShopAuth, aiRouter);
-app.use('/api/oauth', apiRateLimiter, requireShopAuth, oauthRouter);
-app.use('/api/billing', apiRateLimiter, requireShopAuth, billingRouter);
+// OAuth routes need auth but shop context is optional (loadShopData already ran)
+app.use('/api/oauth', apiRateLimiter, (req, res, next) => {
+  // Require at least a valid JWT (userId set by verifySessionToken)
+  if (!req.userId && !req.shopDomain) {
+    return res.status(401).json({ error: 'Authentication required.' });
+  }
+  next();
+}, oauthRouter);
+app.use('/api/billing', apiRateLimiter, billingRouter);
 
 // Forecast endpoint placeholder
 app.post('/api/forecast', apiRateLimiter, requireShopAuth, (req, res) => {

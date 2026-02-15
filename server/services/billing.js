@@ -434,16 +434,8 @@ class BillingService {
         id: 'scale',
         name: 'Scale',
         priceId: this.prices.scale,
-        monthlyPrice: 299,
-        features: ['Up to $1M monthly revenue', 'AI insights', 'Dedicated support', 'API access'],
-        limits: { revenue: 1000000, integrations: -1 } // unlimited
-      },
-      {
-        id: 'enterprise',
-        name: 'Enterprise',
-        priceId: this.prices.enterprise,
-        monthlyPrice: 599,
-        features: ['Unlimited revenue', 'Custom integrations', '24/7 support', 'White-label'],
+        monthlyPrice: 399,
+        features: ['Unlimited revenue', 'AI insights & forecasting', 'Dedicated support', 'API access', 'Custom integrations'],
         limits: { revenue: -1, integrations: -1 } // unlimited
       }
     ];
