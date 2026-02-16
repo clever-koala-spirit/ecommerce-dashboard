@@ -455,16 +455,16 @@ const LandingPage = () => {
           </div>
 
           {/* Outcome metrics */}
-          <div className="grid sm:grid-cols-3 gap-6 mt-12 ss-reveal">
+          <div className="grid grid-cols-3 gap-3 sm:gap-6 mt-12 ss-reveal">
             {[
-              { icon: <Clock className="w-5 h-5" />, metric: '10+ hrs/week', desc: 'Time saved on reporting', color: 'emerald' },
-              { icon: <TrendingUp className="w-5 h-5" />, metric: '15–30%', desc: 'Average profit increase', color: 'indigo' },
-              { icon: <Brain className="w-5 h-5" />, metric: '94%', desc: 'Forecast accuracy', color: 'purple' },
+              { icon: <Clock className="w-4 h-4 sm:w-5 sm:h-5" />, metric: '10+ hrs', metricSub: '/week', desc: 'Time saved', color: 'emerald' },
+              { icon: <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />, metric: '15–30%', metricSub: '', desc: 'Profit increase', color: 'indigo' },
+              { icon: <Brain className="w-4 h-4 sm:w-5 sm:h-5" />, metric: '94%', metricSub: '', desc: 'Forecast accuracy', color: 'purple' },
             ].map((o, i) => (
-              <div key={i} className={`ss-delay-${i + 1} text-center glass rounded-xl p-6 gradient-border`}>
-                <div className={`w-10 h-10 rounded-lg mx-auto mb-3 flex items-center justify-center ${o.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-400' : o.color === 'indigo' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-purple-500/10 text-purple-400'}`}>{o.icon}</div>
-                <p className="text-2xl font-bold text-white">{o.metric}</p>
-                <p className="text-sm text-[#6b7194] mt-1">{o.desc}</p>
+              <div key={i} className={`ss-delay-${i + 1} text-center glass rounded-xl p-3 sm:p-6 gradient-border`}>
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg mx-auto mb-2 sm:mb-3 flex items-center justify-center ${o.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-400' : o.color === 'indigo' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-purple-500/10 text-purple-400'}`}>{o.icon}</div>
+                <p className="text-lg sm:text-2xl font-bold text-white">{o.metric}<span className="text-sm sm:text-base font-normal text-[#6b7194]">{o.metricSub}</span></p>
+                <p className="text-xs sm:text-sm text-[#6b7194] mt-0.5 sm:mt-1">{o.desc}</p>
               </div>
             ))}
           </div>
