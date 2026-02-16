@@ -128,4 +128,48 @@ router.post('/shop-redact', verifyWebhook, (req, res) => {
   }
 });
 
+// --- GDPR webhook aliases with slash-based paths ---
+// Shopify Partner Dashboard may configure GDPR URLs with slashes
+// These aliases ensure both formats work
+router.post('/customers/data_request', verifyWebhook, (req, res) => {
+  try {
+    const { shop_domain, customer, orders_requested } = req.body;
+    console.log(`[GDPR] Customer data request (slash path) from ${shop_domain} for customer ${customer?.id}`);
+    logWebhook(shop_domain, 'customers/data_request', req.payloadHash);
+    markWebhookProcessed(req.payloadHash);
+    res.status(200).json({ received: true, message: 'No personal customer data stored' });
+  } catch (error) {
+    console.error('[GDPR] customers/data_request error:', error);
+    res.status(200).json({ received: true });
+  }
+});
+
+router.post('/customers/redact', verifyWebhook, (req, res) => {
+  try {
+    const { shop_domain, customer } = req.body;
+    console.log(`[GDPR] Customer redact (slash path) from ${shop_domain} for customer ${customer?.id}`);
+    logWebhook(shop_domain, 'customers/redact', req.payloadHash);
+    markWebhookProcessed(req.payloadHash);
+    res.status(200).json({ received: true, message: 'No personal customer data to redact' });
+  } catch (error) {
+    console.error('[GDPR] customers/redact error:', error);
+    res.status(200).json({ received: true });
+  }
+});
+
+router.post('/shop/redact', verifyWebhook, (req, res) => {
+  try {
+    const { shop_domain } = req.body;
+    console.log(`[GDPR] Shop redact (slash path) for ${shop_domain}`);
+    deleteShopData(shop_domain);
+    logWebhook(shop_domain, 'shop/redact', req.payloadHash);
+    markWebhookProcessed(req.payloadHash);
+    console.log(`[GDPR] Shop data deleted for ${shop_domain}`);
+    res.status(200).json({ received: true, message: 'Shop data deleted' });
+  } catch (error) {
+    console.error('[GDPR] shop/redact error:', error);
+    res.status(200).json({ received: true });
+  }
+});
+
 export default router;

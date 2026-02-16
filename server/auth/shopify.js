@@ -7,7 +7,7 @@ import { saveShop, getShop, setShopNonce, getShopNonce } from '../db/database.js
 
 const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
-const SHOPIFY_SCOPES = process.env.SHOPIFY_SCOPES || 'read_orders,read_products,read_customers,read_analytics,read_inventory';
+const SHOPIFY_SCOPES = process.env.SHOPIFY_SCOPES || 'read_orders,read_products,read_analytics,read_inventory';
 const APP_URL = process.env.APP_URL || 'https://slayseason.com';
 
 // --- Security: Validate Shopify shop domain format ---
@@ -136,7 +136,7 @@ export async function handleAuthCallback(req, res) {
     const { access_token, scope } = await tokenResponse.json();
 
     // Fetch shop info for storage
-    const shopInfoResponse = await fetch(`https://${shop}/admin/api/2024-01/shop.json`, {
+    const shopInfoResponse = await fetch(`https://${shop}/admin/api/2024-10/shop.json`, {
       headers: { 'X-Shopify-Access-Token': access_token },
     });
 
@@ -185,8 +185,14 @@ export async function handleAuthCallback(req, res) {
       { expiresIn: '7d' }
     );
     
+    // Store token in a short-lived auth code to avoid exposing JWT in URL
+    // The frontend exchanges this code for the token via POST
+    const authCode = crypto.randomBytes(32).toString('hex');
+    const { setAuthCode } = await import('../db/database.js');
+    setAuthCode(authCode, token, 60); // expires in 60 seconds
+    
     const frontendUrl = process.env.FRONTEND_URL || 'https://slayseason.com';
-    res.redirect(`${frontendUrl}/auth-callback?token=${encodeURIComponent(token)}&shop=${encodeURIComponent(shop)}`);
+    res.redirect(`${frontendUrl}/auth-callback?code=${encodeURIComponent(authCode)}&shop=${encodeURIComponent(shop)}`);
 
   } catch (error) {
     console.error('[Auth] OAuth callback error:', error);
@@ -206,7 +212,7 @@ async function registerWebhooks(shop, accessToken) {
 
   for (const webhook of webhooks) {
     try {
-      await fetch(`https://${shop}/admin/api/2024-01/webhooks.json`, {
+      await fetch(`https://${shop}/admin/api/2024-10/webhooks.json`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

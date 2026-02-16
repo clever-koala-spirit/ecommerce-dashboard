@@ -8,12 +8,7 @@ const router = express.Router();
 
 // Get OpenAI API key from environment/config
 const getOpenAIKey = () => {
-  // First try environment variable
-  if (process.env.OPENAI_API_KEY) {
-    return process.env.OPENAI_API_KEY;
-  }
-  
-  // Fallback to OpenClaw config (read from file system)
+  if (process.env.OPENAI_API_KEY) return process.env.OPENAI_API_KEY;
   try {
     const openClawConfigPath = '/home/chip/.openclaw/openclaw.json';
     if (fs.existsSync(openClawConfigPath)) {
@@ -23,127 +18,141 @@ const getOpenAIKey = () => {
   } catch (error) {
     console.error('Failed to read OpenClaw config:', error);
   }
-  
   return null;
 };
 
+// Ensure chat_contacts table exists
+function ensureContactsTable() {
+  const db = getDB();
+  db.run(`
+    CREATE TABLE IF NOT EXISTS chat_contacts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT,
+      first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      conversation_count INTEGER DEFAULT 1,
+      notes TEXT
+    )
+  `);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_chat_contacts_email ON chat_contacts(email)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_chat_contacts_name ON chat_contacts(name)`);
+}
+
+// Upsert contact and return contact ID
+function upsertContact(name, email) {
+  const db = getDB();
+  ensureContactsTable();
+
+  // Try to find existing contact by email first, then by name
+  let existing = null;
+  if (email) {
+    const results = db.exec('SELECT id FROM chat_contacts WHERE email = ?', [email]);
+    if (results.length > 0 && results[0].values.length > 0) {
+      existing = results[0].values[0][0];
+    }
+  }
+  if (!existing && name) {
+    const results = db.exec('SELECT id FROM chat_contacts WHERE name = ? AND email IS NULL', [name]);
+    if (results.length > 0 && results[0].values.length > 0) {
+      existing = results[0].values[0][0];
+    }
+  }
+
+  if (existing) {
+    db.run(
+      `UPDATE chat_contacts SET last_seen = CURRENT_TIMESTAMP, conversation_count = conversation_count + 1, name = COALESCE(?, name), email = COALESCE(?, email) WHERE id = ?`,
+      [name || null, email || null, existing]
+    );
+    return existing;
+  } else {
+    db.run(
+      'INSERT INTO chat_contacts (name, email) VALUES (?, ?)',
+      [name || 'Unknown', email || null]
+    );
+    const result = db.exec('SELECT last_insert_rowid()');
+    return result[0].values[0][0];
+  }
+}
+
 // Rate limiting: 20 messages per minute per IP
 const chatRateLimit = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 20, // 20 requests per window
-  message: {
-    error: 'Too many chat messages. Please slow down.',
-    retryAfter: 60
-  },
+  windowMs: 60 * 1000,
+  max: 20,
+  message: { error: 'Too many chat messages. Please slow down.', retryAfter: 60 },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// System prompt for Slay Season AI assistant
-const SYSTEM_PROMPT = `You are the AI assistant for Slay Season — the ecommerce analytics platform built for DTC Shopify merchants doing $1M–$10M in revenue.
+// System prompt
+const SYSTEM_PROMPT = `You are Slay AI — the friendly assistant for Slay Season, an ecommerce analytics platform for DTC Shopify merchants doing $1M–$10M.
 
-You're friendly, sharp, and genuinely helpful. You sound like a smart friend who knows ecommerce inside out — not a corporate chatbot.
+Keep replies short (1-3 sentences). Sound like a smart friend, not a chatbot.
 
 ABOUT SLAY SEASON:
-- All-in-one analytics dashboard for Shopify DTC brands
-- Connects Shopify, Google Ads, GA4, Meta Ads, TikTok Ads, and Klaviyo in one place
-- Real-time data — no fabricated numbers, everything synced directly from platforms
-- AI-powered forecasting and budget optimization
-- Built-in Ecommerce Academy — bite-sized reel-style lessons (like TikTok for ecommerce education)
-- Key differentiator: "We'll set it up for you" — free concierge onboarding. We connect your platforms, configure your dashboard, and make sure everything works. No DIY headaches.
+- All-in-one analytics: Shopify, Google Ads, GA4, Meta Ads, TikTok Ads, Klaviyo
+- Real-time data, AI forecasting, budget optimization
+- Ecommerce Academy — bite-sized video lessons
+- Free concierge onboarding on all plans — we set it up for you
 
-WHY SLAY SEASON vs COMPETITORS:
-- vs Triple Whale ($100-$300/mo): We're simpler, cheaper, and include education. Triple Whale is powerful but overwhelming for most merchants. Common complaints: too complex, expensive, steep learning curve.
-- vs BeProfit ($49/mo): Similar price but we have multi-platform integration, AI forecasting, and the Academy. BeProfit is mostly profit tracking.
-- vs Northbeam ($500+/mo): Enterprise pricing, not built for small-mid DTC. We serve the $1-10M merchant that Northbeam ignores.
-- vs Polar Analytics ($100+/mo): We include concierge setup and education. Polar is self-serve only.
-- vs Lifetimely ($49/mo): We go beyond LTV — full dashboard with ad spend, attribution, forecasting.
-- vs spreadsheets: If you're still in "spreadsheet purgatory" pulling data from 6 tabs every Monday, we replace all of that with one dashboard.
+SETUP GUIDES (proactively offer to walk users through these):
+
+🔗 Connecting Shopify:
+1. Go to Settings (gear icon, bottom left)
+2. Find "Shopify" under Integrations
+3. Click "Connect"
+4. Enter your myshopify.com store URL
+5. Click "Authorize" — grants read-only access (we never modify your store)
+6. Data starts syncing in ~2 minutes
+
+🔗 Connecting Google Ads:
+1. Go to Settings → Google Ads
+2. Click "Connect"
+3. Sign in with the Google account that owns your Ads account
+4. Select the ad account(s) to connect
+5. Done! Historical data imports within an hour
+
+🔗 Connecting Meta/Facebook Ads:
+1. Settings → Meta Ads → Connect
+2. Log in to Facebook, authorize Slay Season
+3. Select your ad account(s)
+4. Data syncs within 30 minutes
+
+🔗 Connecting other platforms (GA4, TikTok, Klaviyo):
+- Same flow: Settings → [Platform] → Connect → Authorize
+- Each takes under 2 minutes
+
+🔧 TROUBLESHOOTING:
+- "Data not showing": Wait 5-10 min after connecting. If still empty, disconnect and reconnect.
+- "Connection failed": Check you're using the right account. Try incognito browser. Clear cookies.
+- "Numbers look wrong": Check date range (top right). Make sure the right store/account is selected.
+- "Can't connect Shopify": Make sure you're the store owner or have admin access.
+- Still stuck? Email support@slayseason.com or reply here and we'll get a human to help.
 
 PRICING:
-- Starter: $49/mo ($39/mo annual) — Core dashboard, 6 integrations, 30+ Academy lessons, email support
-- Growth: $149/mo ($119/mo annual) — Everything in Starter + AI forecasting, budget optimizer, advanced Academy, priority support
-- Scale: $399/mo ($319/mo annual) — Everything in Growth + custom lessons, dedicated account manager, API access
-- ALL plans: 14-day free trial, no credit card required to start
-- Concierge onboarding included on ALL plans — we set it up for you
+- Starter: $49/mo ($39/mo annual) — core dashboard, 6 integrations, Academy, email support
+- Growth: $149/mo ($119/mo annual) — + AI forecasting, budget optimizer, priority support
+- Scale: $399/mo ($319/mo annual) — + custom lessons, dedicated AM, API access
+- All plans: 14-day free trial, no credit card needed
 
-SUPPORTED PLATFORMS:
-- Shopify (orders, products, customers, revenue — read-only, your store data is safe)
-- Google Ads (campaigns, spend, conversions, ROAS)
-- Google Analytics 4 (traffic, sessions, conversion paths)
-- Meta/Facebook Ads (campaigns, spend, ROAS)
-- TikTok Ads (campaigns, spend, performance)
-- Klaviyo (email campaigns, flows, revenue attribution)
-
-KEY METRICS WE TRACK:
-- Gross Revenue, Net Revenue, AOV (Average Order Value)
-- ROAS (Return on Ad Spend) — blended and per-channel
-- CAC (Customer Acquisition Cost) — blended and per-channel
-- New vs Returning customer breakdown
-- Ad spend across all platforms
-- Shipping costs, tax, refunds
-- Net profit margin (when all platforms connected)
-- LTV projections and cohort analysis
-- Revenue forecasting with AI
-
-THE ACADEMY:
-- 21+ bite-sized reel-style lessons you swipe through (like Instagram Stories)
-- Categories: Getting Started, Analytics Fundamentals, Growth Strategies, Advanced
-- Topics include: "Your ROAS is Lying to You", "The 3x Rule for Ad Spend", "Why AOV Beats Traffic", "When to Kill a Campaign"
-- New lessons added regularly
-- Available on all plans
-
-GETTING STARTED:
-1. Sign up at slayseason.com (email or Google sign-in)
-2. Connect your Shopify store (takes 30 seconds, read-only access)
-3. Connect ad platforms (Google Ads, Meta, etc.)
-4. Our team handles setup if you want — just email hello@slayseason.com
-5. Data starts flowing immediately
-
-COMMON QUESTIONS YOU SHOULD HANDLE:
-- "Is my data safe?" → Yes, read-only Shopify access. AES-256 encryption. We never modify your store.
-- "Can I try before buying?" → 14-day free trial, no credit card needed.
-- "How is this different from Shopify Analytics?" → Shopify shows store data. We combine ALL your platforms (ads, email, analytics) in one view with AI insights.
-- "Do you support [platform]?" → We support Shopify, Google Ads, GA4, Meta, TikTok, Klaviyo. More coming soon.
-- "How long does setup take?" → 5 minutes self-serve, or let us do it for you.
-- "What if I only use Shopify?" → Start with Shopify data, add platforms anytime. Dashboard adapts to show what's connected.
-- "Do you have an app?" → Web-based dashboard accessible from any device. Shopify admin integration available.
+COMPETITORS (be honest, not pushy):
+- vs Triple Whale: We're simpler & cheaper. TW is powerful but complex.
+- vs Northbeam: Enterprise pricing, not for small-mid DTC.
+- vs spreadsheets: We replace your 6-tab Monday morning data pull.
 
 CONTACT:
-- Email: hello@slayseason.com
-- Support: support@slayseason.com
-- AU phone: 03 4240 3039
-- US phone: +1 (830) 390-2778
-- Based in Melbourne, Australia with US presence
+- Email: hello@slayseason.com / support@slayseason.com
+- AU: 03 4240 3039 | US: +1 (830) 390-2778
 
-PERSONALIZATION:
-- In your FIRST reply, introduce yourself warmly and ask for their name and what store they run
-- Once you know their name, USE IT naturally throughout the conversation
-- Ask about their specific situation: What platforms do they use? What's their biggest challenge? What revenue range?
-- Tailor your advice to THEIR context — don't give generic answers
-- Remember details they share within the conversation and reference them
-- If they mention their store name, niche, or revenue, incorporate that into your recommendations
-- Make them feel like they're getting personal 1-on-1 advice, not reading a FAQ
+BEHAVIOR:
+- Use the visitor's name naturally once you know it
+- Proactively offer to walk them through setup if they're new
+- Be concise — short paragraphs, not walls of text
+- If they seem lost, suggest: "Want me to walk you through connecting your Shopify store?"
+- For billing issues, bugs, refunds, angry customers → set needsHuman to true
 
-YOUR RULES:
-- Be concise — 1-3 sentences for simple questions, more for complex ones
-- Sound human and warm, not robotic — like a smart friend who happens to know ecommerce
-- Use specific numbers and facts, not vague claims
-- If someone asks about a feature we don't have yet, be honest: "We don't have that yet, but it's on our roadmap"
-- For billing disputes, bugs, account issues, or angry customers → set needsHuman to true
-- Gently guide visitors toward signing up or starting a trial when appropriate, but don't be pushy
-- If they ask technical ecommerce questions (ROAS calculation, attribution, etc.), answer them — show expertise
-- Never make up features or capabilities we don't have
-- Address the user by name once you know it — every reply should feel personal
-
-RESPONSE FORMAT:
-Always respond with a JSON object:
-{
-  "reply": "Your helpful response here",
-  "needsHuman": false
-}
-
-Set needsHuman to true for: billing issues, bugs, refund requests, angry customers, account access problems, or anything requiring human judgment.`;
+RESPONSE FORMAT — always return JSON:
+{ "reply": "your response", "needsHuman": false }`;
 
 // POST /api/chat
 router.post('/', chatRateLimit, async (req, res) => {
@@ -160,47 +169,48 @@ router.post('/', chatRateLimit, async (req, res) => {
       return res.status(500).json({ error: 'Chat service not configured' });
     }
 
-    // Generate conversation ID if not provided
     const currentConversationId = conversationId || uuidv4();
+
+    // Upsert contact if we have name
+    let contactId = null;
+    if (visitorName) {
+      try {
+        contactId = upsertContact(visitorName, visitorEmail);
+      } catch (e) {
+        console.error('Failed to upsert contact:', e);
+      }
+    }
 
     // Get or create conversation
     let conversation = await getConversation(currentConversationId);
     if (!conversation) {
-      conversation = await createConversation(currentConversationId, visitorEmail);
+      conversation = await createConversation(currentConversationId, visitorEmail, contactId);
+    } else if (contactId) {
+      // Link contact to existing conversation
+      try {
+        const db = getDB();
+        db.run('UPDATE chat_conversations SET contact_id = ? WHERE id = ?', [contactId, currentConversationId]);
+      } catch (e) { /* column might not exist yet */ }
     }
 
-    // Add user message to conversation history
     const userMessage = {
       role: 'user',
       content: message.trim(),
       timestamp: new Date().toISOString()
     };
-
     conversation.messages.push(userMessage);
 
-    // Prepare messages for OpenAI (keep last 10 messages for context)
-    const recentMessages = conversation.messages.slice(-10);
-    // Build personalized system prompt
+    // Build prompt
     let personalizedPrompt = SYSTEM_PROMPT;
-    if (visitorName) {
-      personalizedPrompt += `\n\nThe user's name is ${visitorName}. Address them by name naturally.`;
-    }
-    if (visitorEmail) {
-      personalizedPrompt += `\nTheir email is ${visitorEmail}.`;
-    }
+    if (visitorName) personalizedPrompt += `\n\nThe user's name is ${visitorName}. Use it naturally.`;
+    if (visitorEmail) personalizedPrompt += `\nTheir email is ${visitorEmail}.`;
 
+    const recentMessages = conversation.messages.slice(-10);
     const openAIMessages = [
-      {
-        role: 'system',
-        content: personalizedPrompt
-      },
-      ...recentMessages.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }))
+      { role: 'system', content: personalizedPrompt },
+      ...recentMessages.map(msg => ({ role: msg.role, content: msg.content }))
     ];
 
-    // Call OpenAI API
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -218,48 +228,32 @@ router.post('/', chatRateLimit, async (req, res) => {
     if (!openAIResponse.ok) {
       const errorData = await openAIResponse.json();
       console.error('OpenAI API error:', errorData);
-      return res.status(500).json({ 
-        error: 'AI service temporarily unavailable. Please try again.',
-        conversationId: currentConversationId
-      });
+      return res.status(500).json({ error: 'AI service temporarily unavailable.', conversationId: currentConversationId });
     }
 
     const openAIData = await openAIResponse.json();
     const aiContent = openAIData.choices[0]?.message?.content;
 
     if (!aiContent) {
-      return res.status(500).json({ 
-        error: 'Failed to get response from AI service',
-        conversationId: currentConversationId
-      });
+      return res.status(500).json({ error: 'Failed to get AI response', conversationId: currentConversationId });
     }
 
-    // Parse AI response
     let aiResponse;
     try {
       aiResponse = JSON.parse(aiContent);
     } catch (e) {
-      // Fallback if AI doesn't return proper JSON
-      aiResponse = {
-        reply: aiContent,
-        needsHuman: false
-      };
+      aiResponse = { reply: aiContent, needsHuman: false };
     }
 
-    // Add AI response to conversation history
-    const assistantMessage = {
+    conversation.messages.push({
       role: 'assistant',
       content: aiResponse.reply,
       timestamp: new Date().toISOString(),
       needsHuman: aiResponse.needsHuman || false
-    };
+    });
 
-    conversation.messages.push(assistantMessage);
-
-    // Update conversation in database
     await updateConversation(currentConversationId, conversation.messages, aiResponse.needsHuman || false, visitorEmail);
 
-    // Return response
     res.json({
       reply: aiResponse.reply,
       conversationId: currentConversationId,
@@ -268,25 +262,46 @@ router.post('/', chatRateLimit, async (req, res) => {
 
   } catch (error) {
     console.error('Chat endpoint error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error. Please try again.',
-      conversationId: req.body.conversationId
-    });
+    res.status(500).json({ error: 'Internal server error.', conversationId: req.body.conversationId });
   }
 });
 
-// Database functions for conversations
+// GET /api/chat/contacts — list all contacts
+router.get('/contacts', async (req, res) => {
+  try {
+    ensureContactsTable();
+    const db = getDB();
+    const results = db.exec('SELECT id, name, email, first_seen, last_seen, conversation_count, notes FROM chat_contacts ORDER BY last_seen DESC');
+    
+    if (!results.length || !results[0].values.length) {
+      return res.json({ contacts: [] });
+    }
+
+    const contacts = results[0].values.map(row => ({
+      id: row[0],
+      name: row[1],
+      email: row[2],
+      firstSeen: row[3],
+      lastSeen: row[4],
+      conversationCount: row[5],
+      notes: row[6]
+    }));
+
+    res.json({ contacts });
+  } catch (error) {
+    console.error('Contacts endpoint error:', error);
+    res.status(500).json({ error: 'Failed to fetch contacts' });
+  }
+});
+
+// Database helpers
 async function getConversation(conversationId) {
   const db = getDB();
   const results = db.exec(
     'SELECT id, visitor_email, messages, needs_human FROM chat_conversations WHERE id = ?',
     [conversationId]
   );
-
-  if (results.length === 0 || results[0].values.length === 0) {
-    return null;
-  }
-
+  if (!results.length || !results[0].values.length) return null;
   const row = results[0].values[0];
   return {
     id: row[0],
@@ -296,30 +311,26 @@ async function getConversation(conversationId) {
   };
 }
 
-async function createConversation(conversationId, visitorEmail) {
+async function createConversation(conversationId, visitorEmail, contactId) {
   const db = getDB();
-  const messages = [];
   
-  db.run(
-    'INSERT INTO chat_conversations (id, visitor_email, messages, needs_human) VALUES (?, ?, ?, ?)',
-    [conversationId, visitorEmail || null, JSON.stringify(messages), 0]
-  );
+  // Try adding contact_id column if missing
+  try {
+    db.run('ALTER TABLE chat_conversations ADD COLUMN contact_id INTEGER');
+  } catch (e) { /* already exists */ }
 
-  return {
-    id: conversationId,
-    visitorEmail: visitorEmail || null,
-    messages,
-    needsHuman: false
-  };
+  const messages = [];
+  db.run(
+    'INSERT INTO chat_conversations (id, visitor_email, messages, needs_human, contact_id) VALUES (?, ?, ?, ?, ?)',
+    [conversationId, visitorEmail || null, JSON.stringify(messages), 0, contactId || null]
+  );
+  return { id: conversationId, visitorEmail: visitorEmail || null, messages, needsHuman: false };
 }
 
 async function updateConversation(conversationId, messages, needsHuman, visitorEmail) {
   const db = getDB();
-  
   db.run(
-    `UPDATE chat_conversations 
-     SET messages = ?, needs_human = ?, visitor_email = ?, updated_at = CURRENT_TIMESTAMP
-     WHERE id = ?`,
+    `UPDATE chat_conversations SET messages = ?, needs_human = ?, visitor_email = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
     [JSON.stringify(messages), needsHuman ? 1 : 0, visitorEmail || null, conversationId]
   );
 }

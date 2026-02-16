@@ -4,7 +4,7 @@
  */
 import { Router } from 'express';
 import { handleAuthStart, handleAuthCallback } from '../auth/shopify.js';
-import { getShop, getAllPlatformConnections } from '../db/database.js';
+import { getShop, getAllPlatformConnections, getAuthCode } from '../db/database.js';
 import { authRateLimiter } from '../middleware/security.js';
 
 const router = Router();
@@ -16,6 +16,19 @@ router.get('/', authRateLimiter, handleAuthStart);
 // --- OAuth callback ---
 // GET /api/auth/callback?code=xxx&hmac=xxx&shop=xxx&state=xxx
 router.get('/callback', authRateLimiter, handleAuthCallback);
+
+// --- Exchange auth code for JWT token (avoids token in URL) ---
+router.post('/exchange', (req, res) => {
+  const { code } = req.body;
+  if (!code) {
+    return res.status(400).json({ error: 'Auth code required' });
+  }
+  const token = getAuthCode(code);
+  if (!token) {
+    return res.status(401).json({ error: 'Invalid or expired auth code' });
+  }
+  res.json({ token });
+});
 
 // --- Get current shop session info ---
 // GET /api/auth/session

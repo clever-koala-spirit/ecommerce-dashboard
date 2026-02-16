@@ -6,6 +6,8 @@ import {
   MinusIcon
 } from '@heroicons/react/24/outline';
 
+const STORAGE_KEY = 'slay_ai_visitor';
+
 const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -15,54 +17,118 @@ const ChatWidget = () => {
   const [conversationId, setConversationId] = useState(null);
   const [visitorEmail, setVisitorEmail] = useState('');
   const [visitorName, setVisitorName] = useState('');
-  const [showEmailPrompt, setShowEmailPrompt] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState('chat'); // 'name' | 'email' | 'chat'
   const [needsHuman, setNeedsHuman] = useState(false);
 
-  // Load logged-in user info
+  // Load visitor info from localStorage
   useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      if (saved.name) {
+        setVisitorName(saved.name);
+        setOnboardingStep('chat');
+      }
+      if (saved.email) setVisitorEmail(saved.email);
+    } catch (e) { /* ignore */ }
+
+    // Fallback: try JWT token
     try {
       const token = localStorage.getItem('ss_token');
       if (token) {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.name) setVisitorName(payload.name);
+        if (payload.name) { setVisitorName(payload.name); setOnboardingStep('chat'); }
         if (payload.email) setVisitorEmail(payload.email);
       }
     } catch (e) { /* not logged in */ }
   }, []);
-  
+
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  useEffect(() => { scrollToBottom(); }, [messages]);
 
-  // Focus input when chat opens
   useEffect(() => {
-    if (isOpen && !isMinimized) {
-      inputRef.current?.focus();
-    }
+    if (isOpen && !isMinimized) inputRef.current?.focus();
   }, [isOpen, isMinimized]);
 
-  // Initialize with welcome message when first opened
+  // Welcome flow when chat opens
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      setMessages([{
-        id: '1',
-        text: "Hey! 👋 I'm here to help with anything about Slay Season. Ask me about pricing, features, or getting started.",
-        sender: 'ai',
-        timestamp: new Date().toISOString()
-      }]);
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      if (saved.name) {
+        // Returning visitor
+        setMessages([{
+          id: '1',
+          text: `Welcome back, ${saved.name}! 🎉 How can I help you today?`,
+          sender: 'ai',
+          timestamp: new Date().toISOString()
+        }]);
+        setOnboardingStep('chat');
+      } else {
+        // New visitor — ask for name
+        setMessages([{
+          id: '1',
+          text: "Hey! I'm Slay AI 👋 What's your name?",
+          sender: 'ai',
+          timestamp: new Date().toISOString()
+        }]);
+        setOnboardingStep('name');
+      }
     }
   }, [isOpen]);
 
+  const saveVisitor = (name, email) => {
+    const data = { name, email };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  };
+
+  const handleOnboardingSubmit = () => {
+    const val = inputValue.trim();
+    if (!val) return;
+
+    if (onboardingStep === 'name') {
+      setVisitorName(val);
+      saveVisitor(val, visitorEmail);
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now().toString(), text: val, sender: 'user', timestamp: new Date().toISOString() },
+        { id: (Date.now() + 1).toString(), text: `Nice to meet you, ${val}! 😊 Drop your email so we can follow up if needed (or type "skip"):`, sender: 'ai', timestamp: new Date().toISOString() }
+      ]);
+      setInputValue('');
+      setOnboardingStep('email');
+    } else if (onboardingStep === 'email') {
+      if (val.toLowerCase() === 'skip') {
+        setMessages(prev => [
+          ...prev,
+          { id: Date.now().toString(), text: val, sender: 'user', timestamp: new Date().toISOString() },
+          { id: (Date.now() + 1).toString(), text: `No worries! How can I help you today?`, sender: 'ai', timestamp: new Date().toISOString() }
+        ]);
+      } else {
+        setVisitorEmail(val);
+        saveVisitor(visitorName, val);
+        setMessages(prev => [
+          ...prev,
+          { id: Date.now().toString(), text: val, sender: 'user', timestamp: new Date().toISOString() },
+          { id: (Date.now() + 1).toString(), text: `Got it, thanks ${visitorName}! 🙌 How can I help you today?`, sender: 'ai', timestamp: new Date().toISOString() }
+        ]);
+      }
+      setInputValue('');
+      setOnboardingStep('chat');
+    }
+  };
+
   const sendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
+
+    // Handle onboarding flow
+    if (onboardingStep !== 'chat') {
+      handleOnboardingSubmit();
+      return;
+    }
 
     const userMessage = {
       id: Date.now().toString(),
@@ -75,18 +141,11 @@ const ChatWidget = () => {
     setInputValue('');
     setIsLoading(true);
 
-    // Show email prompt after first message if email not collected
-    if (messages.length <= 1 && !visitorEmail && !showEmailPrompt) {
-      setTimeout(() => setShowEmailPrompt(true), 1000);
-    }
-
     try {
       const apiUrl = import.meta.env.VITE_API_URL || '';
       const response = await fetch(`${apiUrl}/api/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: inputValue.trim(),
           conversationId,
@@ -96,10 +155,7 @@ const ChatWidget = () => {
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Something went wrong');
-      }
+      if (!response.ok) throw new Error(data.error || 'Something went wrong');
 
       const aiMessage = {
         id: (Date.now() + 1).toString(),
@@ -111,24 +167,16 @@ const ChatWidget = () => {
 
       setMessages(prev => [...prev, aiMessage]);
       setConversationId(data.conversationId);
-      
-      if (data.needsHuman) {
-        setNeedsHuman(true);
-        // Show email prompt if not already collected
-        if (!visitorEmail) {
-          setShowEmailPrompt(true);
-        }
-      }
+      if (data.needsHuman) setNeedsHuman(true);
 
     } catch (error) {
-      const errorMessage = {
+      setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         text: 'Sorry, I encountered an error. Please try again.',
         sender: 'ai',
         timestamp: new Date().toISOString(),
         isError: true
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -138,20 +186,6 @@ const ChatWidget = () => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
-    }
-  };
-
-  const submitEmail = () => {
-    if (visitorEmail.trim()) {
-      setShowEmailPrompt(false);
-      const emailMessage = {
-        id: Date.now().toString(),
-        text: `Thanks! We've got your email: ${visitorEmail}`,
-        sender: 'ai',
-        timestamp: new Date().toISOString(),
-        isSystem: true
-      };
-      setMessages(prev => [...prev, emailMessage]);
     }
   };
 
@@ -180,7 +214,7 @@ const ChatWidget = () => {
               <ChatBubbleLeftRightIcon className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-white font-medium text-sm">Slay Season AI</h3>
+              <h3 className="text-white font-medium text-sm">Slay AI</h3>
               <p className="text-white/80 text-xs">Online now</p>
             </div>
           </div>
@@ -231,41 +265,12 @@ const ChatWidget = () => {
                     <p>{message.text}</p>
                     {message.needsHuman && (
                       <p className="text-xs mt-2 opacity-90">
-                        I've flagged this for our team. They'll reach out within a few hours. Want to leave your email?
+                        I've flagged this for our team. They'll reach out soon.
                       </p>
                     )}
                   </div>
                 </div>
               ))}
-
-              {/* Email Prompt */}
-              {showEmailPrompt && !visitorEmail && (
-                <div className="bg-gray-800 border border-gray-600 rounded-lg p-3">
-                  <p className="text-gray-200 text-sm mb-2">Want us to follow up? Drop your email:</p>
-                  <div className="flex space-x-2">
-                    <input
-                      type="email"
-                      placeholder="your@email.com"
-                      value={visitorEmail}
-                      onChange={(e) => setVisitorEmail(e.target.value)}
-                      className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                      onKeyPress={(e) => e.key === 'Enter' && submitEmail()}
-                    />
-                    <button
-                      onClick={submitEmail}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-sm transition-colors"
-                    >
-                      Save
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => setShowEmailPrompt(false)}
-                    className="text-gray-400 text-xs mt-1 hover:text-gray-300"
-                  >
-                    Skip for now
-                  </button>
-                </div>
-              )}
 
               {isLoading && (
                 <div className="flex justify-start">
@@ -291,7 +296,11 @@ const ChatWidget = () => {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Type your message..."
+                  placeholder={
+                    onboardingStep === 'name' ? 'Enter your name...' :
+                    onboardingStep === 'email' ? 'Enter email or type "skip"...' :
+                    'Type your message...'
+                  }
                   className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   disabled={isLoading}
                 />
@@ -304,11 +313,8 @@ const ChatWidget = () => {
                 </button>
               </div>
 
-              {/* Footer */}
               <div className="flex items-center justify-center mt-2">
-                <p className="text-gray-500 text-xs">
-                  Powered by Slay Season AI
-                </p>
+                <p className="text-gray-500 text-xs">Powered by Slay AI</p>
               </div>
             </div>
           </>

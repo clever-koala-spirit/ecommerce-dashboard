@@ -856,6 +856,25 @@ export function markWebhookProcessed(payloadHash) {
   db.run(`UPDATE webhook_log SET processed = 1 WHERE payload_hash = ?`, [payloadHash]);
 }
 
+// --- Auth code exchange (short-lived codes to avoid JWT in URLs) ---
+const authCodes = new Map();
+
+export function setAuthCode(code, token, ttlSeconds) {
+  authCodes.set(code, { token, expires: Date.now() + ttlSeconds * 1000 });
+  // Cleanup expired codes
+  for (const [k, v] of authCodes) {
+    if (v.expires < Date.now()) authCodes.delete(k);
+  }
+}
+
+export function getAuthCode(code) {
+  const entry = authCodes.get(code);
+  if (!entry) return null;
+  authCodes.delete(code); // One-time use
+  if (entry.expires < Date.now()) return null;
+  return entry.token;
+}
+
 function calculateDaysDiff(startDate, endDate) {
   const start = new Date(startDate);
   const end = new Date(endDate);

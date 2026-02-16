@@ -91,8 +91,8 @@ app.get('/api/health', (req, res) => {
       version: '2.0.0',
       database: dbStatus,
       environment: envCheck,
-      uptime: process.uptime(),
-      memory: process.memoryUsage(),
+      uptime: process.env.NODE_ENV !== 'production' ? process.uptime() : undefined,
+      memory: process.env.NODE_ENV !== 'production' ? process.memoryUsage() : undefined,
       services: {
         billing: !!process.env.STRIPE_SECRET_KEY ? 'configured' : 'not_configured',
         email: !!process.env.SENDGRID_API_KEY ? 'configured' : 'not_configured'
