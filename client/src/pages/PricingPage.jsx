@@ -52,7 +52,8 @@ const PricingPage = () => {
       'Standard integrations',
       'Email support (24hr response)',
       'Basic reporting',
-      'Mobile app access'
+      'Mobile app access',
+      'Academy — Core lessons (30+)'
     ],
     growth: [
       'Up to $3M annual revenue',
@@ -66,7 +67,8 @@ const PricingPage = () => {
       'Custom reports builder',
       'Multi-store support (up to 3)',
       'Advanced segmentation',
-      'Cohort analysis'
+      'Cohort analysis',
+      'Academy — All lessons + advanced strategies'
     ],
     pro: [
       'Unlimited revenue',
@@ -82,7 +84,8 @@ const PricingPage = () => {
       'Advanced user permissions',
       'Custom data exports',
       'Quarterly business reviews',
-      'Custom integrations'
+      'Custom integrations',
+      'Academy — Full library + custom lessons for your store'
     ]
   };
 
@@ -154,6 +157,7 @@ const PricingPage = () => {
             <button onClick={() => navigate('/')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Home</button>
             <button onClick={() => navigate('/about')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">About</button>
             <button onClick={() => navigate('/blog')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Blog</button>
+            <button onClick={() => navigate('/academy')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Academy</button>
             <button onClick={() => navigate('/help')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Help</button>
             <button onClick={() => navigate('/contact')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Contact</button>
           </div>
@@ -382,6 +386,7 @@ const PricingPage = () => {
                   ['Support', 'Email', 'Slack + Email', 'Phone + Slack'],
                   ['Custom Reports', '✗', '✓', '✓'],
                   ['Account Manager', '✗', '✗', '✓'],
+                  ['Ecommerce Academy', 'Core lessons', 'Full library', 'Full + custom'],
                 ].map((row, i) => (
                   <tr key={i} className="border-b border-white/5">
                     <td className="py-3 px-4 font-medium text-[#c4c9d8]">{row[0]}</td>

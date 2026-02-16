@@ -624,6 +624,120 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* ═══ ACADEMY ═══ */}
+      <section id="academy" className="py-24 border-t border-white/[.04] relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-950/[.08] via-transparent to-indigo-950/[.06] pointer-events-none" />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="text-center mb-16 ss-reveal">
+            <div className="inline-flex items-center gap-2 mb-5 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-xs font-medium text-purple-400">
+              <GraduationCap className="w-3.5 h-3.5" /> Industry First
+            </div>
+            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-5">
+              Learn While You <span className="bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">Earn</span>
+            </h2>
+            <p className="text-lg text-[#8b92b0] max-w-2xl mx-auto leading-relaxed">
+              The only analytics platform with a <strong className="text-white">built-in ecommerce academy</strong>. 
+              Swipeable, reel-style micro-lessons that teach you what your numbers actually mean — in 30 seconds or less.
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-12 items-center ss-reveal">
+            <div>
+              <h3 className="text-2xl sm:text-3xl font-bold mb-4">From Data to Decisions in 30 Seconds</h3>
+              <p className="text-[#8b92b0] mb-6 leading-relaxed">
+                Other platforms dump dashboards on you and wish you luck. Slay Season teaches you what every metric means,
+                why it matters, and exactly what to do about it — through <strong className="text-white">AI-powered micro-lessons in TikTok/Reels format</strong>.
+              </p>
+              <ul className="space-y-4 mb-8">
+                {[
+                  { icon: <Play className="w-4 h-4" />, text: 'Bite-sized video lessons you can watch between orders' },
+                  { icon: <Brain className="w-4 h-4" />, text: 'AI-powered lessons that adapt to your store\'s actual data' },
+                  { icon: <Sparkles className="w-4 h-4" />, text: 'Swipe through lessons like TikTok — addictively educational' },
+                  { icon: <Target className="w-4 h-4" />, text: 'Actionable takeaways, not theory — apply instantly to your store' },
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-3 text-[#c4c9d8] text-sm">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center flex-shrink-0 mt-0.5">{item.icon}</div>
+                    <span className="pt-1">{item.text}</span>
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => navigate('/academy')}
+                className="btn-primary text-white px-6 py-3 rounded-xl font-semibold text-sm flex items-center gap-2 group"
+              >
+                <span className="flex items-center gap-2">
+                  Explore the Academy
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                </span>
+              </button>
+            </div>
+
+            {/* Academy mockup - phone frame */}
+            <div className="flex justify-center">
+              <div className="relative w-[280px]">
+                <div className="glass rounded-[2rem] p-2 gradient-border glow-sm">
+                  <div className="bg-[#0a0c14] rounded-[1.75rem] overflow-hidden">
+                    {/* Phone notch */}
+                    <div className="flex justify-center pt-2 pb-1">
+                      <div className="w-24 h-5 bg-black rounded-full" />
+                    </div>
+                    {/* Reel content */}
+                    <div className="p-4 space-y-4 min-h-[380px] flex flex-col justify-between">
+                      <div>
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-500/20 text-[10px] font-medium text-purple-400 mb-3">
+                          <Play className="w-2.5 h-2.5" /> LESSON 12 OF 48
+                        </div>
+                        <h4 className="text-base font-bold text-white mb-2">Why Your ROAS is Lying to You</h4>
+                        <p className="text-xs text-[#8b92b0] leading-relaxed">
+                          Your Meta dashboard says 4.2x ROAS. But after COGS, shipping, and fees, your true return is 1.8x. Here's how to find your real number...
+                        </p>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                          <div className="h-full w-[65%] bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full" />
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] text-[#6b7194]">0:18 / 0:28</span>
+                          <div className="flex gap-3">
+                            <span className="text-[10px] text-[#6b7194]">↑ Swipe for next</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {/* Floating badges */}
+                <div className="absolute -right-4 top-16 glass rounded-lg px-3 py-2 text-[10px] float">
+                  <span className="text-emerald-400 font-bold">48 lessons</span>
+                  <span className="text-[#6b7194]"> & growing</span>
+                </div>
+                <div className="absolute -left-4 bottom-24 glass rounded-lg px-3 py-2 text-[10px] float-delay">
+                  <span className="text-purple-400 font-bold">30 sec</span>
+                  <span className="text-[#6b7194]"> average</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Academy differentiator strip */}
+          <div className="mt-16 glass rounded-xl p-6 gradient-border ss-reveal">
+            <div className="grid sm:grid-cols-3 gap-6 text-center">
+              {[
+                { metric: '30 sec', desc: 'Average lesson length', icon: <Clock className="w-5 h-5" /> },
+                { metric: '48+', desc: 'Lessons and growing weekly', icon: <Play className="w-5 h-5" /> },
+                { metric: '0', desc: 'Competitors offer this', icon: <Award className="w-5 h-5" /> },
+              ].map((stat, i) => (
+                <div key={i} className="flex flex-col items-center">
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center mb-2">{stat.icon}</div>
+                  <p className="text-xl font-bold text-white">{stat.metric}</p>
+                  <p className="text-xs text-[#6b7194] mt-0.5">{stat.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ═══ CONCIERGE ═══ */}
       <section className="py-24 border-t border-white/[.04] relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/[.08] via-transparent to-purple-950/[.06] pointer-events-none" />
@@ -741,6 +855,7 @@ const LandingPage = () => {
                   { feature: 'AI Forecasting', ss: true, tw: false, nb: 'Basic', po: false },
                   { feature: 'Budget Optimizer', ss: true, tw: 'Basic', nb: 'Basic', po: false },
                   { feature: 'Concierge Setup', ss: true, tw: false, nb: 'Enterprise', po: false },
+                  { feature: 'Built-in Academy', ss: true, tw: false, nb: false, po: false },
                   { feature: 'Setup Time', ss: '5 min', tw: '30+ min', nb: 'Hours', po: '15 min', ssHighlight: true },
                 ].map((row, i) => (
                   <tr key={i} className="border-b border-white/[.04]">
