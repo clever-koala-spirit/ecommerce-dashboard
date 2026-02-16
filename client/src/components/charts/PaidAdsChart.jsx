@@ -14,6 +14,7 @@ import {
 import { useStore } from '../../store/useStore';
 import { formatCurrency, filterDataByDateRange, formatDateShort } from '../../utils/formatters';
 import { COLORS } from '../../utils/colors';
+import EmptyState from '../common/EmptyState';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -108,18 +109,14 @@ export default function PaidAdsChart() {
             Paid Ads Performance
           </h3>
         </div>
-        <div className="h-80 flex items-center justify-center">
-          <p style={{ color: 'var(--color-text-secondary)' }}>
-            Connect Meta or Google Ads in Settings to see ad performance
-          </p>
-        </div>
+        <EmptyState icon="trend" title="No ad data available" message="Connect Meta or Google Ads in Settings to see ad performance." />
       </div>
     );
   }
 
   return (
     <div
-      className="glass-card p-5"
+      className="glass-card p-5 animate-fadeIn"
       style={{ backgroundColor: 'var(--color-bg-card)' }}
     >
       <div className="flex justify-between items-center mb-4">

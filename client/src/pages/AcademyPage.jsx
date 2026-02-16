@@ -1,3 +1,4 @@
+import SEO from '../components/common/SEO';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Zap, ChevronUp, ChevronDown, Play, Pause, GraduationCap } from 'lucide-react';
@@ -112,6 +113,7 @@ const AcademyPage = () => {
 
   return (
     <div className="w-full h-screen bg-[#050608] text-white overflow-hidden antialiased flex flex-col">
+      <SEO title="Academy" description="Free ecommerce courses and tutorials to grow your brand." path="/academy" />
       <style>{`
         .glass { backdrop-filter: blur(20px) saturate(180%); background: rgba(14,17,28,.72); border: 1px solid rgba(255,255,255,.06); }
         .btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); transition: all .3s ease; }

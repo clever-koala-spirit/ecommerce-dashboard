@@ -1,3 +1,4 @@
+import SEO from '../components/common/SEO';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -1446,6 +1447,7 @@ Start planning now. The brands that win BFCM aren't the ones with the biggest di
 
   return (
     <div className="w-full bg-[#050608] text-[#e8eaf0] overflow-hidden antialiased">
+      <SEO title="Blog" description="Ecommerce insights, tips, and strategies from the Slay Season team." path="/blog" />
       <style>{`
         .glass { backdrop-filter: blur(20px) saturate(180%); background: rgba(14,17,28,.72); border: 1px solid rgba(255,255,255,.06); }
         .gradient-border { position: relative; }

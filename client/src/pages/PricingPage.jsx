@@ -1,3 +1,4 @@
+import SEO from '../components/common/SEO';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -136,6 +137,7 @@ const PricingPage = () => {
 
   return (
     <div className="w-full bg-[#050608] text-[#e8eaf0] overflow-hidden antialiased">
+      <SEO title="Pricing" description="Simple, transparent pricing for ecommerce brands of all sizes. Start free for 14 days." path="/pricing" />
       <style>{`
         .glass { backdrop-filter: blur(20px) saturate(180%); background: rgba(14,17,28,.72); border: 1px solid rgba(255,255,255,.06); }
         .gradient-border { position: relative; }

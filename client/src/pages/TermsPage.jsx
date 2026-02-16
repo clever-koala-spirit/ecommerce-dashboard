@@ -1,3 +1,4 @@
+import SEO from '../components/common/SEO';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/pages.css';
@@ -5,6 +6,7 @@ import '../styles/pages.css';
 export default function TermsPage() {
   return (
     <div className="policy-page">
+      <SEO title="Terms of Service" description="Slay Season terms of service and usage agreement." path="/terms" />
       <div className="policy-container">
         <Link to="/" className="back-link">← Back to Dashboard</Link>
 

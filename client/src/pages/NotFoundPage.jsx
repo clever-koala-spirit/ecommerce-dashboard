@@ -1,3 +1,4 @@
+import SEO from '../components/common/SEO';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Home, ArrowLeft, Search, Zap } from 'lucide-react';
@@ -7,6 +8,7 @@ const NotFoundPage = () => {
 
   return (
     <div className="min-h-screen bg-[#0f1117] text-[#f0f2f8] flex items-center justify-center relative overflow-hidden">
+      <SEO title="Page Not Found" description="The page you are looking for does not exist." path="/404" />
       {/* Animated background */}
       <div className="absolute inset-0">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#6366f1]/20 rounded-full blur-3xl animate-pulse"></div>

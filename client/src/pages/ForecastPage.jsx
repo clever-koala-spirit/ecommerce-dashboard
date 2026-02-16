@@ -1,3 +1,4 @@
+import SEO from '../components/common/SEO';
 import React from 'react';
 import GoalTracker from '../components/forecast/GoalTracker';
 import RevenueForecastChart from '../components/forecast/RevenueForecastChart';
@@ -10,6 +11,7 @@ import SampleDataBanner from '../components/SampleDataBanner';
 export default function ForecastPage() {
   return (
     <div className="p-6">
+      <SEO title="Forecast" description="AI-powered revenue forecasting and budget optimization." path="/forecast" />
       <SampleDataBanner />
 
       {/* Header */}

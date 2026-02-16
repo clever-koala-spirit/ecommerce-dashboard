@@ -13,6 +13,7 @@ import {
 import { useStore } from '../../store/useStore';
 import { formatCurrency, filterDataByDateRange, formatDateShort } from '../../utils/formatters';
 import { COLORS } from '../../utils/colors';
+import EmptyState from '../common/EmptyState';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -137,18 +138,14 @@ export default function KlaviyoChart() {
         <h3 style={{ color: 'var(--color-text-primary)' }} className="font-semibold mb-4">
           Email Performance
         </h3>
-        <div className="h-80 flex items-center justify-center">
-          <p style={{ color: 'var(--color-text-secondary)' }}>
-            Connect Klaviyo in Settings to see email performance
-          </p>
-        </div>
+        <EmptyState icon="email" title="No email data" message="Connect Klaviyo in Settings to see email marketing performance." />
       </div>
     );
   }
 
   return (
     <div
-      className="glass-card p-5"
+      className="glass-card p-5 animate-fadeIn"
       style={{ backgroundColor: 'var(--color-bg-card)' }}
     >
       <h3 style={{ color: 'var(--color-text-primary)' }} className="font-semibold mb-4">

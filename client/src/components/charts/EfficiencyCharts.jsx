@@ -12,6 +12,7 @@ import {
 import { useStore } from '../../store/useStore';
 import { formatCurrency, formatNumber, filterDataByDateRange, formatDateShort } from '../../utils/formatters';
 import { COLORS } from '../../utils/colors';
+import EmptyState from '../common/EmptyState';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -166,11 +167,7 @@ export default function EfficiencyCharts() {
         <h3 style={{ color: 'var(--color-text-primary)' }} className="font-semibold mb-4">
           Efficiency Metrics
         </h3>
-        <div className="h-60 flex items-center justify-center">
-          <p style={{ color: 'var(--color-text-secondary)' }}>
-            Connect ad platforms in Settings to see efficiency metrics
-          </p>
-        </div>
+        <EmptyState icon="trend" title="No efficiency data" message="Connect ad platforms in Settings to see efficiency metrics like MER, LTV:CAC, and contribution margin." />
       </div>
     );
   }

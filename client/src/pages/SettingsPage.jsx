@@ -1,3 +1,4 @@
+import SEO from '../components/common/SEO';
 import React, { useState } from 'react';
 import {
   Shield,
@@ -385,6 +386,7 @@ export default function SettingsPage() {
 
   return (
     <div style={styles.container}>
+      <SEO title="Settings" description="Manage your Slay Season account and integrations." path="/settings" />
       <div style={styles.header}>
         <h1 style={styles.title}>Settings</h1>
         <p style={styles.subtitle}>Manage your dashboard, integrations, and preferences</p>

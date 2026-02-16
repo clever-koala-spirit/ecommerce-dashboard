@@ -10,6 +10,7 @@ import {
 import { useStore } from '../../store/useStore';
 import { formatCurrency, formatPercent, filterDataByDateRange } from '../../utils/formatters';
 import { COLORS } from '../../utils/colors';
+import EmptyState from '../common/EmptyState';
 
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
@@ -102,11 +103,7 @@ export default function RevenueByChannel() {
         <h3 style={{ color: 'var(--color-text-primary)' }} className="font-semibold mb-4">
           Revenue by Channel
         </h3>
-        <div className="h-80 flex items-center justify-center">
-          <p style={{ color: 'var(--color-text-secondary)' }}>
-            No data available for the selected period
-          </p>
-        </div>
+        <EmptyState icon="money" title="No channel data" message="No revenue data for this period. Try a different date range." />
       </div>
     );
   }
@@ -118,7 +115,7 @@ export default function RevenueByChannel() {
 
   return (
     <div
-      className="glass-card p-5"
+      className="glass-card p-5 animate-fadeIn"
       style={{ backgroundColor: 'var(--color-bg-card)' }}
     >
       <h3 style={{ color: 'var(--color-text-primary)' }} className="font-semibold mb-4">

@@ -1,3 +1,4 @@
+import SEO from '../components/common/SEO';
 import MobileNav from '../components/layout/MobileNav';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -41,6 +42,7 @@ const AboutPage = () => {
 
   return (
     <div className="w-full bg-[#050608] text-[#e8eaf0] overflow-hidden antialiased">
+      <SEO title="About Us" description="Built by ecommerce operators who spent a decade generating $50M+ in revenue." path="/about" />
       <style>{`
         .ss-reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); }
         .ss-visible { opacity: 1; transform: translateY(0); }

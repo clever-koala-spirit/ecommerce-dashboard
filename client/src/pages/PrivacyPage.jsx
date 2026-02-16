@@ -1,3 +1,4 @@
+import SEO from '../components/common/SEO';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -18,6 +19,7 @@ const PrivacyPage = () => {
 
   return (
     <div className="w-full bg-[#050608] text-[#e8eaf0] overflow-hidden antialiased">
+      <SEO title="Privacy Policy" description="Slay Season privacy policy and data handling practices." path="/privacy" />
       <style>{`
         .glass { backdrop-filter: blur(20px) saturate(180%); background: rgba(14,17,28,.72); border: 1px solid rgba(255,255,255,.06); }
         .btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); position: relative; overflow: hidden; transition: all .3s ease; }

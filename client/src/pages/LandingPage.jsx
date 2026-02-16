@@ -1,3 +1,4 @@
+import SEO from '../components/common/SEO';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -122,6 +123,7 @@ const LandingPage = () => {
 
   return (
     <div className="w-full bg-[#050608] text-[#e8eaf0] overflow-hidden antialiased">
+      <SEO title="Slay Season - Finally See Your Real Profit in Real Time" description="Stop losing money on bad data. Connect Shopify, Meta, Google & Klaviyo in 5 minutes. See true profit, AI forecasting, and budget optimization." path="/" />
       <style>{`
         /* ── Base ── */
         .ss-reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); }
@@ -373,7 +375,7 @@ const LandingPage = () => {
             ].map((p, i) => (
               <div key={i} className="flex flex-col items-center gap-2 text-[#6b7194] hover:text-white transition-colors group">
                 <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center bg-white/[.06] group-hover:bg-white/[.12] transition-colors p-2.5 sm:p-3">
-                  <img src={p.logo} alt={p.name} className="w-full h-full object-contain" style={{ filter: `brightness(0) saturate(100%) drop-shadow(0 0 0 ${p.color})`, opacity: 0.6 }} onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = `<span class="text-lg font-bold" style="color:${p.color}">${p.name[0]}</span>`; }} />
+                  <img loading="lazy" src={p.logo} alt={p.name} className="w-full h-full object-contain" style={{ filter: `brightness(0) saturate(100%) drop-shadow(0 0 0 ${p.color})`, opacity: 0.6 }} onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = `<span class="text-lg font-bold" style="color:${p.color}">${p.name[0]}</span>`; }} />
                 </div>
                 <span className="text-[10px] sm:text-xs font-medium">{p.name}</span>
               </div>
@@ -421,7 +423,7 @@ const LandingPage = () => {
                 <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400 mb-5">{item.icon}</div>
                 <p className="text-[#c4c9d8] italic leading-relaxed mb-5 text-[15px]">{item.pain}</p>
                 <div className="flex items-center gap-3 mt-4">
-                  <img src={item.avatar} alt={item.who} className="w-10 h-10 rounded-full bg-white/10" />
+                  <img loading="lazy" src={item.avatar} alt={item.who} className="w-10 h-10 rounded-full bg-white/10" />
                   <div>
                     <p className="text-sm text-white font-medium">{item.who}</p>
                     <p className="text-xs text-[#6b7194]">{item.role}</p>
@@ -815,7 +817,7 @@ const LandingPage = () => {
                 </div>
                 <p className="text-[#c4c9d8] text-sm leading-relaxed mb-5">"{t.quote}"</p>
                 <div className="flex items-center gap-3">
-                  <img src={t.avatar} alt={t.name} className="w-10 h-10 rounded-full bg-white/10 flex-shrink-0" />
+                  <img loading="lazy" src={t.avatar} alt={t.name} className="w-10 h-10 rounded-full bg-white/10 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-white text-sm">{t.name}</p>
                     <p className="text-xs text-[#6b7194]">{t.role}</p>

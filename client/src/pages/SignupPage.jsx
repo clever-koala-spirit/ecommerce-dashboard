@@ -1,3 +1,4 @@
+import SEO from '../components/common/SEO';
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, User, ArrowRight, Loader2, Check, Phone, Hash } from 'lucide-react';
@@ -105,6 +106,7 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f1117] via-[#1c2033] to-[#0f1117] relative overflow-hidden">
+      <SEO title="Sign Up" description="Create your free Slay Season account. 14-day free trial, no credit card required." path="/signup" />
       {/* Animated gradient background */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" />

@@ -1,3 +1,4 @@
+import SEO from '../components/common/SEO';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MobileNav from '../components/layout/MobileNav';
@@ -217,6 +218,7 @@ const HelpPage = () => {
 
   return (
     <div className="w-full bg-[#050608] text-[#e8eaf0] overflow-hidden antialiased">
+      <SEO title="Help Center" description="Find answers to common questions about Slay Season." path="/help" />
       <style>{`
         .glass { backdrop-filter: blur(20px) saturate(180%); background: rgba(14,17,28,.72); border: 1px solid rgba(255,255,255,.06); }
         .gradient-border { position: relative; }

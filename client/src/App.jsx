@@ -4,19 +4,19 @@ import { useAuth } from './providers/AuthProvider';
 import { useShopify } from './providers/ShopifyProvider';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import DashboardLayout from './components/layout/DashboardLayout';
-import DashboardPage from './pages/DashboardPage';
-import ForecastPage from './pages/ForecastPage';
-import SettingsPage from './pages/SettingsPage';
-import ConnectPage from './pages/ConnectPage';
-import LandingPage from './pages/LandingPage';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import AuthCallbackPage from './pages/AuthCallbackPage';
-import NotFoundPage from './pages/NotFoundPage';
 import ChatWidget from './components/chat/ChatWidget';
 
-// Lazy load pages
+// Lazy load all pages for code splitting
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const ForecastPage = lazy(() => import('./pages/ForecastPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const ConnectPage = lazy(() => import('./pages/ConnectPage'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const SignupPage = lazy(() => import('./pages/SignupPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));

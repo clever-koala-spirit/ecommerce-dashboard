@@ -1,3 +1,4 @@
+import SEO from '../components/common/SEO';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Shield, UserCheck, Trash2, Download, Globe, CheckCircle2 } from 'lucide-react';
@@ -15,6 +16,7 @@ const GdprPage = () => {
 
   return (
     <div className="w-full bg-[#050608] text-[#e8eaf0] overflow-hidden antialiased min-h-screen">
+      <SEO title="GDPR Compliance" description="Slay Season GDPR and data privacy compliance." path="/gdpr" />
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#050608]/80 backdrop-blur-xl border-b border-white/[.04]">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center gap-3">
           <button onClick={() => navigate('/')} className="flex items-center gap-2 text-sm text-[#6b7194] hover:text-white transition-colors">

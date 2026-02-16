@@ -174,10 +174,10 @@ export default function CostManager() {
               </select>
             </div>
             <div className="flex gap-1">
-              <button onClick={handleAdd} className="p-1.5 rounded-lg hover:bg-green-900/30" style={{ color: 'var(--color-green)' }}>
+              <button aria-label="Save cost" onClick={handleAdd} className="p-1.5 rounded-lg hover:bg-green-900/30" style={{ color: 'var(--color-green)' }}>
                 <Check size={18} />
               </button>
-              <button onClick={() => { setAdding(false); cancelEdit(); }} className="p-1.5 rounded-lg hover:bg-red-900/30" style={{ color: 'var(--color-red)' }}>
+              <button aria-label="Cancel" onClick={() => { setAdding(false); cancelEdit(); }} className="p-1.5 rounded-lg hover:bg-red-900/30" style={{ color: 'var(--color-red)' }}>
                 <X size={18} />
               </button>
             </div>
@@ -231,10 +231,10 @@ export default function CostManager() {
                       </select>
                     </div>
                     <div className="flex gap-1">
-                      <button onClick={() => handleUpdate(cost.id)} className="p-1.5 rounded-lg hover:bg-green-900/30" style={{ color: 'var(--color-green)' }}>
+                      <button aria-label="Save changes" onClick={() => handleUpdate(cost.id)} className="p-1.5 rounded-lg hover:bg-green-900/30" style={{ color: 'var(--color-green)' }}>
                         <Check size={18} />
                       </button>
-                      <button onClick={cancelEdit} className="p-1.5 rounded-lg hover:bg-red-900/30" style={{ color: 'var(--color-red)' }}>
+                      <button aria-label="Cancel edit" onClick={cancelEdit} className="p-1.5 rounded-lg hover:bg-red-900/30" style={{ color: 'var(--color-red)' }}>
                         <X size={18} />
                       </button>
                     </div>

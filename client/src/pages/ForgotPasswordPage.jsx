@@ -1,3 +1,4 @@
+import SEO from '../components/common/SEO';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowRight, ArrowLeft, Loader2, CheckCircle } from 'lucide-react';
@@ -39,6 +40,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f1117] via-[#1c2033] to-[#0f1117] relative overflow-hidden">
+      <SEO title="Reset Password" description="Reset your Slay Season account password." path="/forgot-password" />
       {/* Animated gradient background */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" />

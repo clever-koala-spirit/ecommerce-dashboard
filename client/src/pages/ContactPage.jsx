@@ -1,3 +1,4 @@
+import SEO from '../components/common/SEO';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MobileNav from '../components/layout/MobileNav';
@@ -100,6 +101,7 @@ ${formData.message}
   if (isSubmitted) {
     return (
       <div className="w-full bg-[#050608] text-[#e8eaf0] min-h-screen flex items-center justify-center">
+        <SEO title="Contact Us" description="Get in touch with the Slay Season team." path="/contact" />
         <div className="max-w-md mx-auto px-4 text-center">
           <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 className="w-8 h-8 text-emerald-400" />
