@@ -19,10 +19,13 @@ import {
 
 const router = express.Router();
 
-// Validate JWT_SECRET is properly set
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required but not set');
+// Lazy getJwtSecret() accessor (env loaded after ESM imports resolve)
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is required but not set');
+  }
+  return secret;
 }
 
 /**
@@ -76,7 +79,7 @@ router.post('/signup', validateSignup, (req, res) => {
     // Create JWT token
     const token = jwt.sign(
       { userId, email: emailLower, name: name.trim() },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '7d' }
     );
 
@@ -122,7 +125,7 @@ router.post('/login', validateLogin, (req, res) => {
     // Create JWT token (include shopDomain if user has one linked)
     const jwtPayload = { userId: user.id, email: user.email, name: user.name };
     if (user.shopDomain) jwtPayload.shopDomain = user.shopDomain;
-    const token = jwt.sign(jwtPayload, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign(jwtPayload, getJwtSecret(), { expiresIn: '7d' });
 
     // Update last login
     updateUserLastLogin(user.id);
@@ -183,7 +186,7 @@ router.get('/shopify/session', (req, res) => {
     // Issue JWT
     const token = jwt.sign(
       { userId: user.id, email: user.email, name: user.name, shopDomain: shop },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '7d' }
     );
 
@@ -226,7 +229,7 @@ router.get('/me', (req, res) => {
 
     let decoded;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
+      decoded = jwt.verify(token, getJwtSecret());
     } catch (err) {
       if (err.name === 'TokenExpiredError') {
         return res.status(401).json({ error: 'Token expired' });
@@ -265,7 +268,7 @@ router.post('/link-shop', (req, res) => {
     const token = authHeader.split(' ')[1];
     let decoded;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
+      decoded = jwt.verify(token, getJwtSecret());
     } catch (err) {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
@@ -294,7 +297,7 @@ router.post('/link-shop', (req, res) => {
     const user = getUserByEmail(decoded.email);
     const newToken = jwt.sign(
       { userId: user.id, email: user.email, name: user.name, shopDomain },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '7d' }
     );
 
@@ -343,7 +346,7 @@ router.post('/refresh', (req, res) => {
 
     let decoded;
     try {
-      decoded = jwt.verify(token, JWT_SECRET, { ignoreExpiration: false });
+      decoded = jwt.verify(token, getJwtSecret(), { ignoreExpiration: false });
     } catch (err) {
       // If token is expired but we can still decode it (in a real scenario we'd check expiration time)
       // For now, we'll just reject expired tokens
@@ -367,7 +370,7 @@ router.post('/refresh', (req, res) => {
     // Create new token (include shopDomain if user has one linked)
     const refreshPayload = { userId: user.id, email: user.email, name: user.name };
     if (user.shopDomain) refreshPayload.shopDomain = user.shopDomain;
-    const newToken = jwt.sign(refreshPayload, JWT_SECRET, { expiresIn: '7d' });
+    const newToken = jwt.sign(refreshPayload, getJwtSecret(), { expiresIn: '7d' });
 
     res.json({
       token: newToken,
@@ -404,7 +407,7 @@ router.post('/change-password', validateChangePassword, (req, res) => {
 
     let decoded;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
+      decoded = jwt.verify(token, getJwtSecret());
     } catch (err) {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
@@ -644,7 +647,7 @@ router.post('/otp/verify', (req, res) => {
 
     const token = jwt.sign(
       { userId: user.id, email: user.email, name: user.name },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '7d' }
     );
 
@@ -771,7 +774,7 @@ router.get('/oauth/google/callback', async (req, res) => {
     const fullUser = getUserByEmail(emailLower);
     const googleJwtPayload = { userId: (fullUser || user).id, email: (fullUser || user).email, name: (fullUser || user).name };
     if (fullUser?.shopDomain) googleJwtPayload.shopDomain = fullUser.shopDomain;
-    const token = jwt.sign(googleJwtPayload, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign(googleJwtPayload, getJwtSecret(), { expiresIn: '7d' });
 
     // Update last login
     updateUserLastLogin(user.id);
@@ -887,7 +890,7 @@ router.get('/oauth/shopify/callback', async (req, res) => {
 
     const token = jwt.sign(
       { userId: user.id, email: user.email, name: user.name },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '7d' }
     );
 
@@ -1000,7 +1003,7 @@ router.get('/oauth/facebook/callback', async (req, res) => {
     // Create JWT token
     const token = jwt.sign(
       { userId: user.id, email: user.email, name: user.name },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '7d' }
     );
 
@@ -1119,7 +1122,7 @@ router.post('/oauth/apple/callback', async (req, res) => {
 
     const jwtToken = jwt.sign(
       { userId: dbUser.id, email: dbUser.email, name: dbUser.name },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '7d' }
     );
 

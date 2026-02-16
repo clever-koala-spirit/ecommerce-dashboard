@@ -27,6 +27,7 @@ const HelpPage = lazy(() => import('./pages/HelpPage'));
 const IntegrationsPage = lazy(() => import('./pages/IntegrationsPage'));
 const SecurityPage = lazy(() => import('./pages/SecurityPage'));
 const GdprPage = lazy(() => import('./pages/GdprPage'));
+const AcademyPage = lazy(() => import('./pages/AcademyPage'));
 
 function LoadingScreen() {
   return (
@@ -102,6 +103,7 @@ function App() {
           <Route path="/integrations" element={<ErrorBoundary><IntegrationsPage /></ErrorBoundary>} />
           <Route path="/security" element={<ErrorBoundary><SecurityPage /></ErrorBoundary>} />
           <Route path="/gdpr" element={<ErrorBoundary><GdprPage /></ErrorBoundary>} />
+          <Route path="/academy" element={<ErrorBoundary><AcademyPage /></ErrorBoundary>} />
 
           {/* Legal pages */}
           <Route path="/privacy" element={

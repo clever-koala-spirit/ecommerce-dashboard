@@ -18,6 +18,7 @@ import {
   Sparkles,
   Play,
   X,
+  GraduationCap,
   HeadphonesIcon,
   Award,
   Menu,
@@ -195,8 +196,12 @@ const LandingPage = () => {
             {[['Features', 'features'], ['Pricing', 'pricing'], ['How It Works', 'how-it-works'], ['FAQ', 'faq']].map(([label, id]) => (
               <button key={id} onClick={() => scrollTo(id)} className="text-[#8b92b0] hover:text-white transition-colors duration-200">{label}</button>
             ))}
+            <button onClick={() => navigate('/academy')} className="text-[#8b92b0] hover:text-white transition-colors duration-200 flex items-center gap-1">
+              <GraduationCap className="w-3.5 h-3.5" />Academy
+            </button>
             <button onClick={() => navigate('/about')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">About</button>
             <button onClick={() => navigate('/blog')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Blog</button>
+            <button onClick={() => navigate('/academy')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Academy</button>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
@@ -217,6 +222,9 @@ const LandingPage = () => {
               {[['Features', 'features'], ['Pricing', 'pricing'], ['How It Works', 'how-it-works'], ['FAQ', 'faq']].map(([label, id]) => (
                 <button key={id} onClick={() => scrollTo(id)} className="block w-full text-left text-[#8b92b0] hover:text-white py-2">{label}</button>
               ))}
+              <button onClick={() => navigate('/academy')} className="block w-full text-left text-[#8b92b0] hover:text-white py-2 flex items-center gap-1.5">
+                <GraduationCap className="w-3.5 h-3.5" />Academy
+              </button>
               <hr className="border-white/5" />
               <button onClick={() => navigate('/login')} className="block w-full text-left text-[#8b92b0] hover:text-white py-2">Log in</button>
               <button onClick={() => navigate('/signup')} className="w-full btn-primary text-white py-2.5 rounded-lg font-semibold text-sm">
@@ -967,7 +975,7 @@ const LandingPage = () => {
             </div>
             {[
               { title: 'Product', links: [['Features', () => scrollTo('features')], ['Pricing', () => navigate('/pricing')], ['Free Trial', () => navigate('/signup')], ['Integrations', () => navigate('/integrations')]] },
-              { title: 'Company', links: [['About', () => navigate('/about')], ['Blog', () => navigate('/blog')], ['Contact', () => navigate('/contact')], ['Help', () => navigate('/help')]] },
+              { title: 'Company', links: [['About', () => navigate('/about')], ['Blog', () => navigate('/blog')], ['Academy', () => navigate('/academy')], ['Contact', () => navigate('/contact')], ['Help', () => navigate('/help')]] },
               { title: 'Legal', links: [['Privacy Policy', () => navigate('/privacy')], ['Terms of Service', () => navigate('/terms')], ['Security', () => navigate('/security')], ['GDPR', () => navigate('/gdpr')]] },
             ].map((col, i) => (
               <div key={i}>

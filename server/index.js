@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 // Load environment variables FIRST
@@ -234,10 +235,11 @@ app.use((req, res) => {
     return res.status(404).json({ error: 'Not found' });
   }
   // Serve the SPA (handles React Router routes like /settings, /forecast, /privacy, /terms)
-  const indexPath = path.join(clientDistPath, 'index.html');
+  const indexPath = path.resolve(clientDistPath, 'index.html');
+  console.log('[SPA] Attempting sendFile:', indexPath, 'exists:', fs.existsSync(indexPath));
   res.sendFile(indexPath, (err) => {
-    if (err) {
-      // Frontend not built yet — return API info
+    console.log('[SPA] sendFile callback, err:', err ? err.message : null, 'headersSent:', res.headersSent);
+    if (err && !res.headersSent) {
       res.status(404).json({ error: 'Frontend not built. Run: cd client && npm run build' });
     }
   });

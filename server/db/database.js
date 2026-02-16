@@ -10,13 +10,17 @@ const SQL = await initSqlJs();
 const DB_PATH = path.join(process.cwd(), 'data', 'ecommerce.db');
 
 // --- Encryption helpers (AES-256-GCM) ---
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
-if (!ENCRYPTION_KEY) {
-  throw new Error('ENCRYPTION_KEY environment variable is required but not set');
-}
+let _encryptionKey = null;
 
 function getEncryptionKey() {
-  return Buffer.from(ENCRYPTION_KEY, 'hex');
+  if (!_encryptionKey) {
+    const key = process.env.ENCRYPTION_KEY;
+    if (!key) {
+      throw new Error('ENCRYPTION_KEY environment variable is required but not set');
+    }
+    _encryptionKey = Buffer.from(key, 'hex');
+  }
+  return _encryptionKey;
 }
 
 export function encrypt(text) {

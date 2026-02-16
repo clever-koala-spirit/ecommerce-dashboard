@@ -257,6 +257,7 @@ const HelpPage = () => {
             <button onClick={() => navigate('/about')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">About</button>
             <button onClick={() => navigate('/pricing')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Pricing</button>
             <button onClick={() => navigate('/blog')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Blog</button>
+            <button onClick={() => navigate('/academy')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Academy</button>
             <button onClick={() => navigate('/contact')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Contact</button>
           </div>
 
