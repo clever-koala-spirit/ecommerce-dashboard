@@ -42,7 +42,7 @@ router.get('/dashboard', async (req, res) => {
         } catch (err) {
           console.error('[Dashboard] Shopify fetch error:', err.message);
         }
-        return mockData.shopify;
+        return [];
       },
       300
     );
@@ -51,7 +51,7 @@ router.get('/dashboard', async (req, res) => {
       `${cacheKeyPrefix}:meta:30d`,
       async () => {
         const result = await metaService.fetchDailyInsights(dateRange);
-        return result.data || mockData.meta;
+        return result.data || [];
       },
       300
     );
@@ -60,7 +60,7 @@ router.get('/dashboard', async (req, res) => {
       `${cacheKeyPrefix}:google:30d`,
       async () => {
         const result = await googleAdsService.fetchDailyMetrics(dateRange);
-        return result.data || mockData.google;
+        return result.data || [];
       },
       300
     );
@@ -69,7 +69,7 @@ router.get('/dashboard', async (req, res) => {
       `${cacheKeyPrefix}:klaviyo:30d`,
       async () => {
         const result = await klaviyoService.fetchMetrics(dateRange);
-        return result.data || mockData.klaviyo;
+        return result.data || [];
       },
       300
     );
@@ -78,7 +78,7 @@ router.get('/dashboard', async (req, res) => {
       `${cacheKeyPrefix}:ga4:30d`,
       async () => {
         const result = await ga4Service.fetchDailyMetrics(dateRange);
-        return result.data || mockData.ga4;
+        return result.data || [];
       },
       300
     );
@@ -87,7 +87,7 @@ router.get('/dashboard', async (req, res) => {
       `${cacheKeyPrefix}:tiktok:30d`,
       async () => {
         const result = await tiktokService.fetchDailyMetrics(dateRange, shopDomain);
-        return result.data || mockData.tiktok;
+        return result.data || [];
       },
       300
     );
@@ -143,7 +143,7 @@ router.get('/history', async (req, res) => {
       `${cacheKeyPrefix}:${metric}:${days}d`,
       async () => {
         const result = await shopifyService.fetchOrders(dateRange, shopData.accessToken, shopDomain);
-        return result.data || mockData.shopify;
+        return result.data || [];
       },
       600
     );
@@ -169,7 +169,7 @@ router.get('/shopify/orders', async (req, res) => {
       `data:${shopDomain}:shopify:orders:30d`,
       async () => {
         const result = await shopifyService.fetchOrders(dateRange, shopData.accessToken, shopDomain);
-        return result.data || mockData.shopify;
+        return result.data || [];
       },
       300
     );
@@ -190,7 +190,7 @@ router.get('/meta/campaigns', async (req, res) => {
       `data:${shopDomain}:meta:campaigns:30d`,
       async () => {
         const result = await metaService.fetchCampaigns(dateRange);
-        return result.data || mockData.metaCampaigns;
+        return result.data || [];
       },
       300
     );
@@ -211,7 +211,7 @@ router.get('/google/campaigns', async (req, res) => {
       `data:${shopDomain}:google:campaigns:30d`,
       async () => {
         const result = await googleAdsService.fetchCampaigns(dateRange);
-        return result.data || mockData.googleCampaigns;
+        return result.data || [];
       },
       300
     );
@@ -231,7 +231,7 @@ router.get('/klaviyo/flows', async (req, res) => {
       `data:${shopDomain}:klaviyo:flows`,
       async () => {
         const result = await klaviyoService.fetchFlows();
-        return result.data || mockData.klaviyoFlows;
+        return result.data || [];
       },
       300
     );
@@ -252,7 +252,7 @@ router.get('/ga4/sessions', async (req, res) => {
       `data:${shopDomain}:ga4:sessions:30d`,
       async () => {
         const result = await ga4Service.fetchDailyMetrics(dateRange);
-        return result.data || mockData.ga4;
+        return result.data || [];
       },
       300
     );
