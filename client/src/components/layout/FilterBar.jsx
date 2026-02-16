@@ -80,7 +80,7 @@ export default function FilterBar() {
               key={option.value}
               onClick={() => handleDateRangeChange(option.value)}
               className={`filter-chip ${
-                dateRange.type === option.value ? 'active' : ''
+                dateRange.preset === option.value ? 'active' : ''
               }`}
             >
               {option.label}
