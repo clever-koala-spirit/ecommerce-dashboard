@@ -5,6 +5,7 @@
   "installCommand": "cd client && npm install",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "https://api.slayseason.com/api/$1" },
+    { "source": "/agency/:path*", "destination": "https://slay-season-agency.vercel.app/agency/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
