@@ -19,6 +19,7 @@ import {
   ExternalLink,
   X
 } from 'lucide-react';
+import MobileNav from '../components/layout/MobileNav';
 
 const BlogPage = () => {
   const navigate = useNavigate();
@@ -1490,12 +1491,13 @@ Start planning now. The brands that win BFCM aren't the ones with the biggest di
             <span className="text-white font-medium">Blog</span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-3">
             <button onClick={() => navigate('/login')} className="text-sm text-[#8b92b0] hover:text-white transition-colors px-4 py-2">Log in</button>
             <button onClick={() => navigate('/signup')} className="btn-primary text-white px-5 py-2 rounded-lg text-sm font-semibold">
               <span className="flex items-center gap-1.5">Start Free Trial <ArrowRight className="w-3.5 h-3.5" /></span>
             </button>
           </div>
+          <MobileNav />
         </div>
       </nav>
 
@@ -1714,7 +1716,7 @@ Start planning now. The brands that win BFCM aren't the ones with the biggest di
       {/* Article Modal */}
       {selectedPost && (
         <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto" style={{ background: 'rgba(0,0,0,.8)', backdropFilter: 'blur(8px)' }}>
-          <div className="relative w-full max-w-3xl mx-4 my-8 glass rounded-xl p-8 sm:p-12">
+          <div className="relative w-full max-w-3xl mx-3 sm:mx-4 my-4 sm:my-8 glass rounded-xl p-5 sm:p-12">
             <button
               onClick={() => setSelectedPost(null)}
               className="absolute top-4 right-4 p-2 rounded-lg hover:bg-white/10 transition-colors"
