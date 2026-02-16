@@ -66,8 +66,9 @@ export class ShopifyService {
     try {
       const orders = [];
       let cursor = null;
-      const startDate = new Date(dateRange.start);
-      const endDate = new Date(dateRange.end);
+      // Pass date strings directly to avoid timezone conversion issues
+      const startDate = dateRange.start;
+      const endDate = dateRange.end;
 
       while (true) {
         const query = this.buildOrdersQuery(cursor, startDate, endDate);
@@ -237,8 +238,11 @@ export class ShopifyService {
 
   buildOrdersQuery(cursor, startDate, endDate) {
     const after = cursor ? `after: "${cursor}"` : '';
-    const startStr = startDate.toLocaleDateString('en-CA', { timeZone: STORE_TIMEZONE });
-    const endStr = endDate.toLocaleDateString('en-CA', { timeZone: STORE_TIMEZONE });
+    // Dates passed to Shopify GraphQL query filter are interpreted in the STORE timezone by Shopify.
+    // We must pass plain YYYY-MM-DD strings without timezone conversion to avoid date shifting.
+    // (e.g. new Date("2026-02-01") = UTC midnight, which in EST = Jan 31 — wrong!)
+    const startStr = typeof startDate === 'string' ? startDate : startDate.toLocaleDateString('en-CA', { timeZone: STORE_TIMEZONE });
+    const endStr = typeof endDate === 'string' ? endDate : endDate.toLocaleDateString('en-CA', { timeZone: STORE_TIMEZONE });
     const dateFilter = `created_at:>=${startStr} created_at:<=${endStr} (financial_status:paid OR financial_status:partially_refunded)`;
 
     return `

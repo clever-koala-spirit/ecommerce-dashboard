@@ -10,13 +10,19 @@ import { saveSnapshot, getHistory } from '../db/database.js';
 
 const router = express.Router();
 
+const STORE_TIMEZONE = 'America/New_York';
+
 function getDateRange(days = 30) {
-  const today = new Date();
+  // Use store timezone for date calculations so ranges match Shopify admin
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: STORE_TIMEZONE });
+  const [y, m, d] = todayStr.split('-').map(Number);
+  const today = new Date(y, m - 1, d); // local date, no TZ shift
   const start = new Date(today.getTime() - days * 24 * 60 * 60 * 1000);
+  const startStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
 
   return {
-    start: start.toISOString().split('T')[0],
-    end: today.toISOString().split('T')[0],
+    start: startStr,
+    end: todayStr,
   };
 }
 
