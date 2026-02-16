@@ -42,7 +42,8 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
 
   // ========== CURRENT PERIOD ==========
   // 1. Gross Revenue
-  const currentGrossRevenue = sumProperty(filteredShopify, 'revenue');
+  // Use grossRevenue (total including shipping/tax) to match Shopify admin "Total sales"
+  const currentGrossRevenue = sumProperty(filteredShopify, 'grossRevenue') || sumProperty(filteredShopify, 'revenue');
 
   // 2. Net Profit
   const currentRefunds = sumProperty(filteredShopify, 'refundAmount');
@@ -84,7 +85,7 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
 
   // ========== PREVIOUS PERIOD ==========
   // 1. Gross Revenue
-  const prevGrossRevenue = sumProperty(prevShopify, 'revenue');
+  const prevGrossRevenue = sumProperty(prevShopify, 'grossRevenue') || sumProperty(prevShopify, 'revenue');
 
   // 2. Net Profit
   const prevRefunds = sumProperty(prevShopify, 'refundAmount');
@@ -128,7 +129,7 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
     return arr.map((item) => item[prop] || 0);
   };
 
-  const grossRevenueSparkline = getSparklineData(filteredShopify, 'revenue');
+  const grossRevenueSparkline = filteredShopify.map(d => d.grossRevenue || d.revenue || 0);
   const netProfitSparkline = filteredShopify.map((item) => {
     const refund = item.refundAmount || 0;
     const cogs = item.cogs || 0;

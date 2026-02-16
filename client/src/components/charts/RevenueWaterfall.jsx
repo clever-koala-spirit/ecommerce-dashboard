@@ -51,7 +51,7 @@ export default function RevenueWaterfall() {
     const filteredMeta = filterDataByDateRange(metaData || [], dateRange);
     const filteredGoogle = filterDataByDateRange(googleData || [], dateRange);
 
-    const grossRevenue = filteredShopify.reduce((sum, d) => sum + (d.revenue || 0), 0);
+    const grossRevenue = filteredShopify.reduce((sum, d) => sum + (d.grossRevenue || d.revenue || 0), 0);
     const refunds = filteredShopify.reduce((sum, d) => sum + (d.refundAmount || 0), 0);
     const cogs = filteredShopify.reduce((sum, d) => sum + (d.cogs || 0), 0);
     const shipping = filteredShopify.reduce((sum, d) => sum + (d.shipping || 0), 0);

@@ -271,7 +271,7 @@ export const calculateMetrics = (shopifyData, dateRange) => {
 
   const metrics = filteredData.reduce(
     (acc, item) => ({
-      totalRevenue: acc.totalRevenue + (item.revenue || 0),
+      totalRevenue: acc.totalRevenue + (item.grossRevenue || item.revenue || 0),
       totalOrders: acc.totalOrders + (item.orders || 0),
       totalRefunds: acc.totalRefunds + (item.refunds || 0),
       totalRefundAmount: acc.totalRefundAmount + (item.refundAmount || 0),
