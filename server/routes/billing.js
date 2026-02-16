@@ -411,4 +411,187 @@ router.get('/status', (req, res) => {
   });
 });
 
+// =============================================================
+// Shopify Billing API Routes (GraphQL-based)
+// =============================================================
+
+/**
+ * POST /api/billing/subscribe
+ * Create a Shopify recurring app subscription, return confirmation URL
+ */
+router.post('/subscribe', async (req, res) => {
+  try {
+    const { plan } = req.body;
+    const shopDomain = req.shopDomain;
+
+    if (!shopDomain || !req.shopData?.accessTokenEncrypted) {
+      return res.status(401).json({ error: 'Shop authentication required' });
+    }
+    if (!plan || !shopifyBilling.PLANS[plan]) {
+      return res.status(400).json({ error: `Invalid plan. Choose: ${Object.keys(shopifyBilling.PLANS).join(', ')}` });
+    }
+
+    const accessToken = decrypt(req.shopData.accessTokenEncrypted);
+    const returnUrl = `${process.env.APP_URL || 'https://api.slayseason.com'}/api/billing/callback?shop=${encodeURIComponent(shopDomain)}`;
+
+    const result = await shopifyBilling.createRecurringCharge(shopDomain, accessToken, plan, returnUrl);
+
+    // Store pending status
+    shopifyBilling.updateShopBillingStatus(shopDomain, {
+      planKey: plan,
+      subscriptionId: result.subscriptionId,
+      status: 'pending',
+    });
+
+    log.info('Shopify billing: charge created', { shopDomain, plan, subscriptionId: result.subscriptionId });
+
+    res.json({
+      success: true,
+      confirmationUrl: result.confirmationUrl,
+      subscriptionId: result.subscriptionId,
+    });
+  } catch (error) {
+    log.error('Shopify billing: subscribe failed', error, { shopDomain: req.shopDomain });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/billing/callback
+ * Shopify redirects here after merchant approves/declines the charge
+ */
+router.get('/callback', async (req, res) => {
+  try {
+    const { shop, charge_id } = req.query;
+
+    if (!shop) {
+      return res.status(400).json({ error: 'Missing shop parameter' });
+    }
+
+    // Look up shop to get access token
+    const { getShop } = await import('../db/database.js');
+    const shopData = getShop(shop);
+    if (!shopData) {
+      return res.status(404).json({ error: 'Shop not found' });
+    }
+
+    const accessToken = decrypt(shopData.accessTokenEncrypted);
+
+    // Check the actual subscription status from Shopify
+    const activeCharge = await shopifyBilling.getActiveCharge(shop, accessToken);
+
+    if (activeCharge && activeCharge.status === 'ACTIVE') {
+      shopifyBilling.updateShopBillingStatus(shop, {
+        planKey: activeCharge.planKey,
+        subscriptionId: activeCharge.id,
+        status: 'active',
+      });
+
+      log.info('Shopify billing: subscription activated', { shop, plan: activeCharge.planKey });
+
+      // Redirect to app
+      const appUrl = process.env.FRONTEND_URL || 'https://app.slayseason.com';
+      return res.redirect(`${appUrl}/billing?status=success&plan=${activeCharge.planKey}`);
+    }
+
+    // Merchant declined or charge not active
+    shopifyBilling.updateShopBillingStatus(shop, {
+      planKey: null,
+      subscriptionId: null,
+      status: 'declined',
+    });
+
+    const appUrl = process.env.FRONTEND_URL || 'https://app.slayseason.com';
+    return res.redirect(`${appUrl}/billing?status=declined`);
+  } catch (error) {
+    log.error('Shopify billing: callback error', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/billing/shopify-status
+ * Get current Shopify billing status for the authenticated shop
+ */
+router.get('/shopify-status', async (req, res) => {
+  try {
+    const shopDomain = req.shopDomain;
+    if (!shopDomain || !req.shopData?.accessTokenEncrypted) {
+      return res.status(401).json({ error: 'Shop authentication required' });
+    }
+
+    // Check live status from Shopify
+    const accessToken = decrypt(req.shopData.accessTokenEncrypted);
+    const activeCharge = await shopifyBilling.getActiveCharge(shopDomain, accessToken);
+
+    // Also get stored status
+    const stored = shopifyBilling.getShopBillingStatus(shopDomain);
+
+    // Sync if out of date
+    if (activeCharge && stored?.status !== 'active') {
+      shopifyBilling.updateShopBillingStatus(shopDomain, {
+        planKey: activeCharge.planKey,
+        subscriptionId: activeCharge.id,
+        status: 'active',
+      });
+    } else if (!activeCharge && stored?.status === 'active') {
+      shopifyBilling.updateShopBillingStatus(shopDomain, {
+        planKey: null,
+        subscriptionId: null,
+        status: 'inactive',
+      });
+    }
+
+    res.json({
+      success: true,
+      active: !!activeCharge,
+      subscription: activeCharge,
+      storedPlan: stored?.plan,
+      plans: shopifyBilling.PLANS,
+    });
+  } catch (error) {
+    log.error('Shopify billing: status check failed', error, { shopDomain: req.shopDomain });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/billing/cancel
+ * Cancel the active Shopify app subscription
+ */
+router.post('/cancel', async (req, res) => {
+  try {
+    const shopDomain = req.shopDomain;
+    if (!shopDomain || !req.shopData?.accessTokenEncrypted) {
+      return res.status(401).json({ error: 'Shop authentication required' });
+    }
+
+    const accessToken = decrypt(req.shopData.accessTokenEncrypted);
+
+    // Get active subscription
+    const activeCharge = await shopifyBilling.getActiveCharge(shopDomain, accessToken);
+    if (!activeCharge) {
+      return res.status(404).json({ error: 'No active subscription found' });
+    }
+
+    const result = await shopifyBilling.cancelCharge(shopDomain, accessToken, activeCharge.id);
+
+    shopifyBilling.updateShopBillingStatus(shopDomain, {
+      planKey: null,
+      subscriptionId: null,
+      status: 'cancelled',
+    });
+
+    log.info('Shopify billing: subscription cancelled', { shopDomain, chargeId: activeCharge.id });
+
+    res.json({
+      success: true,
+      subscription: result,
+    });
+  } catch (error) {
+    log.error('Shopify billing: cancel failed', error, { shopDomain: req.shopDomain });
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

@@ -33,6 +33,7 @@ const PricingPage = () => {
   const navigate = useNavigate();
   const [billingPeriod, setBillingPeriod] = useState('monthly');
   const [expandedFAQ, setExpandedFAQ] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const pricing = {
     monthly: { starter: 49, growth: 149, pro: 399 },
@@ -164,19 +165,38 @@ const PricingPage = () => {
             <button onClick={() => navigate('/contact')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Contact</button>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-3">
             <button onClick={() => navigate('/login')} className="text-sm text-[#8b92b0] hover:text-white transition-colors px-4 py-2">Log in</button>
             <button onClick={() => navigate('/signup')} className="btn-primary text-white px-5 py-2 rounded-lg text-sm font-semibold">
               <span className="flex items-center gap-1.5">Start Free Trial <ArrowRight className="w-3.5 h-3.5" /></span>
             </button>
           </div>
+
+          <button className="md:hidden p-2 min-w-[44px] min-h-[44px] flex items-center justify-center" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            {mobileMenuOpen ? <XIcon className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
+
+        {mobileMenuOpen && (
+          <div className="md:hidden glass border-t border-white/5">
+            <div className="px-4 py-4 space-y-1">
+              {[['Home', '/'], ['About', '/about'], ['Blog', '/blog'], ['Academy', '/academy'], ['Help', '/help'], ['Contact', '/contact']].map(([label, path]) => (
+                <button key={path} onClick={() => { navigate(path); setMobileMenuOpen(false); }} className="block w-full text-left text-[#8b92b0] hover:text-white py-3 min-h-[44px]">{label}</button>
+              ))}
+              <hr className="border-white/5" />
+              <button onClick={() => navigate('/login')} className="block w-full text-left text-[#8b92b0] hover:text-white py-3 min-h-[44px]">Log in</button>
+              <button onClick={() => navigate('/signup')} className="w-full btn-primary text-white py-3 rounded-lg font-semibold text-sm mt-2">
+                <span>Start Free Trial</span>
+              </button>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero */}
       <section className="relative min-h-[60vh] flex items-center pt-16 mesh-bg">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-          <h1 className="text-4xl sm:text-6xl font-extrabold leading-[1.1] tracking-tight mb-6">
+          <h1 className="text-3xl sm:text-6xl font-extrabold leading-[1.1] tracking-tight mb-6">
             Simple, Transparent
             <br />
             <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent">
@@ -366,8 +386,8 @@ const PricingPage = () => {
             <p className="text-[#8b92b0]">Everything you need to make informed decisions</p>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto -mx-4 px-4">
+            <table className="w-full min-w-[560px]">
               <thead>
                 <tr className="border-b border-white/10">
                   <th className="text-left py-4 px-4 text-sm font-medium text-[#6b7194]">Feature</th>
@@ -425,8 +445,8 @@ const PricingPage = () => {
             <p className="text-[#8b92b0]">Compare Slay Season to other analytics platforms</p>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto -mx-4 px-4">
+            <table className="w-full min-w-[640px]">
               <thead>
                 <tr className="border-b border-white/10">
                   <th className="text-left py-4 px-4 text-sm font-medium text-[#6b7194]">Platform</th>

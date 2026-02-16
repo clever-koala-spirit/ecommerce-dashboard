@@ -211,7 +211,7 @@ const LandingPage = () => {
             </button>
           </div>
 
-          <button className="md:hidden p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          <button className="md:hidden p-2 min-w-[44px] min-h-[44px] flex items-center justify-center" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             {mobileMenuOpen ? <XIcon className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
@@ -362,18 +362,20 @@ const LandingPage = () => {
       <section className="py-14 border-y border-white/[.04]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-center text-xs uppercase tracking-[.2em] text-[#4a4f6a] mb-8">Integrates with your stack in one click</p>
-          <div className="flex flex-wrap justify-center items-center gap-6 sm:gap-10">
+          <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-8">
             {[
-              { name: 'Shopify', color: '#95bf47', letter: 'S' },
-              { name: 'Meta Ads', color: '#1877f2', letter: 'M' },
-              { name: 'Google Ads', color: '#4285f4', letter: 'G' },
-              { name: 'Klaviyo', color: '#ff6900', letter: 'K' },
-              { name: 'TikTok Ads', color: '#ee1d52', letter: 'T' },
-              { name: 'GA4', color: '#e37400', letter: 'A' },
+              { name: 'Shopify', logo: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/shopify.svg', color: '#95bf47' },
+              { name: 'Meta Ads', logo: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/meta.svg', color: '#1877f2' },
+              { name: 'Google Ads', logo: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/googleads.svg', color: '#4285f4' },
+              { name: 'Klaviyo', logo: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/klaviyo.svg', color: '#ff6900' },
+              { name: 'TikTok', logo: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/tiktok.svg', color: '#ee1d52' },
+              { name: 'GA4', logo: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/googleanalytics.svg', color: '#e37400' },
             ].map((p, i) => (
-              <div key={i} className="flex items-center gap-2.5 text-[#6b7194] hover:text-white transition-colors group">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold opacity-70 group-hover:opacity-100 transition-opacity" style={{ background: p.color }}>{p.letter}</div>
-                <span className="text-sm font-medium hidden sm:inline">{p.name}</span>
+              <div key={i} className="flex flex-col items-center gap-2 text-[#6b7194] hover:text-white transition-colors group">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center bg-white/[.06] group-hover:bg-white/[.12] transition-colors p-2.5 sm:p-3">
+                  <img src={p.logo} alt={p.name} className="w-full h-full object-contain" style={{ filter: `brightness(0) saturate(100%) drop-shadow(0 0 0 ${p.color})`, opacity: 0.6 }} onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = `<span class="text-lg font-bold" style="color:${p.color}">${p.name[0]}</span>`; }} />
+                </div>
+                <span className="text-[10px] sm:text-xs font-medium">{p.name}</span>
               </div>
             ))}
           </div>
@@ -781,8 +783,8 @@ const LandingPage = () => {
             ))}
           </div>
 
-          <div className="ss-reveal glass rounded-xl p-5 border border-emerald-500/10 flex items-center justify-center gap-3 text-sm text-[#8b92b0]">
-            <Lock className="w-4 h-4 text-emerald-400" />
+          <div className="ss-reveal glass rounded-xl p-5 border border-emerald-500/10 flex flex-wrap items-center justify-center gap-3 text-sm text-[#8b92b0] text-center">
+            <Lock className="w-4 h-4 text-emerald-400 flex-shrink-0" />
             <span>Bank-level encryption · SOC 2 compliant · Credentials deleted after setup · Available on Growth & Pro plans</span>
           </div>
         </div>
