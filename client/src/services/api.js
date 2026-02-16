@@ -1,5 +1,3 @@
-import { mockData } from '../mock/mockData';
-
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api';
 
 // Get shop domain from session (set by ShopifyProvider)
@@ -212,17 +210,7 @@ export async function fetchSourceData(source) {
   try {
     const available = await isBackendAvailable();
     if (!available) {
-      const mockDataMap = {
-        shopify: mockData.shopify,
-        meta: mockData.meta,
-        google: mockData.google,
-        klaviyo: mockData.klaviyo,
-        ga4: mockData.ga4,
-      };
-      return {
-        isLive: false,
-        data: mockDataMap[source] || [],
-      };
+      return { isLive: false, data: [] };
     }
 
     const response = await apiFetch(`/connections/${source}/data`);
@@ -231,17 +219,7 @@ export async function fetchSourceData(source) {
     const responseData = await response.json();
 
     if (!responseData.connected) {
-      const mockDataMap = {
-        shopify: mockData.shopify,
-        meta: mockData.meta,
-        google: mockData.google,
-        klaviyo: mockData.klaviyo,
-        ga4: mockData.ga4,
-      };
-      return {
-        isLive: false,
-        data: mockDataMap[source] || [],
-      };
+      return { isLive: false, data: [] };
     }
 
     return {
@@ -252,18 +230,7 @@ export async function fetchSourceData(source) {
     if (import.meta.env.DEV) {
       console.error(`[API] Error fetching data for ${source}:`, error);
     }
-    const mockDataMap = {
-      shopify: mockData.shopify,
-      meta: mockData.meta,
-      google: mockData.google,
-      klaviyo: mockData.klaviyo,
-      ga4: mockData.ga4,
-    };
-    return {
-      isLive: false,
-      data: mockDataMap[source] || [],
-      error: error.message,
-    };
+    return { isLive: false, data: [], error: error.message };
   }
 }
 
@@ -272,7 +239,7 @@ export async function fetchShopifyOrders() {
   try {
     const available = await isBackendAvailable();
     if (!available) {
-      return { isLive: false, data: mockData.shopify };
+      return { isLive: false, data: [] };
     }
 
     const response = await apiFetch('/data/shopify/orders');
@@ -281,13 +248,13 @@ export async function fetchShopifyOrders() {
     const data = await response.json();
     return {
       isLive: true,
-      data: data.data || mockData.shopify,
+      data: data.data || [],
     };
   } catch (error) {
     if (import.meta.env.DEV) {
       console.error('[API] Error fetching Shopify orders:', error);
     }
-    return { isLive: false, data: mockData.shopify, error: error.message };
+    return { isLive: false, data: [], error: error.message };
   }
 }
 
@@ -295,7 +262,7 @@ export async function fetchMetaCampaigns() {
   try {
     const available = await isBackendAvailable();
     if (!available) {
-      return { isLive: false, data: mockData.metaCampaigns };
+      return { isLive: false, data: [] };
     }
 
     const response = await apiFetch('/data/meta/campaigns');
@@ -304,13 +271,13 @@ export async function fetchMetaCampaigns() {
     const data = await response.json();
     return {
       isLive: true,
-      data: data.data || mockData.metaCampaigns,
+      data: data.data || [],
     };
   } catch (error) {
     if (import.meta.env.DEV) {
       console.error('[API] Error fetching Meta campaigns:', error);
     }
-    return { isLive: false, data: mockData.metaCampaigns, error: error.message };
+    return { isLive: false, data: [], error: error.message };
   }
 }
 
@@ -318,7 +285,7 @@ export async function fetchGoogleCampaigns() {
   try {
     const available = await isBackendAvailable();
     if (!available) {
-      return { isLive: false, data: mockData.googleCampaigns };
+      return { isLive: false, data: [] };
     }
 
     const response = await apiFetch('/data/google/campaigns');
@@ -327,13 +294,13 @@ export async function fetchGoogleCampaigns() {
     const data = await response.json();
     return {
       isLive: true,
-      data: data.data || mockData.googleCampaigns,
+      data: data.data || [],
     };
   } catch (error) {
     if (import.meta.env.DEV) {
       console.error('[API] Error fetching Google campaigns:', error);
     }
-    return { isLive: false, data: mockData.googleCampaigns, error: error.message };
+    return { isLive: false, data: [], error: error.message };
   }
 }
 
@@ -341,7 +308,7 @@ export async function fetchKlaviyoFlows() {
   try {
     const available = await isBackendAvailable();
     if (!available) {
-      return { isLive: false, data: mockData.klaviyoFlows };
+      return { isLive: false, data: [] };
     }
 
     const response = await apiFetch('/data/klaviyo/flows');
@@ -350,13 +317,13 @@ export async function fetchKlaviyoFlows() {
     const data = await response.json();
     return {
       isLive: true,
-      data: data.data || mockData.klaviyoFlows,
+      data: data.data || [],
     };
   } catch (error) {
     if (import.meta.env.DEV) {
       console.error('[API] Error fetching Klaviyo flows:', error);
     }
-    return { isLive: false, data: mockData.klaviyoFlows, error: error.message };
+    return { isLive: false, data: [], error: error.message };
   }
 }
 
@@ -364,7 +331,7 @@ export async function fetchGA4Sessions() {
   try {
     const available = await isBackendAvailable();
     if (!available) {
-      return { isLive: false, data: mockData.ga4 };
+      return { isLive: false, data: [] };
     }
 
     const response = await apiFetch('/data/ga4/sessions');
@@ -373,13 +340,13 @@ export async function fetchGA4Sessions() {
     const data = await response.json();
     return {
       isLive: true,
-      data: data.data || mockData.ga4,
+      data: data.data || [],
     };
   } catch (error) {
     if (import.meta.env.DEV) {
       console.error('[API] Error fetching GA4 sessions:', error);
     }
-    return { isLive: false, data: mockData.ga4, error: error.message };
+    return { isLive: false, data: [], error: error.message };
   }
 }
 

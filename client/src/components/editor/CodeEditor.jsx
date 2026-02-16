@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Play, Plus, Trash2, Download } from 'lucide-react';
 import { useStore } from '../../store/useStore';
-import { mockData } from '../../mock/mockData';
+// mockData removed — use live store data
 
 const TEMPLATES = {
   'Quick Stats': `// Quick Stats - Logs today's revenue and orders
@@ -156,7 +156,13 @@ export default function CodeEditor() {
       // Create sandbox API
       const consoleLogs = [];
       const sandboxAPI = {
-        dashboardData: mockData,
+        dashboardData: {
+          shopify: useStore.getState().shopifyData || [],
+          meta: useStore.getState().metaData || [],
+          google: useStore.getState().googleData || [],
+          klaviyo: useStore.getState().klaviyoData || [],
+          ga4: useStore.getState().ga4Data || [],
+        },
         filters: {},
         console: {
           log: (...args) => {

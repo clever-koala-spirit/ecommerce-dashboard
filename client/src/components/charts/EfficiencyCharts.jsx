@@ -168,7 +168,7 @@ export default function EfficiencyCharts() {
         </h3>
         <div className="h-60 flex items-center justify-center">
           <p style={{ color: 'var(--color-text-secondary)' }}>
-            No data available for the selected period
+            Connect ad platforms in Settings to see efficiency metrics
           </p>
         </div>
       </div>

@@ -4,12 +4,21 @@ import { AlertCircle, X, Link, CheckCircle } from 'lucide-react';
 import { useShopify } from '../providers/ShopifyProvider';
 import { useAuth } from '../providers/AuthProvider';
 
+const PLATFORMS = [
+  { key: 'shopify', label: 'Shopify' },
+  { key: 'google', label: 'Google Ads' },
+  { key: 'meta', label: 'Meta' },
+  { key: 'klaviyo', label: 'Klaviyo' },
+  { key: 'ga4', label: 'GA4' },
+  { key: 'tiktok', label: 'TikTok' },
+];
+
 export default function SampleDataBanner() {
   const navigate = useNavigate();
   const { shop } = useShopify();
   const { user } = useAuth();
   const [dismissed, setDismissed] = useState(false);
-  const [connectionState, setConnectionState] = useState(null); // null | 'none' | 'shopify_only' | 'all'
+  const [connections, setConnections] = useState(null);
 
   useEffect(() => {
     if (sessionStorage.getItem('ss_sample_banner_dismissed')) {
@@ -30,129 +39,101 @@ export default function SampleDataBanner() {
         });
         if (res.ok) {
           const data = await res.json();
-          const shopifyConnected = data.shopify?.connected || !!shopDomain;
-          const otherConnected = ['meta', 'google', 'klaviyo', 'ga4', 'tiktok'].some(
-            (p) => data[p]?.connected
-          );
-          if (shopifyConnected && otherConnected) {
-            setConnectionState('all');
-          } else if (shopifyConnected) {
-            setConnectionState('shopify_only');
-          } else {
-            setConnectionState('none');
+          const result = {};
+          for (const p of PLATFORMS) {
+            if (p.key === 'shopify') {
+              result[p.key] = data.shopify?.connected || !!shopDomain;
+            } else {
+              result[p.key] = !!data[p.key]?.connected;
+            }
           }
+          setConnections(result);
         } else {
-          setConnectionState(user?.shopDomain ? 'shopify_only' : 'none');
+          const result = {};
+          for (const p of PLATFORMS) {
+            result[p.key] = p.key === 'shopify' && !!user?.shopDomain;
+          }
+          setConnections(result);
         }
       } catch {
-        setConnectionState(user?.shopDomain ? 'shopify_only' : 'none');
+        const result = {};
+        for (const p of PLATFORMS) {
+          result[p.key] = p.key === 'shopify' && !!user?.shopDomain;
+        }
+        setConnections(result);
       }
     };
     checkConnections();
   }, [shop?.shopifyDomain, user?.shopDomain]);
 
-  if (dismissed || connectionState === null || connectionState === 'all') return null;
+  if (dismissed || connections === null) return null;
+
+  const allConnected = PLATFORMS.every((p) => connections[p.key]);
+  if (allConnected) return null;
 
   const handleDismiss = () => {
     setDismissed(true);
     sessionStorage.setItem('ss_sample_banner_dismissed', '1');
   };
 
-  if (connectionState === 'shopify_only') {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          padding: '12px 16px',
-          borderRadius: '10px',
-          background: 'rgba(34, 197, 94, 0.08)',
-          border: '1px solid rgba(34, 197, 94, 0.25)',
-          marginBottom: '8px',
-        }}
-      >
-        <CheckCircle size={20} style={{ color: '#22c55e', flexShrink: 0 }} />
-        <span style={{ flex: 1, fontSize: '14px', color: '#bbf7d0' }}>
-          <strong>Shopify connected!</strong> Connect more platforms for deeper insights.
-        </span>
-        <button
-          onClick={() => navigate('/settings')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            border: 'none',
-            background: 'var(--color-accent, #6366f1)',
-            color: 'white',
-            fontSize: '13px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <Link size={14} />
-          Connect Platforms
-        </button>
-        <button
-          onClick={handleDismiss}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#6b7280',
-            cursor: 'pointer',
-            padding: '4px',
-            display: 'flex',
-            flexShrink: 0,
-          }}
-          title="Dismiss"
-        >
-          <X size={16} />
-        </button>
-      </div>
-    );
-  }
+  const hasAnyDisconnected = PLATFORMS.some((p) => !connections[p.key]);
 
-  // connectionState === 'none'
   return (
     <div
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
-        padding: '12px 16px',
+        padding: '10px 16px',
         borderRadius: '10px',
-        background: 'rgba(99, 102, 241, 0.08)',
-        border: '1px solid rgba(99, 102, 241, 0.25)',
+        background: 'rgba(99, 102, 241, 0.06)',
+        border: '1px solid rgba(99, 102, 241, 0.2)',
         marginBottom: '8px',
+        flexWrap: 'wrap',
       }}
     >
-      <AlertCircle size={20} style={{ color: '#818cf8', flexShrink: 0 }} />
-      <span style={{ flex: 1, fontSize: '14px', color: '#c7d2fe' }}>
-        You're viewing <strong>sample data</strong>. Connect your Shopify store to see real data.
-      </span>
-      <button
-        onClick={() => navigate('/settings')}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '8px 16px',
-          borderRadius: '8px',
-          border: 'none',
-          background: 'var(--color-accent, #6366f1)',
-          color: 'white',
-          fontSize: '13px',
-          fontWeight: '600',
-          cursor: 'pointer',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        <Link size={14} />
-        Connect Shopify
-      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, flexWrap: 'wrap', minWidth: 0 }}>
+        {PLATFORMS.map((p) => (
+          <span
+            key={p.key}
+            onClick={() => !connections[p.key] && navigate('/settings')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '13px',
+              color: connections[p.key] ? '#22c55e' : 'var(--color-text-secondary)',
+              cursor: connections[p.key] ? 'default' : 'pointer',
+              opacity: connections[p.key] ? 1 : 0.7,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {p.label} {connections[p.key] ? '✓' : '✗'}
+          </span>
+        ))}
+      </div>
+      {hasAnyDisconnected && (
+        <button
+          onClick={() => navigate('/settings')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 14px',
+            borderRadius: '8px',
+            border: 'none',
+            background: 'var(--color-accent, #6366f1)',
+            color: 'white',
+            fontSize: '12px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <Link size={12} />
+          Connect
+        </button>
+      )}
       <button
         onClick={handleDismiss}
         style={{

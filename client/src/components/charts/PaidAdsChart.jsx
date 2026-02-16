@@ -110,7 +110,7 @@ export default function PaidAdsChart() {
         </div>
         <div className="h-80 flex items-center justify-center">
           <p style={{ color: 'var(--color-text-secondary)' }}>
-            No data available for the selected period
+            Connect Meta or Google Ads in Settings to see ad performance
           </p>
         </div>
       </div>

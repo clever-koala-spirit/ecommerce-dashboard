@@ -191,6 +191,11 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
     return item.revenue > 0 ? (profit / item.revenue) * 100 : 0;
   });
 
+  // Determine data availability
+  const hasAdData = (metaData && metaData.length > 0) || (googleData && googleData.length > 0);
+  const hasCOGS = (shopifyData || []).some((item) => item.cogs > 0);
+  const hasFullCostData = hasAdData && hasCOGS;
+
   return {
     metrics: [
       {
@@ -201,6 +206,7 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
         sparkline: grossRevenueSparkline,
         icon: DollarSign,
         accentColor: COLORS.BLUE[500],
+        unavailable: false,
       },
       {
         title: 'Net Profit',
@@ -210,6 +216,8 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
         sparkline: netProfitSparkline,
         icon: TrendingUp,
         accentColor: COLORS.GREEN[500],
+        unavailable: !hasFullCostData,
+        unavailableMessage: 'Connect ad platforms & add COGS to see this metric',
       },
       {
         title: 'Blended ROAS',
@@ -219,6 +227,8 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
         sparkline: roas,
         icon: Zap,
         accentColor: COLORS.ORANGE[500],
+        unavailable: !hasAdData,
+        unavailableMessage: 'Connect ad platforms to see this metric',
       },
       {
         title: 'Total Ad Spend',
@@ -228,6 +238,8 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
         sparkline: adSpendSparkline,
         icon: ShoppingCart,
         accentColor: COLORS.RED[500],
+        unavailable: !hasAdData,
+        unavailableMessage: 'Connect ad platforms to see this metric',
       },
       {
         title: 'Blended CAC',
@@ -237,6 +249,8 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
         sparkline: cacSparkline,
         icon: Users,
         accentColor: COLORS.PURPLE[500],
+        unavailable: !hasAdData,
+        unavailableMessage: 'Connect ad platforms to see this metric',
       },
       {
         title: 'Net Margin %',
@@ -247,6 +261,8 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
         sparkline: marginSparkline,
         icon: BarChart3,
         accentColor: COLORS.CYAN[500],
+        unavailable: !hasFullCostData,
+        unavailableMessage: 'Connect ad platforms & add COGS to see this metric',
       },
     ],
   };
@@ -287,6 +303,8 @@ export default function KPIRow() {
           icon={metric.icon}
           accentColor={metric.accentColor}
           loading={isAnyLoading || isSyncingAny}
+          unavailable={metric.unavailable}
+          unavailableMessage={metric.unavailableMessage}
         />
       ))}
     </div>

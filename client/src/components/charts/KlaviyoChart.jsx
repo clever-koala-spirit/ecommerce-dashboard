@@ -139,7 +139,7 @@ export default function KlaviyoChart() {
         </h3>
         <div className="h-80 flex items-center justify-center">
           <p style={{ color: 'var(--color-text-secondary)' }}>
-            No data available for the selected period
+            Connect Klaviyo in Settings to see email performance
           </p>
         </div>
       </div>
