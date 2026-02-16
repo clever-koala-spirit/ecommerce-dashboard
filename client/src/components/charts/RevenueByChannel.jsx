@@ -67,7 +67,7 @@ export default function RevenueByChannel() {
     );
     // Only show Klaviyo email revenue estimate if we have Klaviyo data or GA4 data
     const hasKlaviyoData = (ga4Data || []).length > 0;
-    const klaviyoRevenue = hasKlaviyoData ? filteredShopify.reduce((sum, d) => sum + (d.revenue * 0.18 || 0), 0) : 0;
+    const klaviyoRevenue = 0; // Only show real Klaviyo data when connected
 
     // If only Shopify is connected (no other platforms), show all revenue as Shopify
     const shopifyRevenue = filteredShopify.reduce((sum, d) => sum + (d.revenue || 0), 0);

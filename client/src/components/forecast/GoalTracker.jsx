@@ -60,9 +60,9 @@ export default function GoalTracker() {
     // Estimate profit (40% COGS, 8% platform fees, ~27.5k ad spend)
     const cogsPercentage = currentMonthRevenue > 0 ? currentMonthCOGS / currentMonthRevenue : 0.4;
     const estimatedCOGS = projectedMonthRevenue * cogsPercentage;
-    const estimatedFees = projectedMonthRevenue * 0.08;
-    const estimatedAdSpend = 27500;
-    const estimatedOtherCosts = 3000;
+    const estimatedFees = 0; // No estimated fees
+    const estimatedAdSpend = 0; // No estimated ad spend
+    const estimatedOtherCosts = 0; // No estimated costs
 
     const projectedMonthProfit = projectedMonthRevenue - estimatedCOGS - estimatedFees - estimatedAdSpend - estimatedOtherCosts;
 

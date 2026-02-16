@@ -41,7 +41,7 @@ export default function ChannelPerformanceTable() {
       {
         name: 'Klaviyo Email',
         spend: 0,
-        revenue: filteredShopify.reduce((sum, d) => sum + (d.revenue * 0.18 || 0), 0),
+        revenue: 0, // Only real data when Klaviyo connected
         orders: 0,
         cpa: 0,
       },
@@ -85,7 +85,7 @@ export default function ChannelPerformanceTable() {
       ...channel,
       roas: channel.spend > 0 ? channel.revenue / channel.spend : 0,
       percentOfRevenue: totalRevenue > 0 ? (channel.revenue / totalRevenue) * 100 : 0,
-      profitContribution: channel.revenue * 0.35, // Estimate 35% margin
+      profitContribution: 0, // Only real profit data
     }));
 
     // Add totals row
@@ -97,7 +97,7 @@ export default function ChannelPerformanceTable() {
       roas: totalSpend > 0 ? totalRevenue / totalSpend : 0,
       cpa: totalOrders > 0 ? totalSpend / totalOrders : 0,
       percentOfRevenue: 100,
-      profitContribution: totalRevenue * 0.35,
+      profitContribution: 0, // Only real data
       isTotal: true,
     });
 

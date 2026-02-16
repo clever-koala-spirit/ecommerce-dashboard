@@ -59,7 +59,7 @@ export default function ProfitForecast() {
     const feesPercentage = totalRevenue > 0 ? totalTransactionFees / totalRevenue : 0.029;
 
     // Ad spend (assuming Meta + Google = 27.5k/month)
-    const monthlyAdSpend = 27500;
+    const monthlyAdSpend = 0; // No estimated ad spend - use real data only
 
     const platformCosts = 800;
     const otherCosts = 1200;

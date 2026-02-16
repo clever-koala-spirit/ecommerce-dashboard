@@ -64,7 +64,7 @@ export default function RevenueWaterfall() {
       filteredGoogle.reduce((sum, d) => sum + (d.spend || 0), 0);
 
     // Estimate other costs at 2% of revenue
-    const otherCosts = grossRevenue * 0.02;
+    const otherCosts = 0; // No estimated costs - only real data
 
     const netProfit =
       grossRevenue - refunds - cogs - shipping - transactionFees - adSpend - otherCosts;

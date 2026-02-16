@@ -89,7 +89,7 @@ export default function CostBreakdownChart() {
         cogs: shopifyItem.cogs || 0,
         shipping: shopifyItem.shipping || 0,
         platformFees: shopifyItem.transactionFees || 0,
-        otherCosts: (shopifyItem.revenue || 0) * 0.02, // 2% other costs
+        otherCosts: 0, // Only real costs
       };
     });
 
