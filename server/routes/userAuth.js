@@ -469,8 +469,10 @@ router.post('/forgot-password', validateForgotPassword, async (req, res) => {
     createResetToken(user.id, resetToken, expiresAt);
 
     // Send reset email
+    let emailSent = false;
     try {
       await emailService.sendPasswordResetEmail(user.email, user.name, resetToken);
+      emailSent = true;
       
       log.info('Password reset email sent', {
         userId: user.id,
@@ -482,14 +484,22 @@ router.post('/forgot-password', validateForgotPassword, async (req, res) => {
         userId: user.id,
         email: user.email.replace(/(..).*(@.*)/, '$1***$2')
       });
-      
-      // Still return success to user, but log the email failure
     }
 
-    res.json({ 
+    // TODO: Remove resetToken from response once email service is fully configured
+    const response = { 
       success: true, 
       message: 'If an account with that email exists, we have sent a password reset link.' 
-    });
+    };
+
+    // Include token in response when email service is not configured (dev/staging only)
+    if (!emailService.isConfigured()) {
+      response.resetToken = resetToken;
+      response.resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+      response._dev_note = 'Token included because email service is not configured (SENDGRID_API_KEY not set)';
+    }
+
+    res.json(response);
   } catch (err) {
     log.error('Forgot password error', err, { email: req.body.email?.replace(/(..).*(@.*)/, '$1***$2') });
     res.status(500).json({ error: 'Internal server error' });

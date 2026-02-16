@@ -38,6 +38,8 @@ import aiRouter from './routes/ai.js';
 import oauthRouter from './routes/oauth.js';
 import billingRouter from './routes/billing.js';
 import chatRouter from './routes/chat.js';
+import contactRouter from './routes/contact.js';
+import newsletterRouter from './routes/newsletter.js';
 
 const app = express();
 app.set('trust proxy', 1); // Behind nginx
@@ -186,6 +188,8 @@ app.use('/api/auth', authRouter);
 
 // --- Public chat routes (no auth required) ---
 app.use('/api/chat', chatRouter);
+app.use('/api/contact', contactRouter);
+app.use('/api/newsletter', newsletterRouter);
 
 // --- Webhook routes (HMAC verified, rate limited) ---
 app.use('/api/webhooks', webhookRateLimiter, webhooksRouter);

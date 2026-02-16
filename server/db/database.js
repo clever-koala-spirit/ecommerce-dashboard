@@ -325,6 +325,33 @@ export async function initDB() {
     )`);
   } catch (e) { /* ignore */ }
 
+  // Contact form submissions
+  db.run(`
+    CREATE TABLE IF NOT EXISTS contact_submissions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      company TEXT,
+      subject TEXT DEFAULT 'general',
+      message TEXT NOT NULL,
+      ip_address TEXT,
+      status TEXT DEFAULT 'new',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Newsletter subscribers
+  db.run(`
+    CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL UNIQUE,
+      ip_address TEXT,
+      status TEXT DEFAULT 'active',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   // Indexes for performance
   db.run(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_reset_tokens_token ON reset_tokens(token);`);
@@ -339,6 +366,8 @@ export async function initDB() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_costs_shop ON fixed_costs(shop_domain);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_chat_conversations_created ON chat_conversations(created_at);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_chat_conversations_human ON chat_conversations(needs_human);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_contact_submissions_created ON contact_submissions(created_at);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_newsletter_subscribers_email ON newsletter_subscribers(email);`);
 
   // Save initial schema to file and start auto-save
   saveDatabaseToFile();

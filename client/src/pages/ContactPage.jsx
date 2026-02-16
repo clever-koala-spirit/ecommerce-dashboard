@@ -31,6 +31,8 @@ const ContactPage = () => {
     subject: 'general'
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const handleInputChange = (e) => {
     setFormData({
@@ -39,24 +41,36 @@ const ContactPage = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // For now, we'll just show success message
-    // In production, this would POST to your backend
-    setIsSubmitted(true);
-    
-    // Create mailto link as fallback
-    const subject = encodeURIComponent(`Slay Season Contact: ${formData.subject === 'general' ? 'General Inquiry' : formData.subject === 'support' ? 'Support Request' : formData.subject === 'billing' ? 'Billing Question' : 'Demo Request'}`);
-    const body = encodeURIComponent(`
-Name: ${formData.name}
-Email: ${formData.email}
-Company: ${formData.company}
+    setIsSubmitting(true);
+    setSubmitError('');
 
-Message:
-${formData.message}
-    `.trim());
-    
-    window.location.href = `mailto:hello@slayseason.com?subject=${subject}&body=${body}`;
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const res = await fetch(`${apiUrl}/api/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          company: formData.company,
+          subject: formData.subject,
+          message: formData.message,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send message');
+      }
+
+      setIsSubmitted(true);
+    } catch (err) {
+      setSubmitError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const faqs = [
@@ -362,13 +376,20 @@ ${formData.message}
                     />
                   </div>
 
+                  {submitError && (
+                    <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
+                      {submitError}
+                    </div>
+                  )}
+
                   <button
                     type="submit"
-                    className="btn-primary text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 group"
+                    disabled={isSubmitting}
+                    className="btn-primary text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Send className="w-4 h-4" />
-                    <span>Send Message</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                    <span>{isSubmitting ? 'Sending...' : 'Send Message'}</span>
+                    {!isSubmitting && <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />}
                   </button>
                 </form>
               </div>
