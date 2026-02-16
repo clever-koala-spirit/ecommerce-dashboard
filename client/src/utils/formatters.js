@@ -161,6 +161,10 @@ export const getDateRange = (preset, customStart = null, customEnd = null) => {
     case 'today':
       startDate = new Date(today);
       break;
+    case 'yesterday':
+      startDate = subDays(today, 1);
+      endDate.setTime(startDate.getTime());
+      break;
     case '7d':
       startDate = subDays(today, 7);
       break;
@@ -204,6 +208,7 @@ export const getDateRange = (preset, customStart = null, customEnd = null) => {
 export const getDateRangeLabel = (preset) => {
   const labels = {
     today: 'Today',
+    yesterday: 'Yesterday',
     '7d': 'Last 7 Days',
     '14d': 'Last 14 Days',
     '30d': 'Last 30 Days',

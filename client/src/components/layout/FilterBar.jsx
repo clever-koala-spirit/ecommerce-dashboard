@@ -25,6 +25,7 @@ export default function FilterBar() {
 
   const dateRangeOptions = [
     { label: 'Today', value: 'today' },
+    { label: 'Yesterday', value: 'yesterday' },
     { label: '7D', value: '7d' },
     { label: '14D', value: '14d' },
     { label: '30D', value: '30d' },
