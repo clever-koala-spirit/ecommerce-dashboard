@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
+import SEO from '../components/common/SEO';
 import KPIRow from '../components/kpi/KPIRow';
 import CustomWidgetRow from '../components/editor/CustomWidgetRow';
 import CodeEditor from '../components/editor/CodeEditor';
