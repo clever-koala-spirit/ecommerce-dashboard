@@ -577,29 +577,34 @@ export function deleteExpiredResetTokens() {
 }
 
 // --- OAuth state management ---
-export function saveOAuthState(platform, state, verifier, shopDomain) {
+export function saveOAuthState(platform, state, verifier, shopDomain, userId = null) {
   const db = getDB();
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 minutes
   
+  // Add user_id column if it doesn't exist
+  try {
+    db.run(`ALTER TABLE oauth_states ADD COLUMN user_id TEXT`);
+  } catch (e) { /* column already exists */ }
+  
   db.run(
-    `INSERT INTO oauth_states (platform, state, verifier, shop_domain, expires_at) 
-     VALUES (?, ?, ?, ?, ?)`,
-    [platform, state, verifier, shopDomain, expiresAt]
+    `INSERT INTO oauth_states (platform, state, verifier, shop_domain, expires_at, user_id) 
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [platform, state, verifier, shopDomain, expiresAt, userId]
   );
 }
 
 export function getOAuthState(platform, state) {
   const db = getDB();
   const results = db.exec(
-    `SELECT verifier, shop_domain FROM oauth_states 
+    `SELECT verifier, shop_domain, user_id FROM oauth_states 
      WHERE platform = ? AND state = ? AND expires_at > datetime('now')`,
     [platform, state]
   );
   
   if (results.length === 0 || results[0].values.length === 0) return null;
   
-  const [verifier, shopDomain] = results[0].values[0];
-  return { verifier, shopDomain };
+  const [verifier, shopDomain, userId] = results[0].values[0];
+  return { verifier, shopDomain, userId };
 }
 
 export function deleteOAuthState(platform, state) {

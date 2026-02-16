@@ -171,7 +171,8 @@ router.get('/:platform/start', (req, res) => {
     }
 
     // Store state in database for verification in callback (replaces in-memory store)
-    saveOAuthState(platform, state, pkce?.verifier || null, shopDomain || null);
+    // Include userId so callback can authenticate the user after redirect
+    saveOAuthState(platform, state, pkce?.verifier || null, shopDomain || null, req.userId || null);
 
     log.oauth(platform, 'flow_started', {
       shopDomain,
@@ -283,7 +284,11 @@ router.get('/:platform/callback', validateOAuthCallback, async (req, res) => {
       return res.status(400).json({ error: 'Invalid or expired state parameter' });
     }
 
-    const { verifier: pkceVerifier, shopDomain } = storedData;
+    const { verifier: pkceVerifier, shopDomain, userId: storedUserId } = storedData;
+    // Restore userId from stored state (since callback redirect doesn't carry auth headers)
+    if (storedUserId && !req.userId) {
+      req.userId = storedUserId;
+    }
     deleteOAuthState(platform, state); // Clean up state
 
     // Exchange authorization code for access token

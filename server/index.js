@@ -205,7 +205,12 @@ app.use('/api/data', apiRateLimiter, requireShopAuth, dataRouter);
 app.use('/api/ai', apiRateLimiter, requireShopAuth, aiRouter);
 // OAuth routes need auth but shop context is optional (loadShopData already ran)
 app.use('/api/oauth', apiRateLimiter, (req, res, next) => {
-  // Require at least a valid JWT (userId set by verifySessionToken)
+  // Callback routes don't carry auth headers (browser redirect from OAuth provider)
+  // They authenticate via stored state/userId in the database instead
+  if (req.path.includes('/callback')) {
+    return next();
+  }
+  // All other OAuth routes require auth
   if (!req.userId && !req.shopDomain) {
     return res.status(401).json({ error: 'Authentication required.' });
   }
