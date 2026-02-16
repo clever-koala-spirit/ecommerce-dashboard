@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { formatCurrency, formatNumber, formatPercent, filterDataByDateRange } from '../../utils/formatters';
 import { CHANNEL_COLORS } from '../../utils/colors';
+import EmptyState from '../common/EmptyState';
 
 export default function ChannelPerformanceTable() {
   const dateRange = useStore((state) => state.dateRange);
@@ -193,18 +194,14 @@ export default function ChannelPerformanceTable() {
         <h3 style={{ color: 'var(--color-text-primary)' }} className="font-semibold mb-4">
           Channel Performance
         </h3>
-        <div className="h-40 flex items-center justify-center">
-          <p style={{ color: 'var(--color-text-secondary)' }}>
-            No data available for the selected period
-          </p>
-        </div>
+        <EmptyState icon="chart" title="No channel data" message="No performance data found for this period. Try a different date range." />
       </div>
     );
   }
 
   return (
     <div
-      className="glass-card p-5"
+      className="glass-card p-5 animate-fadeIn"
       style={{ backgroundColor: 'var(--color-bg-card)' }}
     >
       <div className="flex justify-between items-center mb-4">

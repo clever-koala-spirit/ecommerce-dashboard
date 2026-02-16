@@ -174,7 +174,7 @@ export default function EfficiencyCharts() {
 
   return (
     <div
-      className="glass-card p-5"
+      className="glass-card p-5 animate-fadeIn"
       style={{ backgroundColor: 'var(--color-bg-card)' }}
     >
       <h3 style={{ color: 'var(--color-text-primary)' }} className="font-semibold mb-6">
