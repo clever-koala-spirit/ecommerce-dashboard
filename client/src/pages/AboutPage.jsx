@@ -72,6 +72,7 @@ const AboutPage = () => {
             <button onClick={() => navigate('/pricing')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Pricing</button>
             <button onClick={() => navigate('/blog')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Blog</button>
             <button onClick={() => navigate('/academy')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Academy</button>
+            <button onClick={() => navigate('/academy')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Academy</button>
             <button onClick={() => navigate('/help')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Help</button>
             <button onClick={() => navigate('/contact')} className="text-[#8b92b0] hover:text-white transition-colors duration-200">Contact</button>
           </div>
@@ -126,7 +127,7 @@ const AboutPage = () => {
                   We tried every tool on the market. Triple Whale was cluttered and expensive. Northbeam required a data scientist. BeProfit was basic. Spreadsheets took 15 hours per week and were outdated the moment we finished them.
                 </p>
                 <p className="text-white font-medium text-lg">
-                  So we built Slay Season — the dashboard we desperately needed for our own businesses.
+                  So we built Slay Season — the dashboard we desperately needed for our own businesses. And we went further: we built an Academy right into the platform, because we believe data without understanding is useless.
                 </p>
               </div>
             </div>
@@ -179,11 +180,12 @@ const AboutPage = () => {
               Our <span className="text-indigo-400">Mission</span>
             </h2>
             <p className="text-xl text-[#8b92b0] max-w-3xl mx-auto leading-relaxed">
-              Make analytics accessible to every DTC merchant, not just the ones with data teams
+              Make analytics accessible to every DTC merchant — and teach them what the numbers mean. 
+              Because <strong className="text-white">data without understanding is useless</strong>.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="intersection-observer">
               <div className="glass rounded-xl p-8 text-center">
                 <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
@@ -191,7 +193,7 @@ const AboutPage = () => {
                 </div>
                 <h3 className="text-xl font-bold text-white mb-4">Transparency</h3>
                 <p className="text-[#8b92b0] leading-relaxed">
-                  No hidden costs, no confusing metrics, no black box algorithms. See exactly how your numbers are calculated and where your money goes.
+                  No hidden costs, no confusing metrics, no black box algorithms. See exactly how your numbers are calculated.
                 </p>
               </div>
             </div>
@@ -203,19 +205,31 @@ const AboutPage = () => {
                 </div>
                 <h3 className="text-xl font-bold text-white mb-4">Simplicity</h3>
                 <p className="text-[#8b92b0] leading-relaxed">
-                  Analytics shouldn't require a PhD in data science. Everything is designed for clarity and speed — get insights in seconds, not hours.
+                  Analytics shouldn't require a PhD in data science. Get insights in seconds, not hours.
                 </p>
               </div>
             </div>
 
             <div className="intersection-observer ss-delay-2">
               <div className="glass rounded-xl p-8 text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <Lightbulb className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-4">Education</h3>
+                <p className="text-[#8b92b0] leading-relaxed">
+                  We don't just show you data — we teach you what it means. Our built-in Academy turns every merchant into a data-driven operator.
+                </p>
+              </div>
+            </div>
+
+            <div className="intersection-observer ss-delay-3">
+              <div className="glass rounded-xl p-8 text-center">
                 <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
                   <CheckCircle2 className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-4">Results</h3>
                 <p className="text-[#8b92b0] leading-relaxed">
-                  We measure success by your success. Our customers average 15-30% profit increases within 90 days of using Slay Season.
+                  Our customers average 15-30% profit increases within 90 days of using Slay Season.
                 </p>
               </div>
             </div>
