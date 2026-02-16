@@ -100,7 +100,7 @@ export class GoogleAdsService {
 
       const response = await withRetry(() =>
         queueRequest('google', () =>
-          fetch('https://googleads.googleapis.com/v15/customers', {
+          fetch('https://googleads.googleapis.com/v18/customers', {
             headers: this.getHeaders(accessToken),
           })
         )
@@ -157,7 +157,7 @@ export class GoogleAdsService {
 
       const response = await withRetry(() =>
         queueRequest('google', () =>
-          fetch(`https://googleads.googleapis.com/v15/customers/${customerId}/googleAds:search`, {
+          fetch(`https://googleads.googleapis.com/v18/customers/${customerId}/googleAds:search`, {
             method: 'POST',
             headers: this.getHeaders(accessToken),
             body: JSON.stringify({ query }),
@@ -214,7 +214,7 @@ export class GoogleAdsService {
 
       const response = await withRetry(() =>
         queueRequest('google', () =>
-          fetch(`https://googleads.googleapis.com/v15/customers/${customerId}/googleAds:search`, {
+          fetch(`https://googleads.googleapis.com/v18/customers/${customerId}/googleAds:search`, {
             method: 'POST',
             headers: this.getHeaders(accessToken),
             body: JSON.stringify({ query }),

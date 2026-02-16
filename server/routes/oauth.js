@@ -391,7 +391,7 @@ async function fetchPlatformInfo(platform, tokenData) {
     } else if (platform === 'google') {
       // For Google Ads, we need to get accessible customers
       try {
-        const customersResponse = await fetch('https://googleads.googleapis.com/v15/customers:listAccessibleCustomers', {
+        const customersResponse = await fetch('https://googleads.googleapis.com/v18/customers:listAccessibleCustomers', {
           headers: {
             'Authorization': `Bearer ${tokenData.access_token}`,
             'Content-Type': 'application/json',
