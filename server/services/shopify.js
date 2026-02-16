@@ -2,6 +2,17 @@ import { queueRequest, withRetry } from '../middleware/rateLimiter.js';
 
 const SHOPIFY_API_VERSION = '2024-01';
 
+// Store timezone — used to group orders by the store's local date, not UTC
+const STORE_TIMEZONE = 'America/New_York';
+
+/**
+ * Convert a UTC ISO timestamp to a YYYY-MM-DD date string in the store's timezone
+ */
+function toStoreDate(isoTimestamp) {
+  const date = new Date(isoTimestamp);
+  return date.toLocaleDateString('en-CA', { timeZone: STORE_TIMEZONE }); // en-CA gives YYYY-MM-DD
+}
+
 export class ShopifyService {
   constructor() {
     this.storeUrl = process.env.SHOPIFY_STORE_URL;
@@ -226,7 +237,9 @@ export class ShopifyService {
 
   buildOrdersQuery(cursor, startDate, endDate) {
     const after = cursor ? `after: "${cursor}"` : '';
-    const dateFilter = `created_at:>=${startDate.toISOString().split('T')[0]} created_at:<=${endDate.toISOString().split('T')[0]} (financial_status:paid OR financial_status:partially_refunded)`;
+    const startStr = startDate.toLocaleDateString('en-CA', { timeZone: STORE_TIMEZONE });
+    const endStr = endDate.toLocaleDateString('en-CA', { timeZone: STORE_TIMEZONE });
+    const dateFilter = `created_at:>=${startStr} created_at:<=${endStr} (financial_status:paid OR financial_status:partially_refunded)`;
 
     return `
       query {
@@ -320,7 +333,7 @@ export class ShopifyService {
     return {
       id: order.id,
       name: order.name,
-      date: order.createdAt.split('T')[0],
+      date: toStoreDate(order.createdAt),
       revenue: parseFloat(order.subtotalPriceSet?.shopMoney?.amount || 0),
       shipping: parseFloat(order.totalShippingPriceSet?.shopMoney?.amount || 0),
       tax: parseFloat(order.totalTaxSet?.shopMoney?.amount || 0),

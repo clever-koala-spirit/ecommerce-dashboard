@@ -138,9 +138,20 @@ export const formatDeltaCurrency = (current, previous) => {
 };
 
 // Get date range for preset or custom range
+// Store timezone — must match Shopify store settings
+const STORE_TIMEZONE = 'America/New_York';
+
+/**
+ * Get "today" in the store's timezone as a local Date object
+ */
+function getStoreToday() {
+  const nowInStore = new Date().toLocaleDateString('en-CA', { timeZone: STORE_TIMEZONE });
+  const [y, m, d] = nowInStore.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 export const getDateRange = (preset, customStart = null, customEnd = null) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getStoreToday();
 
   const endDate = new Date(today);
 
