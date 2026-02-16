@@ -1735,7 +1735,7 @@ Start planning now. The brands that win BFCM aren't the ones with the biggest di
               {selectedPost.title}
             </h1>
 
-            <div className="flex items-center gap-4 text-sm text-[#6b7194] mb-8 pb-6 border-b border-white/10">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-[#6b7194] mb-8 pb-6 border-b border-white/10">
               <div className="flex items-center gap-1.5">
                 <User className="w-4 h-4" />
                 <span>{selectedPost.author}</span>

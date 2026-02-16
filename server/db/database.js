@@ -296,6 +296,20 @@ export async function initDB() {
     // Ignore migration errors on fresh DB
   }
 
+  // Migration: add Shopify billing columns to shops table
+  try {
+    const cols = db.exec(`PRAGMA table_info(shops)`);
+    const colNames = cols.length > 0 ? cols[0].values.map(r => r[1]) : [];
+    if (!colNames.includes('billing_plan')) {
+      db.run(`ALTER TABLE shops ADD COLUMN billing_plan TEXT`);
+      db.run(`ALTER TABLE shops ADD COLUMN billing_subscription_id TEXT`);
+      db.run(`ALTER TABLE shops ADD COLUMN billing_status TEXT DEFAULT 'inactive'`);
+      db.run(`ALTER TABLE shops ADD COLUMN billing_updated_at TIMESTAMP`);
+    }
+  } catch (e) {
+    // Ignore migration errors on fresh DB
+  }
+
   // Migration: make oauth_states.shop_domain nullable
   try {
     db.run(`DROP TABLE IF EXISTS oauth_states`);

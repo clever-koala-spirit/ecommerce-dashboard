@@ -220,9 +220,9 @@ const LandingPage = () => {
           <div className="md:hidden glass-strong border-t border-white/5 animate-in">
             <div className="px-4 py-5 space-y-3">
               {[['Features', 'features'], ['Pricing', 'pricing'], ['How It Works', 'how-it-works'], ['FAQ', 'faq']].map(([label, id]) => (
-                <button key={id} onClick={() => scrollTo(id)} className="block w-full text-left text-[#8b92b0] hover:text-white py-2">{label}</button>
+                <button key={id} onClick={() => scrollTo(id)} className="block w-full text-left text-[#8b92b0] hover:text-white py-3 min-h-[44px]">{label}</button>
               ))}
-              <button onClick={() => navigate('/academy')} className="block w-full text-left text-[#8b92b0] hover:text-white py-2 flex items-center gap-1.5">
+              <button onClick={() => navigate('/academy')} className="block w-full text-left text-[#8b92b0] hover:text-white py-3 min-h-[44px] flex items-center gap-1.5">
                 <GraduationCap className="w-3.5 h-3.5" />Academy
               </button>
               <hr className="border-white/5" />
