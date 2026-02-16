@@ -226,7 +226,7 @@ export class ShopifyService {
 
   buildOrdersQuery(cursor, startDate, endDate) {
     const after = cursor ? `after: "${cursor}"` : '';
-    const dateFilter = `created:>='${startDate.toISOString().split('T')[0]}' created:<='${endDate.toISOString().split('T')[0]}'`;
+    const dateFilter = `created:>='${startDate.toISOString().split('T')[0]}' created:<='${endDate.toISOString().split('T')[0]}' financial_status:paid,partially_refunded`;
 
     return `
       query {
