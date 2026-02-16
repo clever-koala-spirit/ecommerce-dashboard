@@ -396,23 +396,35 @@ const LandingPage = () => {
               {
                 icon: <Clock className="w-5 h-5" />,
                 pain: '"I spend 15 hours every week updating spreadsheets across 6 platforms. By the time I finish, the data is outdated."',
-                who: 'Sarah M. — Beauty Brand, $2M ARR',
+                who: 'Sarah M.',
+                role: 'Beauty Brand, $2M ARR',
+                avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Sarah&backgroundColor=c0aede',
               },
               {
                 icon: <Eye className="w-5 h-5" />,
                 pain: '"Meta shows 4.2x ROAS, Google shows 6.1x. Revenue is up. But my bank balance is shrinking. Which numbers do I trust?"',
-                who: 'Marcus T. — Supplements, $500K ARR',
+                who: 'Marcus T.',
+                role: 'Supplements, $500K ARR',
+                avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Marcus&backgroundColor=b6e3f4',
               },
               {
                 icon: <Target className="w-5 h-5" />,
                 pain: '"iOS 14 broke everything. I\'m wasting thousands on ads that look good in Meta but don\'t drive real profit."',
-                who: 'Jennifer K. — Fashion Brand, $3M ARR',
+                who: 'Jennifer K.',
+                role: 'Fashion Brand, $3M ARR',
+                avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Jennifer&backgroundColor=ffd5dc',
               },
             ].map((item, i) => (
               <div key={i} className={`ss-reveal ss-delay-${i + 1} glass rounded-xl p-7 border border-red-500/[.08] hover:border-red-500/20 transition-colors`}>
                 <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400 mb-5">{item.icon}</div>
                 <p className="text-[#c4c9d8] italic leading-relaxed mb-5 text-[15px]">{item.pain}</p>
-                <p className="text-xs text-[#6b7194]">— {item.who}</p>
+                <div className="flex items-center gap-3 mt-4">
+                  <img src={item.avatar} alt={item.who} className="w-10 h-10 rounded-full bg-white/10" />
+                  <div>
+                    <p className="text-sm text-white font-medium">{item.who}</p>
+                    <p className="text-xs text-[#6b7194]">{item.role}</p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -788,24 +800,25 @@ const LandingPage = () => {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 ss-reveal">
             {[
-              { name: 'Sarah Chen', role: 'Founder, Glow Beauty Co', rev: '$2.8M ARR', quote: 'Identified 40% of our Meta spend was unprofitable. Reallocated budget and increased profit by $30K/month in 2 weeks.' },
-              { name: 'Marcus Williams', role: 'CEO, Peak Supplements', rev: '$1.2M ARR', quote: 'Went from 12 hours/week on reporting to 30 minutes. AI forecasting predicted our Black Friday results within 3%.' },
-              { name: 'Jennifer Patel', role: 'Co-Founder, Sustainable Living Co', rev: '$850K ARR', quote: 'Switched from Triple Whale. Half the price, 10x better insights. Setup concierge had us running in 4 hours.' },
-              { name: 'David Rodriguez', role: 'Marketing Dir, Outdoor Gear Pro', rev: '$4.1M ARR', quote: 'Discovered Google Ads was driving 60% more revenue than Meta reported. Completely changed our strategy.' },
-              { name: 'Lisa Thompson', role: 'Founder, Pet Paradise', rev: '$650K ARR', quote: 'We thought we were profitable — actually losing $40K/month. Fixed in 3 weeks with Slay Season\'s recommendations.' },
-              { name: 'Alex Park', role: 'CEO, TechWear Studios', rev: '$3.5M ARR', quote: 'Budget optimizer increased ROAS from 3.2x to 4.8x in one month. 12x ROI on Slay Season in year one.' },
+              { name: 'Sarah Chen', role: 'Founder, Glow Beauty Co', rev: '$2.8M ARR', quote: 'Identified 40% of our Meta spend was unprofitable. Reallocated budget and increased profit by $30K/month in 2 weeks.', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=SarahChen&backgroundColor=c0aede' },
+              { name: 'Marcus Williams', role: 'CEO, Peak Supplements', rev: '$1.2M ARR', quote: 'Went from 12 hours/week on reporting to 30 minutes. AI forecasting predicted our Black Friday results within 3%.', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=MarcusW&backgroundColor=b6e3f4' },
+              { name: 'Jennifer Patel', role: 'Co-Founder, Sustainable Living Co', rev: '$850K ARR', quote: 'Switched from Triple Whale. Half the price, 10x better insights. Setup concierge had us running in 4 hours.', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=JenP&backgroundColor=ffd5dc' },
+              { name: 'David Rodriguez', role: 'Marketing Dir, Outdoor Gear Pro', rev: '$4.1M ARR', quote: 'Discovered Google Ads was driving 60% more revenue than Meta reported. Completely changed our strategy.', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=DavidR&backgroundColor=d1f4d1' },
+              { name: 'Lisa Thompson', role: 'Founder, Pet Paradise', rev: '$650K ARR', quote: 'We thought we were profitable — actually losing $40K/month. Fixed in 3 weeks with Slay Season\'s recommendations.', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=LisaT&backgroundColor=ffeab6' },
+              { name: 'Alex Park', role: 'CEO, TechWear Studios', rev: '$3.5M ARR', quote: 'Budget optimizer increased ROAS from 3.2x to 4.8x in one month. 12x ROI on Slay Season in year one.', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=AlexP&backgroundColor=b6d4f4' },
             ].map((t, i) => (
               <div key={i} className={`ss-delay-${(i % 3) + 1} glass rounded-xl p-6 hover:bg-white/[.02] transition-colors`}>
                 <div className="flex gap-0.5 mb-4">
                   {[...Array(5)].map((_, j) => <Star key={j} className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />)}
                 </div>
                 <p className="text-[#c4c9d8] text-sm leading-relaxed mb-5">"{t.quote}"</p>
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex items-center gap-3">
+                  <img src={t.avatar} alt={t.name} className="w-10 h-10 rounded-full bg-white/10 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
                     <p className="font-semibold text-white text-sm">{t.name}</p>
                     <p className="text-xs text-[#6b7194]">{t.role}</p>
                   </div>
-                  <span className="text-xs text-emerald-400 font-medium">{t.rev}</span>
+                  <span className="text-xs text-emerald-400 font-medium flex-shrink-0">{t.rev}</span>
                 </div>
               </div>
             ))}

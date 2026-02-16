@@ -24,7 +24,9 @@ import {
   ShieldCheck,
   CheckCircle2,
   ArrowUpRight,
-  ExternalLink
+  ExternalLink,
+  Menu,
+  XIcon
 } from 'lucide-react';
 
 const PricingPage = () => {
@@ -184,18 +186,18 @@ const PricingPage = () => {
           <p className="text-xl text-[#8b92b0] max-w-2xl mx-auto leading-relaxed mb-8">
             Start with a 14-day free trial. No credit card required. Scale when you're ready.
           </p>
-          <div className="flex items-center justify-center gap-6 text-sm text-[#6b7194]">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-[#6b7194]">
             <span className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
               14-day free trial
             </span>
             <span className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-emerald-400" />
-              No credit card required
+              <Lock className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              No credit card
             </span>
             <span className="flex items-center gap-2">
-              <RefreshCw className="w-4 h-4 text-emerald-400" />
-              30-day money-back guarantee
+              <RefreshCw className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              30-day money-back
             </span>
           </div>
         </div>

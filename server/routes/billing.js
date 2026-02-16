@@ -1,9 +1,11 @@
 /**
  * Billing API Routes
- * Handles Stripe subscriptions, payments, and billing management
+ * Handles Stripe subscriptions + Shopify Billing API
  */
 import express from 'express';
 import billingService from '../services/billing.js';
+import shopifyBilling from '../services/shopifyBilling.js';
+import { decrypt } from '../db/database.js';
 import { log } from '../utils/logger.js';
 import {
   validateCreateSubscription,
