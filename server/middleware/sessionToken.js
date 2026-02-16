@@ -28,9 +28,13 @@ const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
 export function verifySessionToken(req, res, next) {
   const authHeader = req.headers.authorization;
 
+  // Also accept token from query parameter (for OAuth redirect flows where headers can't be sent)
+  const queryToken = req.query?.token;
+
   // If Authorization header with Bearer token is present, verify it
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.slice(7); // Remove "Bearer " prefix
+  const bearerToken = (authHeader && authHeader.startsWith('Bearer ')) ? authHeader.slice(7) : queryToken;
+  if (bearerToken) {
+    const token = bearerToken;
 
     try {
       // Verify JWT using Shopify API secret as signing key

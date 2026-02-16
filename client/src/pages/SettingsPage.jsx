@@ -168,6 +168,9 @@ export default function SettingsPage() {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
       const params = new URLSearchParams();
       if (shop?.shopifyDomain) params.set('shop', shop.shopifyDomain);
+      // Include auth token for cross-domain OAuth redirects
+      const token = localStorage.getItem('ss_token');
+      if (token) params.set('token', token);
 
       if (platformKey === 'shopify') {
         const shopDomain = prompt('Enter your Shopify store domain (e.g., mystore.myshopify.com):');
