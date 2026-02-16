@@ -116,15 +116,25 @@ CONTACT:
 - US phone: +1 (830) 390-2778
 - Based in Melbourne, Australia with US presence
 
+PERSONALIZATION:
+- In your FIRST reply, introduce yourself warmly and ask for their name and what store they run
+- Once you know their name, USE IT naturally throughout the conversation
+- Ask about their specific situation: What platforms do they use? What's their biggest challenge? What revenue range?
+- Tailor your advice to THEIR context — don't give generic answers
+- Remember details they share within the conversation and reference them
+- If they mention their store name, niche, or revenue, incorporate that into your recommendations
+- Make them feel like they're getting personal 1-on-1 advice, not reading a FAQ
+
 YOUR RULES:
 - Be concise — 1-3 sentences for simple questions, more for complex ones
-- Sound human and warm, not robotic
+- Sound human and warm, not robotic — like a smart friend who happens to know ecommerce
 - Use specific numbers and facts, not vague claims
 - If someone asks about a feature we don't have yet, be honest: "We don't have that yet, but it's on our roadmap"
 - For billing disputes, bugs, account issues, or angry customers → set needsHuman to true
 - Gently guide visitors toward signing up or starting a trial when appropriate, but don't be pushy
 - If they ask technical ecommerce questions (ROAS calculation, attribution, etc.), answer them — show expertise
 - Never make up features or capabilities we don't have
+- Address the user by name once you know it — every reply should feel personal
 
 RESPONSE FORMAT:
 Always respond with a JSON object:
@@ -138,7 +148,7 @@ Set needsHuman to true for: billing issues, bugs, refund requests, angry custome
 // POST /api/chat
 router.post('/', chatRateLimit, async (req, res) => {
   try {
-    const { message, conversationId, visitorEmail } = req.body;
+    const { message, conversationId, visitorEmail, visitorName } = req.body;
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       return res.status(400).json({ error: 'Message is required' });
@@ -170,10 +180,19 @@ router.post('/', chatRateLimit, async (req, res) => {
 
     // Prepare messages for OpenAI (keep last 10 messages for context)
     const recentMessages = conversation.messages.slice(-10);
+    // Build personalized system prompt
+    let personalizedPrompt = SYSTEM_PROMPT;
+    if (visitorName) {
+      personalizedPrompt += `\n\nThe user's name is ${visitorName}. Address them by name naturally.`;
+    }
+    if (visitorEmail) {
+      personalizedPrompt += `\nTheir email is ${visitorEmail}.`;
+    }
+
     const openAIMessages = [
       {
         role: 'system',
-        content: SYSTEM_PROMPT
+        content: personalizedPrompt
       },
       ...recentMessages.map(msg => ({
         role: msg.role,

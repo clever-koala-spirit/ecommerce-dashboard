@@ -14,8 +14,21 @@ const ChatWidget = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const [visitorEmail, setVisitorEmail] = useState('');
+  const [visitorName, setVisitorName] = useState('');
   const [showEmailPrompt, setShowEmailPrompt] = useState(false);
   const [needsHuman, setNeedsHuman] = useState(false);
+
+  // Load logged-in user info
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem('ss_token');
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.name) setVisitorName(payload.name);
+        if (payload.email) setVisitorEmail(payload.email);
+      }
+    } catch (e) { /* not logged in */ }
+  }, []);
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -77,7 +90,8 @@ const ChatWidget = () => {
         body: JSON.stringify({
           message: inputValue.trim(),
           conversationId,
-          visitorEmail: visitorEmail || undefined
+          visitorEmail: visitorEmail || undefined,
+          visitorName: visitorName || undefined
         }),
       });
 
