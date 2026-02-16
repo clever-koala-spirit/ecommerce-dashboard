@@ -632,7 +632,7 @@ export function savePlatformConnection(shopDomain, platform, credentials, accoun
   db.run(
     `INSERT INTO platform_connections (shop_domain, platform, account_id, credentials_encrypted)
      VALUES (?, ?, ?, ?)
-     ON CONFLICT(shop_domain, platform, account_id) DO UPDATE SET
+     ON CONFLICT(shop_domain, platform) DO UPDATE SET
        credentials_encrypted = excluded.credentials_encrypted,
        status = 'active',
        updated_at = CURRENT_TIMESTAMP`,
