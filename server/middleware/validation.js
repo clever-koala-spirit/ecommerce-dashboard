@@ -36,8 +36,10 @@ function validateRequest(schema, property = 'body') {
       });
     }
 
-    // Replace with validated/sanitized data
-    req[property] = value;
+    // Replace with validated/sanitized data (skip readonly properties in Express 5)
+    if (property !== 'query' && property !== 'params') {
+      req[property] = value;
+    }
     next();
   };
 }
