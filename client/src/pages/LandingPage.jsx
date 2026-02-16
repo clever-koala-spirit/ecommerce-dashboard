@@ -966,9 +966,9 @@ const LandingPage = () => {
               <p className="text-sm text-[#6b7194] leading-relaxed">True profit analytics for DTC brands. Built by operators, for operators.</p>
             </div>
             {[
-              { title: 'Product', links: [['Features', () => scrollTo('features')], ['Pricing', () => navigate('/pricing')], ['Free Trial', () => navigate('/signup')], ['Integrations', null]] },
+              { title: 'Product', links: [['Features', () => scrollTo('features')], ['Pricing', () => navigate('/pricing')], ['Free Trial', () => navigate('/signup')], ['Integrations', () => navigate('/integrations')]] },
               { title: 'Company', links: [['About', () => navigate('/about')], ['Blog', () => navigate('/blog')], ['Contact', () => navigate('/contact')], ['Help', () => navigate('/help')]] },
-              { title: 'Legal', links: [['Privacy Policy', () => navigate('/privacy')], ['Terms of Service', () => navigate('/terms')], ['Security', null], ['GDPR', null]] },
+              { title: 'Legal', links: [['Privacy Policy', () => navigate('/privacy')], ['Terms of Service', () => navigate('/terms')], ['Security', () => navigate('/security')], ['GDPR', () => navigate('/gdpr')]] },
             ].map((col, i) => (
               <div key={i}>
                 <h4 className="font-semibold text-white text-sm mb-3">{col.title}</h4>
@@ -984,13 +984,10 @@ const LandingPage = () => {
           </div>
           <div className="border-t border-white/[.04] pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div>
-              <p className="text-xs text-[#4a4f6a]">© 2025 Slay Season. All rights reserved.</p>
+              <p className="text-xs text-[#4a4f6a]">© {new Date().getFullYear()} Slay Season. All rights reserved.</p>
               <p className="text-xs text-[#6b7194] mt-1">🇦🇺 Melbourne • 🇺🇸 United States</p>
             </div>
             <div className="flex items-center gap-4">
-              {['𝕏', 'in'].map((s, i) => (
-                <a key={i} href="#" className="w-7 h-7 glass rounded-md flex items-center justify-center text-xs text-[#6b7194] hover:text-white transition-colors">{s}</a>
-              ))}
             </div>
           </div>
         </div>

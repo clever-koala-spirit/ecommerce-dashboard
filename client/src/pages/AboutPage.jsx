@@ -23,6 +23,21 @@ import {
 const AboutPage = () => {
   const navigate = useNavigate();
 
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+    document.querySelectorAll('.intersection-observer').forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="w-full bg-[#050608] text-[#e8eaf0] overflow-hidden antialiased">
       <style>{`
@@ -386,22 +401,5 @@ const AboutPage = () => {
     </div>
   );
 };
-
-// Intersection Observer for animations
-React.useEffect(() => {
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-        }
-      });
-    },
-    { threshold: 0.1 }
-  );
-
-  document.querySelectorAll('.intersection-observer').forEach((el) => observer.observe(el));
-  return () => observer.disconnect();
-}, []);
 
 export default AboutPage;

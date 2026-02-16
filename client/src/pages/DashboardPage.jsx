@@ -22,10 +22,10 @@ export default function DashboardPage() {
 
   // Fetch real data on mount and when date range changes
   useEffect(() => {
-    fetchDashboardData().catch((err) => {
+    fetchDashboardData(dateRange).catch((err) => {
       console.error('[DashboardPage] Failed to fetch dashboard data:', err);
     });
-  }, [fetchDashboardData, dateRange]);
+  }, [fetchDashboardData, dateRange.preset, dateRange.customStart, dateRange.customEnd]);
 
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 page-content">

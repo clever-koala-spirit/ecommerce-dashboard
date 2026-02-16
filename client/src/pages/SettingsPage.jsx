@@ -691,15 +691,15 @@ export default function SettingsPage() {
 
           <div className="glass-card" style={styles.card}>
             <div style={styles.exportButtons}>
-              <button style={styles.btnSecondary}>
+              <button style={styles.btnSecondary} onClick={() => { const a = document.createElement('a'); a.href = `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/data/dashboard?days=90&format=csv`; a.download = 'slay-season-export.csv'; document.body.appendChild(a); a.click(); a.remove(); }}>
                 <Database size={18} />
                 Export as CSV
               </button>
-              <button style={styles.btnSecondary}>
+              <button style={styles.btnSecondary} onClick={() => { const a = document.createElement('a'); a.href = `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/data/dashboard?days=90&format=json`; a.download = 'slay-season-export.json'; document.body.appendChild(a); a.click(); a.remove(); }}>
                 <Database size={18} />
                 Export as JSON
               </button>
-              <button style={styles.btnSecondary}>
+              <button style={styles.btnSecondary} onClick={() => window.location.href = 'mailto:hello@slayseason.com?subject=Analytics%20Report%20Request&body=Please%20send%20me%20my%20latest%20analytics%20report.'}>
                 <Mail size={18} />
                 Email Report
               </button>
@@ -725,7 +725,7 @@ export default function SettingsPage() {
                 <p style={styles.planDescription}>
                   Get started with basic analytics and 1 platform connection
                 </p>
-                <button style={styles.btnPrimaryLarge}>
+                <button style={styles.btnPrimaryLarge} onClick={() => window.location.href = '/pricing'}>
                   Upgrade to Pro
                 </button>
               </div>

@@ -161,7 +161,7 @@ export const createDataSlice = (set, get) => ({
   },
 
   // Fetch all dashboard data from API and populate store
-  fetchDashboardData: async () => {
+  fetchDashboardData: async (dateRange = null) => {
     set((state) => ({
       isLoading: {
         ...state.isLoading,
@@ -174,7 +174,7 @@ export const createDataSlice = (set, get) => ({
     }));
 
     try {
-      const result = await apiFetchDashboard();
+      const result = await apiFetchDashboard(dateRange || get().dateRange);
       const data = result.data || {};
 
       set((state) => ({

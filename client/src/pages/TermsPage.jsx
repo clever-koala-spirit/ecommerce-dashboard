@@ -10,7 +10,7 @@ export default function TermsPage() {
 
         <header className="policy-header">
           <h1>Terms of Service</h1>
-          <p className="last-updated">Last Updated: February 2024</p>
+          <p className="last-updated">Last Updated: February 2025</p>
         </header>
 
         <div className="policy-content">
@@ -240,7 +240,7 @@ export default function TermsPage() {
 
             <h3>Support</h3>
             <p>
-              We provide support via email at support@slayseason.com. Response times are on a
+              We provide support via email at hello@slayseason.com. Response times are on a
               best-effort basis, typically within 1-2 business days.
             </p>
           </section>
@@ -264,7 +264,7 @@ export default function TermsPage() {
             <h3>Dispute Resolution</h3>
             <p>
               Before pursuing legal action, you agree to attempt to resolve any dispute by contacting
-              us at support@slayseason.com. We will work with you in good faith to resolve issues.
+              us at hello@slayseason.com. We will work with you in good faith to resolve issues.
             </p>
           </section>
 
@@ -306,7 +306,7 @@ export default function TermsPage() {
             </p>
             <div className="contact-info">
               <p>
-                <strong>Email:</strong> <a href="mailto:support@slayseason.com">support@slayseason.com</a>
+                <strong>Email:</strong> <a href="mailto:hello@slayseason.com">hello@slayseason.com</a>
               </p>
               <p>
                 <strong>Response Time:</strong> We aim to respond to all inquiries within 5 business days.

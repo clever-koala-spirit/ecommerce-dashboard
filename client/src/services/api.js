@@ -49,8 +49,34 @@ export async function isBackendAvailable() {
   }
 }
 
+// Build query string from date range filter
+function buildDateQuery(dateRange) {
+  if (!dateRange) return 'days=90';
+
+  const { preset, customStart, customEnd } = dateRange;
+
+  // For custom ranges, pass explicit dates
+  if (preset === 'custom' && customStart && customEnd) {
+    return `startDate=${customStart}&endDate=${customEnd}`;
+  }
+
+  // Map presets to days parameter
+  const presetDays = {
+    today: 1,
+    yesterday: 2, // fetch 2 days so we have yesterday's data
+    '7d': 7,
+    '14d': 14,
+    '30d': 30,
+    '90d': 90,
+    ytd: Math.ceil((Date.now() - new Date(new Date().getFullYear(), 0, 1).getTime()) / 86400000) + 1,
+  };
+
+  const days = presetDays[preset] || 90;
+  return `days=${days}`;
+}
+
 // Get dashboard data (combined from all sources)
-export async function fetchDashboardData() {
+export async function fetchDashboardData(dateRange = null) {
   try {
     const available = await isBackendAvailable();
     if (!available) {
@@ -68,7 +94,8 @@ export async function fetchDashboardData() {
       };
     }
 
-    const response = await apiFetch('/data/dashboard?days=90');
+    const query = buildDateQuery(dateRange);
+    const response = await apiFetch(`/data/dashboard?${query}`);
     if (!response.ok) throw new Error('Failed to fetch dashboard data');
 
     const data = await response.json();

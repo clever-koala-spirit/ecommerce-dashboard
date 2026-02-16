@@ -1,20 +1,6 @@
 export const createInsightSlice = (set) => ({
   // State
-  insights: [
-    {
-      id: 'insight-1',
-      severity: 'warning', // 'success', 'error', 'warning', 'info'
-      title: 'Placeholder Insight',
-      body: 'This is a placeholder insight. Insights will be populated from mock data.',
-      action: 'Learn More',
-      actionUrl: '#',
-      timestamp: new Date(),
-      dismissed: false,
-      snoozed: false,
-      snoozedUntil: null,
-      bookmarked: false,
-    },
-  ],
+  insights: [],
 
   // Actions
   addInsight: (severity, title, body, action = 'Learn More', actionUrl = '#') => {
