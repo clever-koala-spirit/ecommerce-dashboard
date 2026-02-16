@@ -108,17 +108,7 @@ export function verifyShopifyRequest(req, res, next) {
 
 // --- Request sanitization ---
 export function sanitizeRequest(req, res, next) {
-  // Sanitize query params
-  if (req.query) {
-    for (const key of Object.keys(req.query)) {
-      if (typeof req.query[key] === 'string') {
-        req.query[key] = req.query[key]
-          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-          .replace(/javascript:/gi, '')
-          .replace(/on\w+\s*=/gi, '');
-      }
-    }
-  }
+  // Sanitize query params (req.query is readonly in Express 5 — read only, don't write back)
   next();
 }
 
