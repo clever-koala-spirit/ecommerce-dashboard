@@ -217,14 +217,21 @@ export const filterDataByDateRange = (data, dateRange) => {
   }
 
   const startTime = new Date(start).getTime();
-  const endTime = new Date(end).getTime();
+  // Set end to end-of-day to avoid timezone filtering issues
+  // (date strings like "2026-02-16" parse as UTC midnight, which can be
+  // ahead of local midnight in positive UTC offset timezones like AEDT)
+  const endDateObj = new Date(end);
+  endDateObj.setHours(23, 59, 59, 999);
+  const endTime = endDateObj.getTime();
 
   // Safety check: if dates are invalid, return all data
   if (isNaN(startTime) || isNaN(endTime) || endTime < startTime) return data;
 
   return data.filter((item) => {
     if (!item.date) return false;
-    const itemDate = new Date(item.date);
+    // Parse date strings as local dates, not UTC
+    const parts = item.date.split('-');
+    const itemDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
     const itemTime = itemDate.getTime();
     return itemTime >= startTime && itemTime <= endTime;
   });
