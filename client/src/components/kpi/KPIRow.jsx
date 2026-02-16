@@ -48,7 +48,6 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
   const currentRefunds = sumProperty(filteredShopify, 'refundAmount');
   const currentCogs = sumProperty(filteredShopify, 'cogs');
   const currentShipping = sumProperty(filteredShopify, 'shipping');
-  const currentTransactionFees = sumProperty(filteredShopify, 'transactionFees');
   const currentAdSpend = sumProperty(filteredMeta, 'spend') + sumProperty(filteredGoogle, 'spend');
   const currentPeriodFixedCosts = dailyFixedCost * filteredShopify.length;
   const currentNetProfit =
@@ -56,9 +55,14 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
     currentRefunds -
     currentCogs -
     currentShipping -
-    currentTransactionFees -
     currentAdSpend -
     currentPeriodFixedCosts;
+
+  // Shopify-only metrics
+  const currentTotalOrders = sumProperty(filteredShopify, 'orders');
+  const currentAov = currentTotalOrders > 0 ? currentGrossRevenue / currentTotalOrders : 0;
+  const currentRefundCount = sumProperty(filteredShopify, 'refunds');
+  const currentRefundAmount = currentRefunds;
 
   // 3. Blended ROAS
   const currentMetaRevenue = sumProperty(filteredMeta, 'revenue');
@@ -86,7 +90,6 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
   const prevRefunds = sumProperty(prevShopify, 'refundAmount');
   const prevCogs = sumProperty(prevShopify, 'cogs');
   const prevShipping = sumProperty(prevShopify, 'shipping');
-  const prevTransactionFees = sumProperty(prevShopify, 'transactionFees');
   const prevAdSpend = sumProperty(prevMeta, 'spend') + sumProperty(prevGoogle, 'spend');
   const prevPeriodFixedCosts = dailyFixedCost * prevShopify.length;
   const prevNetProfit =
@@ -94,9 +97,13 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
     prevRefunds -
     prevCogs -
     prevShipping -
-    prevTransactionFees -
     prevAdSpend -
     prevPeriodFixedCosts;
+
+  const prevTotalOrders = sumProperty(prevShopify, 'orders');
+  const prevAov = prevTotalOrders > 0 ? prevGrossRevenue / prevTotalOrders : 0;
+  const prevRefundCount = sumProperty(prevShopify, 'refunds');
+  const prevRefundAmount = prevRefunds;
 
   // 3. Blended ROAS
   const prevMetaRevenue = sumProperty(prevMeta, 'revenue');
@@ -126,9 +133,7 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
     const refund = item.refundAmount || 0;
     const cogs = item.cogs || 0;
     const shipping = item.shipping || 0;
-    const fees = item.transactionFees || 0;
 
-    // Get meta and google for same date
     const metaDate = filteredMeta.find((m) => m.date === item.date);
     const googleDate = filteredGoogle.find((g) => g.date === item.date);
     const adSpend = (metaDate?.spend || 0) + (googleDate?.spend || 0);
@@ -138,7 +143,6 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
       refund -
       cogs -
       shipping -
-      fees -
       adSpend -
       dailyFixedCost
     );
@@ -174,7 +178,6 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
     const refund = item.refundAmount || 0;
     const cogs = item.cogs || 0;
     const shipping = item.shipping || 0;
-    const fees = item.transactionFees || 0;
 
     const metaDate = filteredMeta.find((m) => m.date === item.date);
     const googleDate = filteredGoogle.find((g) => g.date === item.date);
@@ -185,11 +188,16 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
       refund -
       cogs -
       shipping -
-      fees -
       adSpend -
       dailyFixedCost;
     return item.revenue > 0 ? (profit / item.revenue) * 100 : 0;
   });
+
+  const ordersSparkline = getSparklineData(filteredShopify, 'orders');
+  const aovSparkline = filteredShopify.map((item) =>
+    item.orders > 0 ? item.grossRevenue / item.orders : 0
+  );
+  const refundSparkline = getSparklineData(filteredShopify, 'refundAmount');
 
   // Determine data availability
   const hasAdData = (metaData && metaData.length > 0) || (googleData && googleData.length > 0);
@@ -264,6 +272,36 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
         unavailable: !hasFullCostData,
         unavailableMessage: 'Connect ad platforms & add COGS to see this metric',
       },
+      {
+        title: 'Total Orders',
+        current: currentTotalOrders,
+        previous: prevTotalOrders,
+        format: 'number',
+        sparkline: ordersSparkline,
+        icon: ShoppingCart,
+        accentColor: COLORS.BLUE[400],
+        unavailable: false,
+      },
+      {
+        title: 'AOV',
+        current: currentAov,
+        previous: prevAov,
+        format: 'currency',
+        sparkline: aovSparkline,
+        icon: DollarSign,
+        accentColor: COLORS.GREEN[400],
+        unavailable: false,
+      },
+      {
+        title: 'Refunds',
+        current: currentRefundAmount,
+        previous: prevRefundAmount,
+        format: 'currency',
+        sparkline: refundSparkline,
+        icon: TrendingUp,
+        accentColor: COLORS.RED[400],
+        unavailable: false,
+      },
     ],
   };
 }
@@ -290,7 +328,7 @@ export default function KPIRow() {
     : !!isLoading;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3 sm:gap-4 transition-all duration-300">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-3 gap-3 sm:gap-4 transition-all duration-300">
       {metrics.map((metric) => (
         <KPICard
           key={metric.title}

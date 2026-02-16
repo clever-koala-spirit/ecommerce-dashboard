@@ -226,7 +226,7 @@ export class ShopifyService {
 
   buildOrdersQuery(cursor, startDate, endDate) {
     const after = cursor ? `after: "${cursor}"` : '';
-    const dateFilter = `created_at:>=${startDate.toISOString().split('T')[0]} created_at:<=${endDate.toISOString().split('T')[0]} financial_status:paid OR financial_status:partially_refunded`;
+    const dateFilter = `created_at:>=${startDate.toISOString().split('T')[0]} created_at:<=${endDate.toISOString().split('T')[0]} (financial_status:paid OR financial_status:partially_refunded)`;
 
     return `
       query {
@@ -235,34 +235,30 @@ export class ShopifyService {
             cursor
             node {
               id
+              name
               createdAt
-              totalPriceSet {
-                shopMoney {
-                  amount
-                }
+              displayFinancialStatus
+              subtotalPriceSet { shopMoney { amount currencyCode } }
+              totalShippingPriceSet { shopMoney { amount currencyCode } }
+              totalTaxSet { shopMoney { amount currencyCode } }
+              totalPriceSet { shopMoney { amount currencyCode } }
+              totalRefundedSet { shopMoney { amount currencyCode } }
+              customer {
+                id
+                numberOfOrders
               }
-              lineItems(first: 10) {
+              lineItems(first: 50) {
                 edges {
                   node {
                     title
                     quantity
-                    originalTotalSet {
-                      shopMoney {
-                        amount
-                      }
-                    }
+                    originalTotalSet { shopMoney { amount } }
                   }
                 }
               }
-              customer {
-                firstName
-                email
-              }
             }
           }
-          pageInfo {
-            hasNextPage
-          }
+          pageInfo { hasNextPage }
         }
       }
     `;
@@ -323,21 +319,26 @@ export class ShopifyService {
   normalizeOrder(order) {
     return {
       id: order.id,
+      name: order.name,
       date: order.createdAt.split('T')[0],
-      revenue: parseFloat(order.totalPriceSet.shopMoney.amount),
+      revenue: parseFloat(order.subtotalPriceSet?.shopMoney?.amount || 0),
+      shipping: parseFloat(order.totalShippingPriceSet?.shopMoney?.amount || 0),
+      tax: parseFloat(order.totalTaxSet?.shopMoney?.amount || 0),
+      grossRevenue: parseFloat(order.totalPriceSet?.shopMoney?.amount || 0),
+      refundAmount: parseFloat(order.totalRefundedSet?.shopMoney?.amount || 0),
+      isNewCustomer: (order.customer?.numberOfOrders || 0) <= 1,
+      isReturningCustomer: (order.customer?.numberOfOrders || 0) > 1,
       items: order.lineItems.edges.length,
-      customer: order.customer?.firstName || 'Anonymous',
     };
   }
 
   normalizeProduct(product) {
     const price = parseFloat(product.priceRange.minVariantPrice.amount);
-    const revenue = price * product.totalInventory * 0.5; // Estimate
 
     return {
       id: product.id,
       title: product.title,
-      revenue: Math.round(revenue * 100) / 100,
+      revenue: 0, // No fake revenue estimation — real sales data comes from orders
       inventory: product.totalInventory,
       price: price,
     };
@@ -362,20 +363,29 @@ export class ShopifyService {
           date: order.date,
           orders: 0,
           revenue: 0,
+          shipping: 0,
+          tax: 0,
+          grossRevenue: 0,
           newCustomers: 0,
           returningCustomers: 0,
           aov: 0,
           cogs: 0,
-          shipping: 0,
-          transactionFees: 0,
+          transactionFees: 0, // Shopify doesn't expose transaction fees via API
           refunds: 0,
           refundAmount: 0,
         };
       }
 
-      aggregated[order.date].orders += 1;
-      aggregated[order.date].revenue += order.revenue;
-      aggregated[order.date].transactionFees += order.revenue * 0.029;
+      const day = aggregated[order.date];
+      day.orders += 1;
+      day.revenue += order.revenue;
+      day.shipping += order.shipping;
+      day.tax += order.tax;
+      day.grossRevenue += order.grossRevenue;
+      day.refundAmount += order.refundAmount;
+      if (order.refundAmount > 0) day.refunds += 1;
+      if (order.isNewCustomer) day.newCustomers += 1;
+      if (order.isReturningCustomer) day.returningCustomers += 1;
     });
 
     return Object.values(aggregated)

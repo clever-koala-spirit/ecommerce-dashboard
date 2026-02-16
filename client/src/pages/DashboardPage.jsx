@@ -13,6 +13,7 @@ import CostBreakdownChart from '../components/charts/CostBreakdownChart';
 import EfficiencyCharts from '../components/charts/EfficiencyCharts';
 import InsightsEngine from '../components/forecast/InsightsEngine';
 import SampleDataBanner from '../components/SampleDataBanner';
+import ConnectionStatusBar from '../components/connections/ConnectionStatusBar';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ export default function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 page-content">
+      <ConnectionStatusBar />
       <SampleDataBanner />
       {/* Code Editor */}
       <CodeEditor />

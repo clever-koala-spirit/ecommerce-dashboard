@@ -6,7 +6,6 @@ import { tiktokService } from '../services/tiktok.js';
 import { klaviyoService } from '../services/klaviyo.js';
 import { ga4Service } from '../services/ga4.js';
 import { getCachedOrFetch, invalidateCache } from '../middleware/cache.js';
-import { mockData } from '../mock/mockData.js';
 import { saveSnapshot, getHistory } from '../db/database.js';
 
 const router = express.Router();
@@ -25,13 +24,20 @@ function getDateRange(days = 30) {
 router.get('/dashboard', async (req, res) => {
   try {
     const { shopDomain, shopData } = req;
-    const dateRange = getDateRange(30);
+    const { startDate, endDate, days } = req.query;
+    let dateRange;
+    if (startDate && endDate) {
+      dateRange = { start: startDate, end: endDate };
+    } else {
+      dateRange = getDateRange(parseInt(days) || 90);
+    }
+    const rangeDays = days || '90';
 
     // Create shop-specific cache keys
     const cacheKeyPrefix = `dashboard:${shopDomain}`;
 
     const shopifyData = await getCachedOrFetch(
-      `${cacheKeyPrefix}:shopify:30d`,
+      `${cacheKeyPrefix}:shopify:${dateRange.start}:${dateRange.end}`,
       async () => {
         try {
           if (!shopData?.accessToken) throw new Error('No Shopify access token');
@@ -48,7 +54,7 @@ router.get('/dashboard', async (req, res) => {
     );
 
     const metaData = await getCachedOrFetch(
-      `${cacheKeyPrefix}:meta:30d`,
+      `${cacheKeyPrefix}:meta:${dateRange.start}:${dateRange.end}`,
       async () => {
         const result = await metaService.fetchDailyInsights(dateRange);
         return result.data || [];
@@ -57,7 +63,7 @@ router.get('/dashboard', async (req, res) => {
     );
 
     const googleData = await getCachedOrFetch(
-      `${cacheKeyPrefix}:google:30d`,
+      `${cacheKeyPrefix}:google:${dateRange.start}:${dateRange.end}`,
       async () => {
         const result = await googleAdsService.fetchDailyMetrics(dateRange);
         return result.data || [];
@@ -66,7 +72,7 @@ router.get('/dashboard', async (req, res) => {
     );
 
     const klaviyoData = await getCachedOrFetch(
-      `${cacheKeyPrefix}:klaviyo:30d`,
+      `${cacheKeyPrefix}:klaviyo:${dateRange.start}:${dateRange.end}`,
       async () => {
         const result = await klaviyoService.fetchMetrics(dateRange);
         return result.data || [];
@@ -75,7 +81,7 @@ router.get('/dashboard', async (req, res) => {
     );
 
     const ga4Data = await getCachedOrFetch(
-      `${cacheKeyPrefix}:ga4:30d`,
+      `${cacheKeyPrefix}:ga4:${dateRange.start}:${dateRange.end}`,
       async () => {
         const result = await ga4Service.fetchDailyMetrics(dateRange);
         return result.data || [];
@@ -84,7 +90,7 @@ router.get('/dashboard', async (req, res) => {
     );
 
     const tiktokData = await getCachedOrFetch(
-      `${cacheKeyPrefix}:tiktok:30d`,
+      `${cacheKeyPrefix}:tiktok:${dateRange.start}:${dateRange.end}`,
       async () => {
         const result = await tiktokService.fetchDailyMetrics(dateRange, shopDomain);
         return result.data || [];

@@ -68,7 +68,7 @@ export async function fetchDashboardData() {
       };
     }
 
-    const response = await apiFetch('/data/dashboard');
+    const response = await apiFetch('/data/dashboard?days=90');
     if (!response.ok) throw new Error('Failed to fetch dashboard data');
 
     const data = await response.json();
