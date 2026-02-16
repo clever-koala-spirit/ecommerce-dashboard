@@ -403,12 +403,16 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
  * Get billing service status and configuration
  */
 router.get('/status', (req, res) => {
-  res.json({
+  const response = {
     configured: billingService.isConfigured(),
     plans: billingService.getPricingPlans().length,
     webhookEndpoint: '/api/billing/webhook',
-    environment: process.env.NODE_ENV || 'development'
-  });
+  };
+  // Only expose environment in non-production
+  if (process.env.NODE_ENV !== 'production') {
+    response.environment = process.env.NODE_ENV || 'development';
+  }
+  res.json(response);
 });
 
 // =============================================================

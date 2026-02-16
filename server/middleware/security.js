@@ -73,7 +73,15 @@ export function requireShopAuth(req, res, next) {
                      req.session?.shopDomain;
 
   if (!shopDomain) {
-    return res.status(401).json({ error: 'Authentication required. No shop domain provided.' });
+    // If user is authenticated (has userId from JWT) but no shop connected, return friendly message
+    if (req.userId) {
+      return res.status(400).json({
+        error: 'No store connected',
+        message: 'Connect your Shopify store in Settings to see your data',
+        action: 'connect_store'
+      });
+    }
+    return res.status(401).json({ error: 'Authentication required. Please sign in to continue.' });
   }
 
   // Validate domain format

@@ -75,11 +75,20 @@ function upsertContact(name, email) {
   }
 }
 
-// Rate limiting: 20 messages per minute per IP
+// Rate limiting: 20 messages per minute per IP for authenticated users
 const chatRateLimit = rateLimit({
   windowMs: 60 * 1000,
   max: 20,
   message: { error: 'Too many chat messages. Please slow down.', retryAfter: 60 },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Stricter rate limit for unauthenticated requests: 10 per hour per IP
+const unauthChatRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: { error: 'Rate limit exceeded. Please try again later or sign in for higher limits.', retryAfter: 3600 },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -154,8 +163,13 @@ BEHAVIOR:
 RESPONSE FORMAT — always return JSON:
 { "reply": "your response", "needsHuman": false }`;
 
-// POST /api/chat
-router.post('/', chatRateLimit, async (req, res) => {
+// POST /api/chat — apply stricter rate limit for unauthenticated requests
+router.post('/', (req, res, next) => {
+  if (req.userId || req.shopDomain) {
+    return chatRateLimit(req, res, next);
+  }
+  return unauthChatRateLimit(req, res, next);
+}, async (req, res) => {
   try {
     const { message, conversationId, visitorEmail, visitorName } = req.body;
 

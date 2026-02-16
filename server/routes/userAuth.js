@@ -6,7 +6,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import { createUser, getUserByEmail, getUserById, updateUserLastLogin, updateUserPassword, createResetToken, getResetToken, markResetTokenUsed, getShop, linkUserToShop, getUserShopDomain } from '../db/database.js';
+import { createUser, getUserByEmail, getUserById, updateUserLastLogin, updateUserPassword, createResetToken, getResetToken, markResetTokenUsed, getShop, linkUserToShop, getUserShopDomain, getDB } from '../db/database.js';
 import emailService from '../services/email.js';
 import { log } from '../utils/logger.js';
 import { 
@@ -1142,6 +1142,71 @@ router.post('/oauth/apple/callback', async (req, res) => {
   } catch (err) {
     log.error('Apple OAuth callback error', err);
     res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=callback_error`);
+  }
+});
+
+/**
+ * DELETE /api/auth/account
+ * Delete the authenticated user's account and all associated data (GDPR compliance)
+ */
+router.delete('/account', (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    let decoded;
+    try {
+      decoded = jwt.verify(token, getJwtSecret());
+    } catch (err) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    const user = getUserByEmail(decoded.email);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const db = getDB();
+    const userId = user.id;
+    const shopDomain = decoded.shopDomain || user.shopDomain;
+
+    // Delete chat conversations linked to user's email
+    try {
+      db.run('DELETE FROM chat_conversations WHERE visitor_email = ?', [user.email]);
+    } catch (e) { /* table may not exist */ }
+
+    // Delete chat contacts linked to user's email
+    try {
+      db.run('DELETE FROM chat_contacts WHERE email = ?', [user.email]);
+    } catch (e) { /* table may not exist */ }
+
+    // Delete platform connections for user's shop
+    if (shopDomain) {
+      try {
+        db.run('DELETE FROM platform_connections WHERE shop_domain = ?', [shopDomain]);
+      } catch (e) { /* ignore */ }
+    }
+
+    // Delete password reset tokens
+    try {
+      db.run('DELETE FROM password_reset_tokens WHERE user_id = ?', [userId]);
+    } catch (e) { /* ignore */ }
+
+    // Delete the user record
+    db.run('DELETE FROM users WHERE id = ?', [userId]);
+
+    log.info('User account deleted (GDPR)', {
+      userId,
+      email: user.email.replace(/(..).*(@.*)/, '$1***$2'),
+    });
+
+    res.json({ success: true, message: 'Account and all associated data have been deleted.' });
+  } catch (err) {
+    log.error('Account deletion error', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
