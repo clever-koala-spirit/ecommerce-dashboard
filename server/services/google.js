@@ -95,10 +95,6 @@ export class GoogleAdsService {
       };
     }
 
-    // If we have credentials (access token + refresh token), consider connected
-    // The API call may fail due to developer token mode, but OAuth is valid
-    const hasCredentials = !!(this.accessToken || this.refreshToken);
-    
     try {
       const accessToken = await this.getAccessToken();
 
@@ -111,19 +107,11 @@ export class GoogleAdsService {
       );
 
       if (!response.ok) {
-        // Credentials exist but API access limited (e.g. dev token in test mode)
-        if (hasCredentials) {
-          return {
-            connected: true,
-            status: 'yellow',
-            message: `Google Ads connected (API access pending approval)`,
-          };
-        }
         const errorText = await response.text();
         return {
           connected: false,
           status: 'red',
-          error: `HTTP ${response.status}: ${errorText}`,
+          error: `Google Ads API rejected request (HTTP ${response.status}). Developer token may need Basic Access approval.`,
         };
       }
 
@@ -133,14 +121,6 @@ export class GoogleAdsService {
         message: `Google Ads (${this.customerId})`,
       };
     } catch (error) {
-      // If we have OAuth credentials, still show as connected
-      if (hasCredentials) {
-        return {
-          connected: true,
-          status: 'yellow',
-          message: `Google Ads connected (API: ${error.message})`,
-        };
-      }
       return { connected: false, status: 'red', error: error.message };
     }
   }
