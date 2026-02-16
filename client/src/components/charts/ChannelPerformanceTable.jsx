@@ -1,18 +1,21 @@
 import React, { useMemo, useState } from 'react';
-import { mockData } from '../../mock/mockData';
 import { useStore } from '../../store/useStore';
 import { formatCurrency, formatNumber, formatPercent, filterDataByDateRange } from '../../utils/formatters';
 import { CHANNEL_COLORS } from '../../utils/colors';
 
 export default function ChannelPerformanceTable() {
   const dateRange = useStore((state) => state.dateRange);
+  const shopifyData = useStore((state) => state.shopifyData);
+  const metaData = useStore((state) => state.metaData);
+  const googleData = useStore((state) => state.googleData);
+  const ga4Data = useStore((state) => state.ga4Data);
   const [sortConfig, setSortConfig] = useState({ key: 'revenue', direction: 'desc' });
 
   const channelData = useMemo(() => {
-    const filteredShopify = filterDataByDateRange(mockData.shopify || [], dateRange);
-    const filteredMeta = filterDataByDateRange(mockData.meta || [], dateRange);
-    const filteredGoogle = filterDataByDateRange(mockData.google || [], dateRange);
-    const filteredGA4 = filterDataByDateRange(mockData.ga4 || [], dateRange);
+    const filteredShopify = filterDataByDateRange(shopifyData || [], dateRange);
+    const filteredMeta = filterDataByDateRange(metaData || [], dateRange);
+    const filteredGoogle = filterDataByDateRange(googleData || [], dateRange);
+    const filteredGA4 = filterDataByDateRange(ga4Data || [], dateRange);
 
     const shopifyTotal = filteredShopify.reduce((sum, d) => sum + (d.revenue || 0), 0);
     const metaSpend = filteredMeta.reduce((sum, d) => sum + (d.spend || 0), 0);

@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { isBackendAvailable, fetchDashboardData } from '../services/api';
-import { mockData } from '../mock/mockData';
 
 export function useLiveData(refreshIntervalMs = 300000) {
   const [data, setData] = useState(null);
@@ -42,11 +41,11 @@ export function useLiveData(refreshIntervalMs = 300000) {
       } else {
         // Backend not available, use mock data
         setData({
-          shopify: mockData.shopify,
-          meta: mockData.meta,
-          google: mockData.google,
-          klaviyo: mockData.klaviyo,
-          ga4: mockData.ga4,
+          shopify: [],
+          meta: [],
+          google: [],
+          klaviyo: [],
+          ga4: [],
         });
         setIsLive(false);
         setLastUpdated(new Date());
@@ -62,11 +61,11 @@ export function useLiveData(refreshIntervalMs = 300000) {
 
       // Fall back to mock data on error
       setData({
-        shopify: mockData.shopify,
-        meta: mockData.meta,
-        google: mockData.google,
-        klaviyo: mockData.klaviyo,
-        ga4: mockData.ga4,
+        shopify: [],
+        meta: [],
+        google: [],
+        klaviyo: [],
+        ga4: [],
       });
       setIsLive(false);
       setLastUpdated(new Date());
@@ -109,7 +108,7 @@ export function useLiveData(refreshIntervalMs = 300000) {
 export function useShopifyData(refreshIntervalMs = 300000) {
   const liveData = useLiveData(refreshIntervalMs);
   return {
-    data: liveData.data?.shopify || mockData.shopify,
+    data: liveData.data?.shopify || [],
     isLive: liveData.isLive,
     isLoading: liveData.isLoading,
     error: liveData.error,
@@ -121,7 +120,7 @@ export function useShopifyData(refreshIntervalMs = 300000) {
 export function useMetaData(refreshIntervalMs = 300000) {
   const liveData = useLiveData(refreshIntervalMs);
   return {
-    data: liveData.data?.meta || mockData.meta,
+    data: liveData.data?.meta || [],
     isLive: liveData.isLive,
     isLoading: liveData.isLoading,
     error: liveData.error,
@@ -133,7 +132,7 @@ export function useMetaData(refreshIntervalMs = 300000) {
 export function useGoogleData(refreshIntervalMs = 300000) {
   const liveData = useLiveData(refreshIntervalMs);
   return {
-    data: liveData.data?.google || mockData.google,
+    data: liveData.data?.google || [],
     isLive: liveData.isLive,
     isLoading: liveData.isLoading,
     error: liveData.error,
@@ -145,7 +144,7 @@ export function useGoogleData(refreshIntervalMs = 300000) {
 export function useKlaviyoData(refreshIntervalMs = 300000) {
   const liveData = useLiveData(refreshIntervalMs);
   return {
-    data: liveData.data?.klaviyo || mockData.klaviyo,
+    data: liveData.data?.klaviyo || [],
     isLive: liveData.isLive,
     isLoading: liveData.isLoading,
     error: liveData.error,
@@ -157,7 +156,7 @@ export function useKlaviyoData(refreshIntervalMs = 300000) {
 export function useGA4Data(refreshIntervalMs = 300000) {
   const liveData = useLiveData(refreshIntervalMs);
   return {
-    data: liveData.data?.ga4 || mockData.ga4,
+    data: liveData.data?.ga4 || [],
     isLive: liveData.isLive,
     isLoading: liveData.isLoading,
     error: liveData.error,

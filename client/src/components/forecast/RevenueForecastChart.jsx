@@ -12,7 +12,6 @@ import {
 } from 'recharts';
 import { format, parseISO, addDays } from 'date-fns';
 import { useStore } from '../../store/useStore';
-import { mockData } from '../../mock/mockData';
 import { forecast } from '../../utils/forecast';
 import { filterDataByDateRange } from '../../utils/formatters';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
@@ -21,10 +20,11 @@ import { FORECAST_COLORS, COLORS } from '../../utils/colors';
 export default function RevenueForecastChart() {
   const [horizon, setHorizon] = useState(30);
   const dateRange = useStore((state) => state.dateRange);
+  const shopifyData = useStore((state) => state.shopifyData);
 
   const chartData = useMemo(() => {
     // Get historical revenue data
-    const historicalData = filterDataByDateRange(mockData.shopify || [], dateRange);
+    const historicalData = filterDataByDateRange(shopifyData || [], dateRange);
 
     // Prepare data for forecast function
     const dataForForecast = historicalData.map((d) => ({

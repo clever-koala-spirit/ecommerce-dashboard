@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
-import { mockData } from '../../mock/mockData';
+import { useStore } from '../../store/useStore';
 import {
   simulateScenario,
   findOptimalAllocation,
@@ -12,6 +12,9 @@ import { formatCurrency, formatNumber } from '../../utils/formatters';
 import { CHANNEL_COLORS } from '../../utils/colors';
 
 export default function BudgetSimulator() {
+  const metaData = useStore((state) => state.metaData);
+  const googleData = useStore((state) => state.googleData);
+
   const [budgets, setBudgets] = useState({
     meta: 17500,
     google: 10000,
@@ -22,8 +25,8 @@ export default function BudgetSimulator() {
 
   const scenario = useMemo(() => {
     return simulateScenario(budgets, {
-      meta: mockData.meta,
-      google: mockData.google,
+      meta: metaData,
+      google: googleData,
     });
   }, [budgets]);
 
@@ -31,8 +34,8 @@ export default function BudgetSimulator() {
     return findOptimalAllocation(
       budgets.meta + budgets.google + budgets.tiktok,
       {
-        meta: mockData.meta,
-        google: mockData.google,
+        meta: metaData,
+        google: googleData,
       },
       {
         meta: { min: 5000, max: 25000 },
@@ -50,13 +53,13 @@ export default function BudgetSimulator() {
       const spend = [];
       const revenue = [];
 
-      if (channel === 'meta' && mockData.meta && mockData.meta.length > 0) {
-        mockData.meta.forEach((d) => {
+      if (channel === 'meta' && metaData && metaData.length > 0) {
+        metaData.forEach((d) => {
           spend.push(d.spend);
           revenue.push(d.revenue);
         });
-      } else if (channel === 'google' && mockData.google && mockData.google.length > 0) {
-        mockData.google.forEach((d) => {
+      } else if (channel === 'google' && googleData && googleData.length > 0) {
+        googleData.forEach((d) => {
           spend.push(d.spend);
           revenue.push(d.conversionValue);
         });
@@ -83,8 +86,8 @@ export default function BudgetSimulator() {
       'google',
       1000,
       {
-        meta: mockData.meta,
-        google: mockData.google,
+        meta: metaData,
+        google: googleData,
       }
     );
   }, [budgets]);

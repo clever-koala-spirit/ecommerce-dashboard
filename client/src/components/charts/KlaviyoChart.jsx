@@ -10,7 +10,6 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import { mockData } from '../../mock/mockData';
 import { useStore } from '../../store/useStore';
 import { formatCurrency, filterDataByDateRange, formatDateShort } from '../../utils/formatters';
 import { COLORS } from '../../utils/colors';
@@ -47,10 +46,11 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function KlaviyoChart() {
   const dateRange = useStore((state) => state.dateRange);
+  const klaviyoData = useStore((state) => state.klaviyoData);
 
   const { chartData, flowStats } = useMemo(() => {
-    const filteredKlaviyo = filterDataByDateRange(mockData.klaviyo || [], dateRange);
-    const filteredFlows = mockData.klaviyoFlows || [];
+    const filteredKlaviyo = filterDataByDateRange(klaviyoData || [], dateRange);
+    const filteredFlows = [];
 
     const data = filteredKlaviyo.map((d) => ({
       date: formatDateShort(d.date),

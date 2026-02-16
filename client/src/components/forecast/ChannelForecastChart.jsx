@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { useStore } from '../../store/useStore';
-import { mockData } from '../../mock/mockData';
 import { forecast } from '../../utils/forecast';
 import { filterDataByDateRange } from '../../utils/formatters';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
@@ -18,13 +17,18 @@ export default function ChannelForecastChart() {
   });
 
   const dateRange = useStore((state) => state.dateRange);
+  const shopifyData = useStore((state) => state.shopifyData);
+  const storeMetaData = useStore((state) => state.metaData);
+  const storeGoogleData = useStore((state) => state.googleData);
+  const storeKlaviyoData = useStore((state) => state.klaviyoData);
+  const storeGa4Data = useStore((state) => state.ga4Data);
 
   const chartData = useMemo(() => {
-    const historical = filterDataByDateRange(mockData.shopify || [], dateRange);
-    const metaData = filterDataByDateRange(mockData.meta || [], dateRange);
-    const googleData = filterDataByDateRange(mockData.google || [], dateRange);
-    const klaviyoData = filterDataByDateRange(mockData.klaviyo || [], dateRange);
-    const ga4Data = filterDataByDateRange(mockData.ga4 || [], dateRange);
+    const historical = filterDataByDateRange(shopifyData || [], dateRange);
+    const metaData = filterDataByDateRange(storeMetaData || [], dateRange);
+    const googleData = filterDataByDateRange(storeGoogleData || [], dateRange);
+    const klaviyoData = filterDataByDateRange(storeKlaviyoData || [], dateRange);
+    const ga4Data = filterDataByDateRange(storeGa4Data || [], dateRange);
 
     const combined = [];
 

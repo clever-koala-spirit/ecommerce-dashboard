@@ -12,7 +12,6 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { mockData } from '../../mock/mockData';
 import { useStore } from '../../store/useStore';
 import { formatCurrency, filterDataByDateRange, formatDateShort } from '../../utils/formatters';
 import { COLORS } from '../../utils/colors';
@@ -70,11 +69,14 @@ const PieCustomTooltip = ({ active, payload }) => {
 
 export default function CostBreakdownChart() {
   const dateRange = useStore((state) => state.dateRange);
+  const shopifyData = useStore((state) => state.shopifyData);
+  const metaData = useStore((state) => state.metaData);
+  const googleData = useStore((state) => state.googleData);
 
   const { areaChartData, pieChartData, totalCosts } = useMemo(() => {
-    const filteredShopify = filterDataByDateRange(mockData.shopify || [], dateRange);
-    const filteredMeta = filterDataByDateRange(mockData.meta || [], dateRange);
-    const filteredGoogle = filterDataByDateRange(mockData.google || [], dateRange);
+    const filteredShopify = filterDataByDateRange(shopifyData || [], dateRange);
+    const filteredMeta = filterDataByDateRange(metaData || [], dateRange);
+    const filteredGoogle = filterDataByDateRange(googleData || [], dateRange);
 
     // Prepare area chart data (daily costs)
     const areaData = filteredShopify.map((shopifyItem) => {

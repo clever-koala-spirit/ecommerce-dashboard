@@ -56,14 +56,16 @@ export async function fetchDashboardData() {
   try {
     const available = await isBackendAvailable();
     if (!available) {
+      console.warn('[API] Backend unavailable — returning empty data (no mock fallback)');
       return {
         isLive: false,
         data: {
-          shopify: mockData.shopify,
-          meta: mockData.meta,
-          google: mockData.google,
-          klaviyo: mockData.klaviyo,
-          ga4: mockData.ga4,
+          shopify: [],
+          meta: [],
+          google: [],
+          klaviyo: [],
+          ga4: [],
+          tiktok: [],
         },
       };
     }
@@ -75,11 +77,12 @@ export async function fetchDashboardData() {
     return {
       isLive: true,
       data: {
-        shopify: data.shopify || mockData.shopify,
-        meta: data.meta || mockData.meta,
-        google: data.google || mockData.google,
-        klaviyo: data.klaviyo || mockData.klaviyo,
-        ga4: data.ga4 || mockData.ga4,
+        shopify: data.shopify || [],
+        meta: data.meta || [],
+        google: data.google || [],
+        klaviyo: data.klaviyo || [],
+        ga4: data.ga4 || [],
+        tiktok: data.tiktok || [],
       },
       timestamp: data.timestamp,
     };
@@ -90,11 +93,12 @@ export async function fetchDashboardData() {
     return {
       isLive: false,
       data: {
-        shopify: mockData.shopify,
-        meta: mockData.meta,
-        google: mockData.google,
-        klaviyo: mockData.klaviyo,
-        ga4: mockData.ga4,
+        shopify: [],
+        meta: [],
+        google: [],
+        klaviyo: [],
+        ga4: [],
+        tiktok: [],
       },
       error: error.message,
     };

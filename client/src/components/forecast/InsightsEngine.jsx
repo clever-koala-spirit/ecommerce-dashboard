@@ -1,22 +1,26 @@
 import React, { useMemo, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
-import { mockData } from '../../mock/mockData';
 import { filterDataByDateRange } from '../../utils/formatters';
 import { formatCurrency, formatNumber, formatPercent } from '../../utils/formatters';
 
 export default function InsightsEngine() {
   const dateRange = useStore((state) => state.dateRange);
   const addInsights = useStore((state) => state.addInsights);
+  const storeShopifyData = useStore((state) => state.shopifyData);
+  const storeMetaData = useStore((state) => state.metaData);
+  const storeGoogleData = useStore((state) => state.googleData);
+  const storeKlaviyoData = useStore((state) => state.klaviyoData);
+  const storeGa4Data = useStore((state) => state.ga4Data);
 
   const insights = useMemo(() => {
     const generatedInsights = [];
 
     // Get all relevant data
-    const shopifyData = filterDataByDateRange(mockData.shopify || [], dateRange);
-    const metaData = filterDataByDateRange(mockData.meta || [], dateRange);
-    const googleData = filterDataByDateRange(mockData.google || [], dateRange);
-    const klaviyoData = filterDataByDateRange(mockData.klaviyo || [], dateRange);
-    const ga4Data = filterDataByDateRange(mockData.ga4 || [], dateRange);
+    const shopifyData = filterDataByDateRange(storeShopifyData || [], dateRange);
+    const metaData = filterDataByDateRange(storeMetaData || [], dateRange);
+    const googleData = filterDataByDateRange(storeGoogleData || [], dateRange);
+    const klaviyoData = filterDataByDateRange(storeKlaviyoData || [], dateRange);
+    const ga4Data = filterDataByDateRange(storeGa4Data || [], dateRange);
 
     if (shopifyData.length === 0) return [];
 

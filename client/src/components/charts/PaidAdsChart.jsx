@@ -11,7 +11,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { mockData } from '../../mock/mockData';
 import { useStore } from '../../store/useStore';
 import { formatCurrency, filterDataByDateRange, formatDateShort } from '../../utils/formatters';
 import { COLORS } from '../../utils/colors';
@@ -49,11 +48,13 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function PaidAdsChart() {
   const dateRange = useStore((state) => state.dateRange);
+  const metaData = useStore((state) => state.metaData);
+  const googleData = useStore((state) => state.googleData);
   const [platform, setPlatform] = useState('all');
 
   const chartData = useMemo(() => {
-    const filteredMeta = filterDataByDateRange(mockData.meta || [], dateRange);
-    const filteredGoogle = filterDataByDateRange(mockData.google || [], dateRange);
+    const filteredMeta = filterDataByDateRange(metaData || [], dateRange);
+    const filteredGoogle = filterDataByDateRange(googleData || [], dateRange);
 
     let data = [];
 

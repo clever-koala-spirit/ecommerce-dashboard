@@ -9,7 +9,6 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import { mockData } from '../../mock/mockData';
 import { useStore } from '../../store/useStore';
 import { formatCurrency } from '../../utils/formatters';
 import { filterDataByDateRange } from '../../utils/formatters';
@@ -43,11 +42,14 @@ const CustomTooltip = ({ active, payload }) => {
 
 export default function RevenueWaterfall() {
   const dateRange = useStore((state) => state.dateRange);
+  const shopifyData = useStore((state) => state.shopifyData);
+  const metaData = useStore((state) => state.metaData);
+  const googleData = useStore((state) => state.googleData);
 
   const chartData = useMemo(() => {
-    const filteredShopify = filterDataByDateRange(mockData.shopify || [], dateRange);
-    const filteredMeta = filterDataByDateRange(mockData.meta || [], dateRange);
-    const filteredGoogle = filterDataByDateRange(mockData.google || [], dateRange);
+    const filteredShopify = filterDataByDateRange(shopifyData || [], dateRange);
+    const filteredMeta = filterDataByDateRange(metaData || [], dateRange);
+    const filteredGoogle = filterDataByDateRange(googleData || [], dateRange);
 
     const grossRevenue = filteredShopify.reduce((sum, d) => sum + (d.revenue || 0), 0);
     const refunds = filteredShopify.reduce((sum, d) => sum + (d.refundAmount || 0), 0);

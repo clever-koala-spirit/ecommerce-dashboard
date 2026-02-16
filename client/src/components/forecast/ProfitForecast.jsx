@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO, addDays } from 'date-fns';
 import { useStore } from '../../store/useStore';
-import { mockData } from '../../mock/mockData';
 import { forecast } from '../../utils/forecast';
 import { filterDataByDateRange } from '../../utils/formatters';
 import { formatCurrency } from '../../utils/formatters';
@@ -10,9 +9,10 @@ import { COLORS } from '../../utils/colors';
 
 export default function ProfitForecast() {
   const dateRange = useStore((state) => state.dateRange);
+  const shopifyData = useStore((state) => state.shopifyData);
 
   const forecast_data = useMemo(() => {
-    const historicalData = filterDataByDateRange(mockData.shopify || [], dateRange);
+    const historicalData = filterDataByDateRange(shopifyData || [], dateRange);
 
     if (historicalData.length === 0) {
       return {

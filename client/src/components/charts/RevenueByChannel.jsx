@@ -7,7 +7,6 @@ import {
   Legend,
   Tooltip,
 } from 'recharts';
-import { mockData } from '../../mock/mockData';
 import { useStore } from '../../store/useStore';
 import { formatCurrency, formatPercent, filterDataByDateRange } from '../../utils/formatters';
 import { COLORS } from '../../utils/colors';
@@ -37,12 +36,16 @@ const CustomTooltip = ({ active, payload }) => {
 
 export default function RevenueByChannel() {
   const dateRange = useStore((state) => state.dateRange);
+  const shopifyData = useStore((state) => state.shopifyData);
+  const metaData = useStore((state) => state.metaData);
+  const googleData = useStore((state) => state.googleData);
+  const ga4Data = useStore((state) => state.ga4Data);
 
   const chartData = useMemo(() => {
-    const filteredShopify = filterDataByDateRange(mockData.shopify || [], dateRange);
-    const filteredMeta = filterDataByDateRange(mockData.meta || [], dateRange);
-    const filteredGoogle = filterDataByDateRange(mockData.google || [], dateRange);
-    const filteredGA4 = filterDataByDateRange(mockData.ga4 || [], dateRange);
+    const filteredShopify = filterDataByDateRange(shopifyData || [], dateRange);
+    const filteredMeta = filterDataByDateRange(metaData || [], dateRange);
+    const filteredGoogle = filterDataByDateRange(googleData || [], dateRange);
+    const filteredGA4 = filterDataByDateRange(ga4Data || [], dateRange);
 
     const metaRevenue = filteredMeta.reduce((sum, d) => sum + (d.revenue || 0), 0);
     const googleRevenue = filteredGoogle.reduce((sum, d) => sum + (d.conversionValue || 0), 0);
@@ -62,9 +65,15 @@ export default function RevenueByChannel() {
       (sum, d) => sum + ((d.referralSessions / Math.max(1, d.sessions)) * d.revenue || 0),
       0
     );
-    const klaviyoRevenue = filteredShopify.reduce((sum, d) => sum + (d.revenue * 0.18 || 0), 0);
+    // Only show Klaviyo email revenue estimate if we have Klaviyo data or GA4 data
+    const hasKlaviyoData = (ga4Data || []).length > 0;
+    const klaviyoRevenue = hasKlaviyoData ? filteredShopify.reduce((sum, d) => sum + (d.revenue * 0.18 || 0), 0) : 0;
 
-    const channels = [
+    // If only Shopify is connected (no other platforms), show all revenue as Shopify
+    const shopifyRevenue = filteredShopify.reduce((sum, d) => sum + (d.revenue || 0), 0);
+    const hasOtherChannels = metaRevenue > 0 || googleRevenue > 0 || organicRevenue > 0 || directRevenue > 0 || socialRevenue > 0 || referralRevenue > 0 || klaviyoRevenue > 0;
+
+    const channels = hasOtherChannels ? [
       { name: 'Meta Ads', value: metaRevenue, fill: '#1877F2' },
       { name: 'Google Ads', value: googleRevenue, fill: '#EA4335' },
       { name: 'Klaviyo Email', value: klaviyoRevenue, fill: COLORS.CYAN[500] },
@@ -72,6 +81,8 @@ export default function RevenueByChannel() {
       { name: 'Direct', value: directRevenue, fill: COLORS.PURPLE[500] },
       { name: 'Social', value: socialRevenue, fill: COLORS.PINK[500] },
       { name: 'Referral', value: referralRevenue, fill: COLORS.ORANGE[500] },
+    ] : [
+      { name: 'Shopify', value: shopifyRevenue, fill: COLORS.GREEN[500] },
     ];
 
     const totalRevenue = channels.reduce((sum, c) => sum + c.value, 0);

@@ -9,24 +9,23 @@ import {
 } from 'lucide-react';
 import KPICard from './KPICard';
 import { useStore } from '../../store/useStore';
-import { mockData } from '../../mock/mockData';
 import { filterDataByDateRange, getPreviousPeriod } from '../../utils/formatters';
 import { COLORS } from '../../utils/colors';
 
 /**
- * Compute metrics from mock data filtered by date range
+ * Compute metrics from store data filtered by date range
  */
-function computeMetrics(dateRange, fixedCosts) {
+function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData) {
   // Get current period data
-  const filteredShopify = filterDataByDateRange(mockData.shopify || [], dateRange);
-  const filteredMeta = filterDataByDateRange(mockData.meta || [], dateRange);
-  const filteredGoogle = filterDataByDateRange(mockData.google || [], dateRange);
+  const filteredShopify = filterDataByDateRange(shopifyData || [], dateRange);
+  const filteredMeta = filterDataByDateRange(metaData || [], dateRange);
+  const filteredGoogle = filterDataByDateRange(googleData || [], dateRange);
 
   // Get previous period for comparison
   const prevDateRange = getPreviousPeriod(dateRange);
-  const prevShopify = filterDataByDateRange(mockData.shopify || [], prevDateRange);
-  const prevMeta = filterDataByDateRange(mockData.meta || [], prevDateRange);
-  const prevGoogle = filterDataByDateRange(mockData.google || [], prevDateRange);
+  const prevShopify = filterDataByDateRange(shopifyData || [], prevDateRange);
+  const prevMeta = filterDataByDateRange(metaData || [], prevDateRange);
+  const prevGoogle = filterDataByDateRange(googleData || [], prevDateRange);
 
   // Calculate monthly fixed costs
   const monthlyFixedCosts = (fixedCosts || [])
@@ -256,6 +255,9 @@ function computeMetrics(dateRange, fixedCosts) {
 export default function KPIRow() {
   const dateRange = useStore((state) => state.dateRange);
   const fixedCosts = useStore((state) => state.fixedCosts);
+  const shopifyData = useStore((state) => state.shopifyData);
+  const metaData = useStore((state) => state.metaData);
+  const googleData = useStore((state) => state.googleData);
   const isLoading = useStore((state) => state.isLoading);
   // isSyncingAny is a getter factory, compute directly instead
   const isSyncingAny = useStore((state) => {
@@ -265,7 +267,7 @@ export default function KPIRow() {
   });
 
   // Compute metrics using memoization to avoid unnecessary recalculations
-  const { metrics } = useMemo(() => computeMetrics(dateRange, fixedCosts), [dateRange, fixedCosts]);
+  const { metrics } = useMemo(() => computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData), [dateRange, fixedCosts, shopifyData, metaData, googleData]);
 
   const isAnyLoading = typeof isLoading === 'object'
     ? (isLoading?.shopify || isLoading?.meta || isLoading?.google || false)

@@ -1,10 +1,14 @@
-export const createDataSlice = (set) => ({
+import { fetchDashboardData as apiFetchDashboard } from '../../services/api';
+
+export const createDataSlice = (set, get) => ({
   // State
   shopifyData: [],
   metaData: [],
   googleData: [],
   klaviyoData: [],
   ga4Data: [],
+  tiktokData: [],
+  isLive: false,
 
   // Loading states per source
   isLoading: {
@@ -154,5 +158,72 @@ export const createDataSlice = (set) => ({
 
   isSyncingAny: () => {
     return (state) => Object.values(state.isLoading).some((loading) => loading);
+  },
+
+  // Fetch all dashboard data from API and populate store
+  fetchDashboardData: async () => {
+    set((state) => ({
+      isLoading: {
+        ...state.isLoading,
+        shopify: true,
+        meta: true,
+        google: true,
+        klaviyo: true,
+        ga4: true,
+      },
+    }));
+
+    try {
+      const result = await apiFetchDashboard();
+      const data = result.data || {};
+
+      set((state) => ({
+        shopifyData: data.shopify || [],
+        metaData: data.meta || [],
+        googleData: data.google || [],
+        klaviyoData: data.klaviyo || [],
+        ga4Data: data.ga4 || [],
+        tiktokData: data.tiktok || [],
+        isLive: result.isLive,
+        lastSynced: {
+          shopify: new Date(),
+          meta: new Date(),
+          google: new Date(),
+          klaviyo: new Date(),
+          ga4: new Date(),
+        },
+        isLoading: {
+          shopify: false,
+          meta: false,
+          google: false,
+          klaviyo: false,
+          ga4: false,
+        },
+        errors: {
+          shopify: null,
+          meta: null,
+          google: null,
+          klaviyo: null,
+          ga4: null,
+        },
+      }));
+
+      return result;
+    } catch (error) {
+      set((state) => ({
+        isLoading: {
+          shopify: false,
+          meta: false,
+          google: false,
+          klaviyo: false,
+          ga4: false,
+        },
+        errors: {
+          ...state.errors,
+          shopify: error.message,
+        },
+      }));
+      throw error;
+    }
   },
 });

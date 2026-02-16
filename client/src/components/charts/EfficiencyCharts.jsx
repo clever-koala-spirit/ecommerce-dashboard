@@ -9,7 +9,6 @@ import {
   ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
-import { mockData } from '../../mock/mockData';
 import { useStore } from '../../store/useStore';
 import { formatCurrency, formatNumber, filterDataByDateRange, formatDateShort } from '../../utils/formatters';
 import { COLORS } from '../../utils/colors';
@@ -61,12 +60,15 @@ const TrendIndicator = ({ current, average, label }) => {
 
 export default function EfficiencyCharts() {
   const dateRange = useStore((state) => state.dateRange);
+  const shopifyData = useStore((state) => state.shopifyData);
+  const metaData = useStore((state) => state.metaData);
+  const googleData = useStore((state) => state.googleData);
 
   const { merData, ltvCacData, contributionData, merStats, ltvCacStats, contributionStats } =
     useMemo(() => {
-      const filteredShopify = filterDataByDateRange(mockData.shopify || [], dateRange);
-      const filteredMeta = filterDataByDateRange(mockData.meta || [], dateRange);
-      const filteredGoogle = filterDataByDateRange(mockData.google || [], dateRange);
+      const filteredShopify = filterDataByDateRange(shopifyData || [], dateRange);
+      const filteredMeta = filterDataByDateRange(metaData || [], dateRange);
+      const filteredGoogle = filterDataByDateRange(googleData || [], dateRange);
 
       // MER Chart Data (Marketing Efficiency Ratio = Revenue / Ad Spend)
       const merChartData = filteredShopify.map((shopifyItem) => {

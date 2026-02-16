@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import { useStore } from '../../store/useStore';
-import { mockData } from '../../mock/mockData';
 import { forecast } from '../../utils/forecast';
 import { filterDataByDateRange } from '../../utils/formatters';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
@@ -8,12 +7,13 @@ import { COLORS } from '../../utils/colors';
 
 export default function GoalTracker() {
   const dateRange = useStore((state) => state.dateRange);
+  const shopifyData = useStore((state) => state.shopifyData);
   const [revenueGoal, setRevenueGoal] = useState(1350000); // Monthly target
   const [profitGoal, setProfitGoal] = useState(405000); // Monthly profit target
   const [editMode, setEditMode] = useState(false);
 
   const goals = useMemo(() => {
-    const historicalData = filterDataByDateRange(mockData.shopify || [], dateRange);
+    const historicalData = filterDataByDateRange(shopifyData || [], dateRange);
 
     if (historicalData.length === 0) {
       return {
