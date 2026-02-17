@@ -15,6 +15,7 @@ import {
   Crown,
 } from 'lucide-react';
 import { useAuth } from '../../providers/AuthProvider';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useState } from 'react';
 
 const navSections = [
@@ -46,6 +47,7 @@ const navSections = [
 export default function NavSidebar() {
   const location = useLocation();
   const { logout, user } = useAuth();
+  const { colors, theme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (path) => {
@@ -60,14 +62,14 @@ export default function NavSidebar() {
         <div className="p-2 rounded-xl" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
           <Zap size={18} className="text-white" />
         </div>
-        <span className="font-bold text-lg text-white tracking-tight">Slay Season</span>
+        <span className="font-bold text-lg tracking-tight" style={{ color: colors.text }}>Slay Season</span>
       </div>
 
       {/* Nav Sections */}
       <nav className="flex-1 px-3 mt-2 space-y-6 overflow-y-auto">
         {navSections.map((section) => (
           <div key={section.label}>
-            <div className="px-3 mb-2 text-[10px] font-semibold tracking-widest" style={{ color: '#6b7280' }}>
+            <div className="px-3 mb-2 category-label">
               {section.label}
             </div>
             <div className="space-y-0.5">
@@ -78,19 +80,19 @@ export default function NavSidebar() {
                   onClick={() => setMobileOpen(false)}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
                   style={{
-                    background: isActive(path) ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
-                    color: isActive(path) ? '#a5b4fc' : '#9ca3af',
+                    background: isActive(path) ? 'rgba(99, 102, 241, 0.12)' : 'transparent',
+                    color: isActive(path) ? colors.accentLight : colors.textSecondary,
                   }}
                   onMouseEnter={(e) => {
                     if (!isActive(path)) {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                      e.currentTarget.style.color = '#e5e7eb';
+                      e.currentTarget.style.background = theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
+                      e.currentTarget.style.color = colors.text;
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isActive(path)) {
                       e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = '#9ca3af';
+                      e.currentTarget.style.color = colors.textSecondary;
                     }
                   }}
                 >
@@ -125,8 +127,8 @@ export default function NavSidebar() {
               color: 'white',
               backdropFilter: 'blur(4px)',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; e.currentTarget.style.transform = 'scale(1.02)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; e.currentTarget.style.transform = 'scale(1)'; }}
           >
             Get Started
           </button>
@@ -137,7 +139,7 @@ export default function NavSidebar() {
       <div className="px-3 pb-4">
         <div
           className="flex items-center gap-3 px-3 py-3 rounded-xl"
-          style={{ background: 'rgba(255,255,255,0.04)' }}
+          style={{ background: theme === 'light' ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)' }}
         >
           <div
             className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
@@ -146,17 +148,17 @@ export default function NavSidebar() {
             {user?.email?.[0]?.toUpperCase() || 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-white truncate">
+            <div className="text-sm font-medium truncate" style={{ color: colors.text }}>
               {user?.email?.split('@')[0] || 'User'}
             </div>
-            <div className="text-[11px]" style={{ color: '#6b7280' }}>Free Plan</div>
+            <div className="text-[11px]" style={{ color: colors.textTertiary }}>Free Plan</div>
           </div>
           <button
             onClick={() => { logout(); window.location.href = '/'; }}
             className="p-1.5 rounded-lg transition-colors duration-200 flex-shrink-0"
-            style={{ color: '#6b7280' }}
+            style={{ color: colors.textTertiary }}
             onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = '#6b7280'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = colors.textTertiary; }}
             title="Log out"
           >
             <LogOut size={16} />
@@ -172,7 +174,7 @@ export default function NavSidebar() {
       <button
         onClick={() => setMobileOpen(true)}
         className="fixed top-4 left-4 z-50 p-2 rounded-xl md:hidden"
-        style={{ background: '#111827', color: '#9ca3af', border: '1px solid #1f2937' }}
+        style={{ background: colors.bgCard, color: colors.textSecondary, border: `1px solid ${colors.border}` }}
       >
         <Menu size={20} />
       </button>
@@ -187,13 +189,13 @@ export default function NavSidebar() {
         className={`fixed top-0 left-0 h-screen w-60 z-50 flex-shrink-0 transition-transform duration-300 md:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
-        style={{ background: '#0c1021', borderRight: '1px solid #1e2433' }}
+        style={{ background: colors.bgSidebar, borderRight: `1px solid ${colors.border}`, transition: 'background-color 0.3s ease, border-color 0.3s ease' }}
       >
         {mobileOpen && (
           <button
             onClick={() => setMobileOpen(false)}
             className="absolute top-5 right-3 p-1 rounded-lg md:hidden"
-            style={{ color: '#6b7280' }}
+            style={{ color: colors.textTertiary }}
           >
             <X size={18} />
           </button>

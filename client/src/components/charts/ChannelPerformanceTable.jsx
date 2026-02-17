@@ -287,7 +287,7 @@ export default function ChannelPerformanceTable() {
                       ? 'var(--color-bg-hover)'
                       : idx % 2 === 0
                         ? 'transparent'
-                        : 'rgba(255, 255, 255, 0.02)',
+                        : 'var(--color-bg-alt-row, rgba(0,0,0,0.02))',
                     borderBottom: '1px solid var(--color-border)',
                     color: 'var(--color-text-primary)',
                   }}
@@ -301,7 +301,7 @@ export default function ChannelPerformanceTable() {
                       ? 'var(--color-bg-hover)'
                       : idx % 2 === 0
                         ? 'transparent'
-                        : 'rgba(255, 255, 255, 0.02)';
+                        : 'var(--color-bg-alt-row, rgba(0,0,0,0.02))';
                   }}
                 >
                   <td className="px-4 py-3 flex items-center gap-2">

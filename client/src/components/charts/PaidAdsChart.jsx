@@ -24,7 +24,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
     return (
       <div
-        className="p-3 rounded border"
+        className="chart-tooltip p-3 rounded-xl"
         style={{
           backgroundColor: 'var(--color-bg-card)',
           borderColor: 'var(--color-border)',
@@ -155,7 +155,7 @@ export default function PaidAdsChart() {
           </defs>
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="var(--color-border)"
+            stroke="var(--color-chart-grid)" strokeOpacity={0.5}
             vertical={false}
           />
           <XAxis

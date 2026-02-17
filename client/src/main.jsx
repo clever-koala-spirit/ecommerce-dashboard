@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { ShopifyProvider } from './providers/ShopifyProvider';
 import { AuthProvider } from './providers/AuthProvider';
+import { ThemeProvider } from './contexts/ThemeContext';
 import './index.css';
 import App from './App.jsx';
 
@@ -27,6 +28,7 @@ createRoot(document.getElementById('root')).render(
       <BrowserRouter>
         <AuthProvider>
           <ShopifyProvider>
+            <ThemeProvider>
             <App />
             <Toaster
               position="top-right"
@@ -43,6 +45,7 @@ createRoot(document.getElementById('root')).render(
                 },
               }}
             />
+          </ThemeProvider>
           </ShopifyProvider>
         </AuthProvider>
       </BrowserRouter>

@@ -22,7 +22,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
     return (
       <div
-        className="p-3 rounded border"
+        className="chart-tooltip p-3 rounded-xl"
         style={{
           backgroundColor: 'var(--color-bg-card)',
           borderColor: 'var(--color-border)',
@@ -156,7 +156,7 @@ export default function KlaviyoChart() {
         <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="var(--color-border)"
+            stroke="var(--color-chart-grid)" strokeOpacity={0.5}
             vertical={false}
           />
           <XAxis
@@ -246,7 +246,7 @@ export default function KlaviyoChart() {
                 <tr
                   key={flow.name}
                   style={{
-                    backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(255, 255, 255, 0.02)',
+                    backgroundColor: idx % 2 === 0 ? 'transparent' : 'var(--color-bg-alt-row, rgba(0,0,0,0.02))',
                     borderBottom: '1px solid var(--color-border)',
                     color: 'var(--color-text-primary)',
                   }}

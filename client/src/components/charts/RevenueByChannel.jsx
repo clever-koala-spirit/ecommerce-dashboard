@@ -17,7 +17,7 @@ const CustomTooltip = ({ active, payload }) => {
     const data = payload[0].payload;
     return (
       <div
-        className="p-3 rounded border"
+        className="chart-tooltip p-3 rounded-xl"
         style={{
           backgroundColor: 'var(--color-bg-card)',
           borderColor: 'var(--color-border)',

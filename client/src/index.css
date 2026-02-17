@@ -2,53 +2,86 @@
 
 @layer base {
   :root {
-    --color-bg-primary: #0f1117;
-    --color-bg-secondary: #161926;
-    --color-bg-card: #1c2033;
-    --color-bg-card-hover: #242842;
-    --color-bg-input: #1a1d2e;
-    --color-border: #2a2f45;
-    --color-border-light: #363c58;
-    --color-text-primary: #f0f2f8;
-    --color-text-secondary: #8b92b0;
-    --color-text-muted: #5a6180;
+    --color-bg-primary: #0a0b0f;
+    --color-bg-secondary: #0e0f14;
+    --color-bg-card: #141519;
+    --color-bg-card-hover: #1a1b21;
+    --color-bg-hover: #1a1b21;
+    --color-bg-input: #141519;
+    --color-bg-page: #0a0b0f;
+    --color-border: #1e2028;
+    --color-border-light: #282a33;
+    --color-text-primary: #f5f5f7;
+    --color-text-secondary: #86868b;
+    --color-text-muted: #6e6e73;
     --color-accent: #6366f1;
     --color-accent-hover: #818cf8;
-    --color-green: #22c55e;
-    --color-green-dim: #16a34a;
-    --color-red: #ef4444;
-    --color-red-dim: #dc2626;
+    --color-green: #34d399;
+    --color-green-dim: #22c55e;
+    --color-red: #f87171;
+    --color-red-dim: #ef4444;
     --color-blue: #3b82f6;
     --color-orange: #f97316;
     --color-purple: #a855f7;
     --color-yellow: #eab308;
+    --color-chart-grid: #1e2028;
+    --color-bg-alt-row: rgba(255, 255, 255, 0.02);
+    --font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', sans-serif;
   }
 
   .theme-light {
-    --color-bg-primary: #f8f9fc;
+    --color-bg-primary: #f5f5f7;
     --color-bg-secondary: #ffffff;
     --color-bg-card: #ffffff;
-    --color-bg-card-hover: #f1f3f9;
-    --color-bg-input: #f0f1f5;
-    --color-border: #e2e5f0;
-    --color-border-light: #d1d5e4;
-    --color-text-primary: #111827;
-    --color-text-secondary: #6b7280;
-    --color-text-muted: #9ca3af;
+    --color-bg-card-hover: #fafafa;
+    --color-bg-hover: #fafafa;
+    --color-bg-input: #f2f2f7;
+    --color-bg-page: #f5f5f7;
+    --color-border: #e5e5ea;
+    --color-border-light: #f2f2f7;
+    --color-text-primary: #1d1d1f;
+    --color-text-secondary: #6e6e73;
+    --color-text-muted: #86868b;
+    --color-green: #22c55e;
+    --color-red: #ef4444;
+    --color-chart-grid: #e5e5ea;
+    --color-bg-alt-row: rgba(0, 0, 0, 0.02);
   }
 
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--color-border) transparent;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 3px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--color-border-light);
+  }
+
+  ::selection {
+    background: rgba(99, 102, 241, 0.3);
+    color: inherit;
   }
 
   body {
     margin: 0;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-family);
     background-color: var(--color-bg-primary);
     color: var(--color-text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   #root {
@@ -62,28 +95,28 @@
   .glass-card {
     background: var(--color-bg-card);
     border: 1px solid var(--color-border);
-    border-radius: 12px;
+    border-radius: 16px;
     backdrop-filter: blur(12px);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.2s ease;
   }
 
   .glass-card:hover {
     border-color: var(--color-border-light);
-    background: var(--color-bg-card-hover);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   }
 
   .kpi-card {
-    background: linear-gradient(135deg, var(--color-bg-card) 0%, rgba(99, 102, 241, 0.05) 100%);
+    background: var(--color-bg-card);
     border: 1px solid var(--color-border);
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 1.25rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
   }
 
   .kpi-card:hover {
-    border-color: var(--color-accent);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.1);
   }
 
   .skeleton {
@@ -118,12 +151,12 @@
 
   .nav-tab {
     padding: 0.5rem 1rem;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--color-text-secondary);
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
   }
 
   .nav-tab:hover {
@@ -133,7 +166,7 @@
 
   .nav-tab.active {
     color: var(--color-accent);
-    background: rgba(99, 102, 241, 0.15);
+    background: rgba(99, 102, 241, 0.12);
   }
 
   .filter-chip {
@@ -145,7 +178,7 @@
     background: var(--color-bg-card);
     color: var(--color-text-secondary);
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
   }
 
   .filter-chip:hover {
@@ -165,31 +198,31 @@
     background: var(--color-accent);
     color: white;
     padding: 0.5rem 1rem;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 0.875rem;
     font-weight: 500;
     border: none;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
   }
 
   .btn-primary:hover {
     background: var(--color-accent-hover);
-    transform: translateY(-1px);
+    transform: scale(1.02);
     box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
   }
 
   .btn-primary:active {
-    transform: translateY(0);
+    transform: scale(0.98);
   }
 
   .insight-card {
     border-left: 3px solid;
     padding: 0.75rem 1rem;
-    border-radius: 0 8px 8px 0;
+    border-radius: 0 10px 10px 0;
     background: var(--color-bg-card);
     margin-bottom: 0.5rem;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
   }
 
   .insight-card:hover {
@@ -199,6 +232,28 @@
   .insight-info { border-left-color: var(--color-blue); }
   .insight-warning { border-left-color: var(--color-yellow); }
   .insight-critical { border-left-color: var(--color-red); }
+
+  /* Theme toggle animation */
+  .theme-toggle-icon {
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .theme-toggle-icon.rotating {
+    transform: rotate(360deg);
+  }
+
+  /* Apple-style category labels */
+  .category-label {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+  }
+
+  /* Interactive elements base transition */
+  button, a, input, select {
+    transition: all 0.2s ease;
+  }
 
   /* Mobile responsive utilities */
   @media (max-width: 640px) {
@@ -212,7 +267,7 @@
     }
 
     .glass-card {
-      border-radius: 8px;
+      border-radius: 12px;
     }
   }
 
@@ -223,7 +278,7 @@
     background: rgba(0, 0, 0, 0.5);
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.3s ease;
     z-index: 30;
   }
 
@@ -236,7 +291,7 @@
   @keyframes fadeIn {
     from {
       opacity: 0;
-      transform: translateY(10px);
+      transform: translateY(8px);
     }
     to {
       opacity: 1;
@@ -247,7 +302,7 @@
   @keyframes slideDown {
     from {
       opacity: 0;
-      transform: translateY(-10px);
+      transform: translateY(-8px);
     }
     to {
       opacity: 1;
@@ -265,5 +320,19 @@
 
   .page-content {
     animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Frosted glass tooltip for charts */
+  .chart-tooltip {
+    background: var(--color-bg-card) !important;
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--color-border) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    padding: 12px 16px !important;
+  }
+
+  .theme-light .chart-tooltip {
+    background: rgba(255, 255, 255, 0.85) !important;
   }
 }

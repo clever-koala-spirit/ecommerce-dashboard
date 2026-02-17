@@ -5,22 +5,12 @@ import Sidebar from './Sidebar';
 import AIChatPanel from '../ai/AIChatPanel';
 import ErrorBoundary from '../common/ErrorBoundary';
 import { useStore } from '../../store/useStore';
-import { useEffect } from 'react';
 
 export default function DashboardLayout() {
-  const theme = useStore((s) => s.theme);
   const sidebarOpen = useStore((s) => s.sidebarOpen);
 
-  useEffect(() => {
-    if (theme === 'light') {
-      document.documentElement.classList.add('theme-light');
-    } else {
-      document.documentElement.classList.remove('theme-light');
-    }
-  }, [theme]);
-
   return (
-    <div className="min-h-screen flex" style={{ background: '#0f1117' }}>
+    <div className="min-h-screen flex" style={{ background: 'var(--color-bg-primary)', transition: 'background-color 0.3s ease' }}>
       {/* Left Navigation Sidebar */}
       <NavSidebar />
 

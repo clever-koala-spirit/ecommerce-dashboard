@@ -19,7 +19,7 @@ const CustomTooltip = ({ active, payload, label }) => {
     const value = payload[0].value;
     return (
       <div
-        className="p-3 rounded border"
+        className="chart-tooltip p-3 rounded-xl"
         style={{
           backgroundColor: 'var(--color-bg-card)',
           borderColor: 'var(--color-border)',
@@ -191,7 +191,7 @@ export default function EfficiencyCharts() {
             <LineChart data={merData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="var(--color-border)"
+                stroke="var(--color-chart-grid)" strokeOpacity={0.5}
                 vertical={false}
               />
               <XAxis
@@ -241,7 +241,7 @@ export default function EfficiencyCharts() {
             <LineChart data={ltvCacData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="var(--color-border)"
+                stroke="var(--color-chart-grid)" strokeOpacity={0.5}
                 vertical={false}
               />
               <XAxis
@@ -291,7 +291,7 @@ export default function EfficiencyCharts() {
             <LineChart data={contributionData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="var(--color-border)"
+                stroke="var(--color-chart-grid)" strokeOpacity={0.5}
                 vertical={false}
               />
               <XAxis
@@ -309,7 +309,7 @@ export default function EfficiencyCharts() {
                   if (active && payload && payload.length) {
                     return (
                       <div
-                        className="p-3 rounded border"
+                        className="chart-tooltip p-3 rounded-xl"
                         style={{
                           backgroundColor: 'var(--color-bg-card)',
                           borderColor: 'var(--color-border)',

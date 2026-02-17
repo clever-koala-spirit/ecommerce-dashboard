@@ -31,10 +31,10 @@ const AcademyPage = lazy(() => import('./pages/AcademyPage'));
 
 function LoadingScreen() {
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#0f1117' }}>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg-primary, #0a0b0f)' }}>
       <div className="text-center">
         <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-gray-400 text-sm">Loading Slay Season...</p>
+        <p className="text-sm" style={{ color: 'var(--color-text-secondary, #86868b)' }}>Loading Slay Season...</p>
       </div>
     </div>
   );

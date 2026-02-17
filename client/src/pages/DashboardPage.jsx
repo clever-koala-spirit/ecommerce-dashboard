@@ -56,7 +56,7 @@ export default function DashboardPage() {
 
       {/* Fatal error */}
       {hasFatalError && (
-        <div className="dashboard-card">
+        <div className="glass-card p-6">
           <ErrorState message={fetchError} onRetry={loadData} />
         </div>
       )}

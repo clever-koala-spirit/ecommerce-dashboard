@@ -16,10 +16,10 @@ export default function ForecastPage() {
 
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2 text-slate-100">
+        <h1 className="text-3xl font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>
           Forecasting & Predictive Analytics
         </h1>
-        <p className="text-slate-400">
+        <p style={{ color: 'var(--color-text-secondary)' }}>
           AI-powered predictions using time series analysis on your historical data
         </p>
       </div>

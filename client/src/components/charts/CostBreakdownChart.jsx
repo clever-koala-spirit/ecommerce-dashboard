@@ -21,7 +21,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div
-        className="p-3 rounded border"
+        className="chart-tooltip p-3 rounded-xl"
         style={{
           backgroundColor: 'var(--color-bg-card)',
           borderColor: 'var(--color-border)',
@@ -50,7 +50,7 @@ const PieCustomTooltip = ({ active, payload }) => {
     const data = payload[0].payload;
     return (
       <div
-        className="p-3 rounded border"
+        className="chart-tooltip p-3 rounded-xl"
         style={{
           backgroundColor: 'var(--color-bg-card)',
           borderColor: 'var(--color-border)',
@@ -169,7 +169,7 @@ export default function CostBreakdownChart() {
               </defs>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="var(--color-border)"
+                stroke="var(--color-chart-grid)" strokeOpacity={0.5}
                 vertical={false}
               />
               <XAxis
