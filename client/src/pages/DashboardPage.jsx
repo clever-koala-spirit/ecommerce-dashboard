@@ -46,7 +46,7 @@ export default function DashboardPage() {
   }, [fetchDashboardData, dateRange.preset, dateRange.customStart, dateRange.customEnd]);
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 page-content">
+    <div className="p-5 sm:p-8 space-y-6 sm:space-y-8 page-content">
       <SEO title="Dashboard" description="Your real-time ecommerce profit dashboard." path="/dashboard" />
       <ConnectionStatusBar />
       <SampleDataBanner />

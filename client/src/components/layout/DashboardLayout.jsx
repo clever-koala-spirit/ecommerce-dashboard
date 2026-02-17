@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom';
-import TopNav from './TopNav';
+import NavSidebar from './NavSidebar';
 import FilterBar from './FilterBar';
 import Sidebar from './Sidebar';
 import AIChatPanel from '../ai/AIChatPanel';
@@ -21,39 +21,31 @@ export default function DashboardLayout() {
 
   return (
     <div
-      className="min-h-screen flex flex-col transition-colors duration-300"
+      className="min-h-screen flex transition-colors duration-300"
       style={{ background: 'var(--color-bg-primary)' }}
     >
-      {/* Top Navigation */}
-      <TopNav />
-
-      {/* Filter Bar */}
-      <FilterBar />
+      {/* Left Navigation Sidebar */}
+      <NavSidebar />
 
       {/* Main Content Area */}
-      <div className="flex flex-1 overflow-hidden pt-32 relative">
-        {/* Sidebar overlay for mobile */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 md:hidden z-20 transition-opacity duration-300"
-            onClick={() => {} /* Sidebar toggle button will close it */}
-          />
-        )}
+      <div className="flex-1 md:ml-60 min-h-screen flex flex-col">
+        {/* Filter Bar (top bar) */}
+        <FilterBar />
 
-        {/* Main Content */}
-        <div className={`flex-1 overflow-y-auto transition-all duration-300 ease-out ${
-          sidebarOpen ? 'md:pr-80' : ''
+        {/* Page Content */}
+        <div className={`flex-1 overflow-y-auto relative transition-all duration-300 ${
+          sidebarOpen ? 'md:pr-72' : ''
         }`}>
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>
         </div>
-
-        {/* Right Sidebar (AI Insights) */}
-        <ErrorBoundary>
-          <Sidebar />
-        </ErrorBoundary>
       </div>
+
+      {/* Right Sidebar (AI Insights) */}
+      <ErrorBoundary>
+        <Sidebar />
+      </ErrorBoundary>
 
       {/* AI Chat Panel */}
       <ErrorBoundary>

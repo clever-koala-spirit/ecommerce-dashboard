@@ -46,7 +46,7 @@ export default function Sidebar() {
     <>
       {/* Sidebar */}
       <div
-        className={`fixed top-16 right-0 h-[calc(100vh-64px)] w-80 md:w-72 transition-transform duration-300 ease-out border-l flex flex-col ${
+        className={`fixed top-0 right-0 h-screen w-80 md:w-72 transition-transform duration-300 ease-out border-l flex flex-col ${
           sidebarOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         style={{

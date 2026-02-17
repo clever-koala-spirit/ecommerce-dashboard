@@ -71,7 +71,7 @@ export default function FilterBar() {
 
   return (
     <div
-      className="sticky top-16 z-30 px-6 py-3 border-b"
+      className="sticky top-0 z-30 px-6 py-3 border-b"
       style={{
         background: 'var(--color-bg-primary)',
         borderColor: 'var(--color-border)',
