@@ -20,16 +20,13 @@ export default function DashboardLayout() {
   }, [theme]);
 
   return (
-    <div
-      className="min-h-screen flex transition-colors duration-300"
-      style={{ background: 'var(--color-bg-primary)' }}
-    >
+    <div className="min-h-screen flex" style={{ background: '#0f1117' }}>
       {/* Left Navigation Sidebar */}
       <NavSidebar />
 
       {/* Main Content Area */}
       <div className="flex-1 md:ml-60 min-h-screen flex flex-col">
-        {/* Filter Bar (top bar) */}
+        {/* Top Bar */}
         <FilterBar />
 
         {/* Page Content */}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import SEO from '../components/common/SEO';
@@ -12,6 +12,8 @@ import PaidAdsChart from '../components/charts/PaidAdsChart';
 import KlaviyoChart from '../components/charts/KlaviyoChart';
 import CostBreakdownChart from '../components/charts/CostBreakdownChart';
 import EfficiencyCharts from '../components/charts/EfficiencyCharts';
+import TotalSalesChart from '../components/charts/TotalSalesChart';
+import BestSellingProducts from '../components/charts/BestSellingProducts';
 import InsightsEngine from '../components/forecast/InsightsEngine';
 import SampleDataBanner from '../components/SampleDataBanner';
 import ConnectionStatusBar from '../components/connections/ConnectionStatusBar';
@@ -32,7 +34,6 @@ export default function DashboardPage() {
 
   const hasFatalError = fetchError && !isAnyLoading;
 
-  // Fetch real data on mount and when date range changes
   const loadData = () => {
     setFetchError(null);
     fetchDashboardData(dateRange).catch((err) => {
@@ -46,132 +47,71 @@ export default function DashboardPage() {
   }, [fetchDashboardData, dateRange.preset, dateRange.customStart, dateRange.customEnd]);
 
   return (
-    <div className="p-5 sm:p-8 space-y-6 sm:space-y-8 page-content">
+    <div className="p-6 lg:p-8 space-y-6 page-content" style={{ maxWidth: '1440px' }}>
       <SEO title="Dashboard" description="Your real-time ecommerce profit dashboard." path="/dashboard" />
       <ConnectionStatusBar />
       <SampleDataBanner />
-      {/* Code Editor */}
       <CodeEditor />
-
-      {/* Custom Widgets */}
       <CustomWidgetRow />
 
-      {/* Fatal error state */}
+      {/* Fatal error */}
       {hasFatalError && (
-        <div className="glass-card" style={{ backgroundColor: 'var(--color-bg-card)' }}>
-          <ErrorState
-            message={fetchError}
-            onRetry={loadData}
-          />
+        <div className="dashboard-card">
+          <ErrorState message={fetchError} onRetry={loadData} />
         </div>
       )}
 
-      {/* Hero KPI Row */}
+      {/* KPI Cards */}
       <div className="animate-fadeIn" style={{ animationDelay: '0.05s', animationFillMode: 'backwards' }}>
-        <h2
-          className="text-lg font-semibold mb-4"
-          style={{ color: 'var(--color-text-primary)' }}
-        >
-          Key Metrics
-        </h2>
         <KPIRow />
       </div>
 
-      {/* Revenue Overview */}
+      {/* Total Sales - Main Chart */}
       <div className="animate-fadeIn" style={{ animationDelay: '0.1s', animationFillMode: 'backwards' }}>
-        <h2
-          className="text-lg font-semibold mb-4"
-          style={{ color: 'var(--color-text-primary)' }}
-        >
-          Revenue Overview
-        </h2>
+        <TotalSalesChart />
+      </div>
+
+      {/* Secondary Charts - 2 column */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fadeIn" style={{ animationDelay: '0.15s', animationFillMode: 'backwards' }}>
         {isAnyLoading && !hasFatalError ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2"><SkeletonChart /></div>
+          <>
             <SkeletonChart />
-          </div>
+            <SkeletonChart />
+          </>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2">
-              <RevenueWaterfall />
-            </div>
+          <>
+            <RevenueWaterfall />
             <RevenueByChannel />
-          </div>
+          </>
         )}
+      </div>
+
+      {/* Best Selling Products */}
+      <div className="animate-fadeIn" style={{ animationDelay: '0.2s', animationFillMode: 'backwards' }}>
+        <BestSellingProducts />
       </div>
 
       {/* Channel Performance */}
-      <div className="animate-fadeIn" style={{ animationDelay: '0.15s', animationFillMode: 'backwards' }}>
-        <h2
-          className="text-lg font-semibold mb-4"
-          style={{ color: 'var(--color-text-primary)' }}
-        >
-          Channel Performance
-        </h2>
-        {isAnyLoading && !hasFatalError ? (
-          <SkeletonTable />
-        ) : (
-          <ChannelPerformanceTable />
-        )}
+      <div className="animate-fadeIn" style={{ animationDelay: '0.25s', animationFillMode: 'backwards' }}>
+        {isAnyLoading && !hasFatalError ? <SkeletonTable /> : <ChannelPerformanceTable />}
       </div>
 
-      {/* Ad Spend Analysis */}
-      <div className="animate-fadeIn" style={{ animationDelay: '0.2s', animationFillMode: 'backwards' }}>
-        <h2
-          className="text-lg font-semibold mb-4"
-          style={{ color: 'var(--color-text-primary)' }}
-        >
-          Ad Spend Analysis
-        </h2>
-        {isAnyLoading && !hasFatalError ? (
-          <SkeletonChart />
-        ) : (
-          <PaidAdsChart />
-        )}
+      {/* Ad Spend */}
+      <div className="animate-fadeIn" style={{ animationDelay: '0.3s', animationFillMode: 'backwards' }}>
+        {isAnyLoading && !hasFatalError ? <SkeletonChart /> : <PaidAdsChart />}
       </div>
 
       {/* Email Performance */}
-      <div className="animate-fadeIn" style={{ animationDelay: '0.25s', animationFillMode: 'backwards' }}>
-        <h2
-          className="text-lg font-semibold mb-4"
-          style={{ color: 'var(--color-text-primary)' }}
-        >
-          Email Performance
-        </h2>
-        {isAnyLoading && !hasFatalError ? (
-          <SkeletonChart />
-        ) : (
-          <KlaviyoChart />
-        )}
-      </div>
-
-      {/* Cost Analysis */}
-      <div className="animate-fadeIn" style={{ animationDelay: '0.3s', animationFillMode: 'backwards' }}>
-        <h2
-          className="text-lg font-semibold mb-4"
-          style={{ color: 'var(--color-text-primary)' }}
-        >
-          Cost Analysis
-        </h2>
-        {isAnyLoading && !hasFatalError ? (
-          <SkeletonChart />
-        ) : (
-          <CostBreakdownChart />
-        )}
-      </div>
-
-      {/* Efficiency Metrics */}
       <div className="animate-fadeIn" style={{ animationDelay: '0.35s', animationFillMode: 'backwards' }}>
-        <h2
-          className="text-lg font-semibold mb-4"
-          style={{ color: 'var(--color-text-primary)' }}
-        >
-          Efficiency Metrics
-        </h2>
+        {isAnyLoading && !hasFatalError ? <SkeletonChart /> : <KlaviyoChart />}
+      </div>
+
+      {/* Cost & Efficiency */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fadeIn" style={{ animationDelay: '0.4s', animationFillMode: 'backwards' }}>
         {isAnyLoading && !hasFatalError ? (
-          <SkeletonChart />
+          <><SkeletonChart /><SkeletonChart /></>
         ) : (
-          <EfficiencyCharts />
+          <><CostBreakdownChart /><EfficiencyCharts /></>
         )}
       </div>
     </div>

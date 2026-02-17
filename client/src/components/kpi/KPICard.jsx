@@ -1,4 +1,5 @@
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
+import { MoreHorizontal } from 'lucide-react';
 import {
   formatCurrency,
   formatNumber,
@@ -21,109 +22,92 @@ export default function KPICard({
   unavailable = false,
   unavailableMessage = 'Connect ad platforms to see this metric',
 }) {
-  // Format the main value
   const formatValue = () => {
     switch (format) {
-      case 'currency':
-        return formatCurrency(value);
-      case 'number':
-        return formatNumber(value);
-      case 'percent':
-        return formatPercent(value / 100);
-      case 'ratio':
-        return value.toFixed(2) + 'x';
-      default:
-        return formatCurrency(value);
+      case 'currency': return formatCurrency(value);
+      case 'number': return formatNumber(value);
+      case 'percent': return formatPercent(value / 100);
+      case 'ratio': return value.toFixed(2) + 'x';
+      default: return formatCurrency(value);
     }
   };
 
-  // Calculate delta
   const delta = formatDelta(value, previousValue);
   const isPositive = delta.positive;
-  const deltaColor = isPositive ? COLORS.GREEN[600] : COLORS.RED[600];
+  const deltaColor = isPositive ? '#22c55e' : '#ef4444';
 
-  // Prepare sparkline data with proper structure
-  const sparklineChartData = sparklineData.map((val) => ({
-    value: val,
-  }));
+  const sparklineChartData = sparklineData.map((val) => ({ value: val }));
 
-  // Loading state with smooth skeleton animation
   if (loading) {
     return (
-      <div className="kpi-card space-y-3 p-5" style={{ minHeight: '140px' }}>
-        <div className="skeleton" style={{ width: '30%', height: '12px', borderRadius: '4px' }} />
+      <div className="rounded-2xl p-5 space-y-3" style={{ background: '#151923', border: '1px solid #1e2433', minHeight: '150px' }}>
+        <div className="skeleton" style={{ width: '30%', height: '12px', borderRadius: '6px' }} />
         <div className="skeleton" style={{ width: '60%', height: '28px', marginTop: '12px', borderRadius: '6px' }} />
-        <div className="flex justify-between items-center gap-2 pt-3">
-          <div className="skeleton" style={{ width: '35%', height: '10px', borderRadius: '4px' }} />
-          <div className="skeleton" style={{ width: '40%', height: '32px', borderRadius: '4px' }} />
-        </div>
+        <div className="skeleton" style={{ width: '35%', height: '10px', marginTop: '8px', borderRadius: '6px' }} />
       </div>
     );
   }
 
-  // Unavailable state
   if (unavailable) {
     return (
-      <div className="kpi-card relative group overflow-hidden animate-fadeIn" style={{ animationDuration: '0.3s', animationFillMode: 'backwards', opacity: 0.7 }}>
-        {Icon && (
-          <div className="absolute top-4 right-4 opacity-20" style={{ color: accentColor }}>
-            <Icon size={24} />
-          </div>
-        )}
-        <div className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
-          {title}
+      <div className="rounded-2xl p-5 relative" style={{ background: '#151923', border: '1px solid #1e2433', opacity: 0.7 }}>
+        <div className="flex items-center justify-between mb-3">
+          {Icon && (
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${accentColor}15` }}>
+              <Icon size={18} style={{ color: accentColor }} />
+            </div>
+          )}
+          <MoreHorizontal size={16} style={{ color: '#4b5563' }} />
         </div>
-        <div className="flex items-baseline gap-2 mt-2">
-          <div className="text-2xl font-bold" style={{ color: 'var(--color-text-secondary)' }}>
-            —
-          </div>
-        </div>
-        <div className="mt-4">
-          <span className="text-xs" style={{ color: 'var(--color-text-secondary)', opacity: 0.7 }}>
-            {unavailableMessage}
-          </span>
-        </div>
+        <div className="text-xs font-medium mb-1" style={{ color: '#6b7280' }}>{title}</div>
+        <div className="text-2xl font-bold" style={{ color: '#4b5563' }}>—</div>
+        <div className="text-[11px] mt-2" style={{ color: '#4b5563' }}>{unavailableMessage}</div>
       </div>
     );
   }
 
   return (
-    <div className="kpi-card relative group overflow-hidden animate-fadeIn" style={{ animationDuration: '0.3s', animationFillMode: 'backwards' }}>
-      {Icon && (
-        <div className="absolute top-4 right-4 opacity-30 group-hover:opacity-50 transition-opacity duration-300" style={{ color: accentColor }}>
-          <Icon size={24} />
-        </div>
-      )}
-      <div className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
-        {title}
+    <div className="rounded-2xl p-5 relative group transition-all duration-200 hover:border-indigo-500/30" style={{ background: '#151923', border: '1px solid #1e2433' }}>
+      <div className="flex items-center justify-between mb-3">
+        {Icon && (
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${accentColor}15` }}>
+            <Icon size={18} style={{ color: accentColor }} />
+          </div>
+        )}
+        <MoreHorizontal size={16} className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: '#6b7280' }} />
       </div>
-      <div className="flex items-baseline gap-2 mt-2">
-        <div className="text-2xl font-bold transition-all duration-300" style={{ color: 'var(--color-text-primary)' }}>
-          {prefix}{formatValue()}{suffix}
-        </div>
+
+      <div className="text-xs font-medium mb-1" style={{ color: '#9ca3af' }}>{title}</div>
+
+      <div className="text-2xl font-bold text-white mb-2">
+        {prefix}{formatValue()}{suffix}
       </div>
-      <div className="flex items-center justify-between mt-4 gap-3">
-        <div
-          className="px-2 py-1 rounded text-xs font-semibold flex items-center gap-1 transition-all duration-300"
-          style={{
-            backgroundColor: isPositive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-            color: deltaColor,
-          }}
-        >
-          <span>{isPositive ? '▲' : '▼'}</span>
-          <span>{delta.value}</span>
+
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span
+            className="px-2 py-0.5 rounded-md text-[11px] font-semibold"
+            style={{
+              background: isPositive ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
+              color: deltaColor,
+            }}
+          >
+            {isPositive ? '↑' : '↓'} {delta.value}
+          </span>
+          <span className="text-[11px]" style={{ color: '#6b7280' }}>From last period</span>
         </div>
+
         {sparklineChartData.length > 1 && (
-          <div className="flex-1 h-8 transition-all duration-300">
+          <div className="w-16 h-8">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={sparklineChartData}>
                 <defs>
-                  <linearGradient id={`sparkline-gradient-${title}`} x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id={`spark-${title}`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={deltaColor} stopOpacity={0.3} />
                     <stop offset="95%" stopColor={deltaColor} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <Area type="monotone" dataKey="value" stroke={deltaColor} strokeWidth={2} fill={`url(#sparkline-gradient-${title})`} isAnimationActive={true} dot={false} />
+                <Area type="monotone" dataKey="value" stroke={deltaColor} strokeWidth={1.5} fill={`url(#spark-${title})`} dot={false} isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

@@ -328,9 +328,15 @@ export default function KPIRow() {
     ? (isLoading?.shopify || isLoading?.meta || isLoading?.google || false)
     : !!isLoading;
 
+  // Show primary 4 metrics: Gross Revenue, Total Orders, AOV, Refunds
+  const primaryMetrics = metrics.filter((m) =>
+    ['Gross Revenue', 'Total Orders', 'AOV', 'Refunds'].includes(m.title)
+  );
+  const displayMetrics = primaryMetrics.length >= 4 ? primaryMetrics : metrics.slice(0, 4);
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-3 gap-3 sm:gap-4 transition-all duration-300">
-      {metrics.map((metric) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 transition-all duration-300">
+      {displayMetrics.map((metric) => (
         <KPICard
           key={metric.title}
           title={metric.title}
