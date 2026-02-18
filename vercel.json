@@ -5,6 +5,7 @@
   "installCommand": "cd client && npm install",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "https://api.slayseason.com/api/$1" },
+    { "source": "/amjhed/(.*)", "destination": "https://api.slayseason.com/clients/amjhed/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
