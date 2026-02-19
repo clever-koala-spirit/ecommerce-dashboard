@@ -146,7 +146,7 @@ export class GoogleAdsService {
           metrics.clicks,
           metrics.impressions,
           metrics.conversions,
-          metrics.all_conversions_value
+          metrics.conversions_value
         FROM campaign
         WHERE campaign.status != REMOVED
           AND segments.date >= '${dateRange.start}'
@@ -204,6 +204,7 @@ export class GoogleAdsService {
           metrics.clicks,
           metrics.impressions,
           metrics.conversions,
+          metrics.conversions_value,
           metrics.all_conversions_value
         FROM campaign
         WHERE segments.date >= '${dateRange.start}'
@@ -248,7 +249,11 @@ export class GoogleAdsService {
         aggregated[date].clicks += Number(metrics.clicks || 0);
         aggregated[date].impressions += Number(metrics.impressions || 0);
         aggregated[date].conversions += Number(metrics.conversions || 0);
-        aggregated[date].conversionValue += Number(metrics.allConversionsValue || 0);
+        
+        // Use conversions_value instead of all_conversions_value for accurate ROAS
+        // conversions_value = conversions optimized for in Smart Bidding
+        // all_conversions_value = all conversions including those not optimized for
+        aggregated[date].conversionValue += Number(metrics.conversionsValue || 0);
       });
 
       return {
@@ -279,7 +284,7 @@ export class GoogleAdsService {
     const clicks = Number(metrics?.clicks || 0);
     const impressions = Number(metrics?.impressions || 0);
     const conversions = Number(metrics?.conversions || 0);
-    const conversionValue = Number(metrics?.allConversionsValue || 0);
+    const conversionValue = Number(metrics?.conversionsValue || 0);
 
     return {
       id: campaign.id,
