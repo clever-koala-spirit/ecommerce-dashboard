@@ -387,19 +387,28 @@ async function fetchPlatformInfo(platform, tokenData, req = {}) {
       const accountsData = await accountsResponse.json();
 
       if (accountsData.data && accountsData.data.length > 0) {
-        // Prefer account matching the shop name, or the one with active status (1)
-        const activeAccounts = accountsData.data.filter(a => a.account_status === 1);
-        const shopName = req.shopDomain?.replace('.myshopify.com', '').replace(/-/g, ' ') || '';
-        const matchingAccount = accountsData.data.find(a => 
-          a.name?.toLowerCase().includes('paintly kits') || 
-          a.name?.toLowerCase().includes(shopName.toLowerCase())
-        );
-        const primaryAccount = matchingAccount || activeAccounts[activeAccounts.length - 1] || accountsData.data[0];
+        console.log(`[OAuth] Meta: ${accountsData.data.length} accounts found:`, accountsData.data.map(a => `${a.name} (${a.id})`).join(', '));
+        
+        // Find account with most recent spend by checking insights for each active account
+        let bestAccount = null;
+        for (const acct of accountsData.data) {
+          try {
+            const insResp = await fetch(`https://graph.facebook.com/v25.0/${acct.id}/insights?fields=spend&time_range=${encodeURIComponent(JSON.stringify({since: new Date(Date.now() - 90*86400000).toISOString().split('T')[0], until: new Date().toISOString().split('T')[0]}))}&access_token=${tokenData.access_token}`);
+            const insData = await insResp.json();
+            if (insData.data && insData.data.length > 0 && parseFloat(insData.data[0].spend) > 0) {
+              bestAccount = acct;
+              console.log(`[OAuth] Meta: account "${acct.name}" has spend: $${insData.data[0].spend}`);
+              break;
+            }
+          } catch (e) { /* skip */ }
+        }
+        
+        const primaryAccount = bestAccount || accountsData.data[0];
         credentials.adAccountId = primaryAccount.id;
         credentials.accountName = primaryAccount.name;
         credentials.currency = primaryAccount.currency;
         credentials.allAccounts = accountsData.data.map(a => ({ id: a.id, name: a.name, currency: a.currency }));
-        console.log(`[OAuth] Meta: selected account "${primaryAccount.name}" (${primaryAccount.id}) from ${accountsData.data.length} accounts`);
+        console.log(`[OAuth] Meta: selected account "${primaryAccount.name}" (${primaryAccount.id})`);
       }
     } else if (platform === 'google') {
       // For Google Ads, we need to get accessible customers
