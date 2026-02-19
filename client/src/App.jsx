@@ -32,6 +32,9 @@ const IntegrationsPage = lazy(() => import('./pages/IntegrationsPage'));
 const SecurityPage = lazy(() => import('./pages/SecurityPage'));
 const GdprPage = lazy(() => import('./pages/GdprPage'));
 const AcademyPage = lazy(() => import('./pages/AcademyPage'));
+const ProfitLossPage = lazy(() => import('./pages/ProfitLossPage'));
+const MarketingPage = lazy(() => import('./pages/MarketingPage'));
+const LtvCohortPage = lazy(() => import('./pages/LtvCohortPage'));
 
 function LoadingScreen() {
   return (
@@ -159,6 +162,21 @@ function App() {
             <Route path="/reports" element={
               <ErrorBoundary>
                 <ReportsPage />
+              </ErrorBoundary>
+            } />
+            <Route path="/profit-loss" element={
+              <ErrorBoundary>
+                <ProfitLossPage />
+              </ErrorBoundary>
+            } />
+            <Route path="/marketing" element={
+              <ErrorBoundary>
+                <MarketingPage />
+              </ErrorBoundary>
+            } />
+            <Route path="/ltv" element={
+              <ErrorBoundary>
+                <LtvCohortPage />
               </ErrorBoundary>
             } />
             <Route path="/forecast" element={

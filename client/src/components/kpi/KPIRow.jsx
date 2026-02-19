@@ -329,14 +329,14 @@ export default function KPIRow() {
     ? (isLoading?.shopify || isLoading?.meta || isLoading?.google || false)
     : !!isLoading;
 
-  // Show primary 4 metrics: Gross Revenue, Total Orders, AOV, Refunds
-  const primaryMetrics = metrics.filter((m) =>
-    ['Gross Revenue', 'Total Orders', 'AOV', 'Refunds'].includes(m.title)
-  );
-  const displayMetrics = primaryMetrics.length >= 4 ? primaryMetrics : metrics.slice(0, 4);
+  // Show primary 6 metrics: Gross Revenue, Net Profit, Blended ROAS, Total Ad Spend, Total Orders, AOV
+  const primaryOrder = ['Gross Revenue', 'Net Profit', 'Blended ROAS', 'Total Ad Spend', 'Total Orders', 'AOV'];
+  const displayMetrics = primaryOrder
+    .map((title) => metrics.find((m) => m.title === title))
+    .filter(Boolean);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 transition-all duration-300">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 transition-all duration-300">
       {displayMetrics.map((metric) => (
         <KPICard
           key={metric.title}

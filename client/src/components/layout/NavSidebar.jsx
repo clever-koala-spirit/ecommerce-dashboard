@@ -8,6 +8,9 @@ import {
   TrendingUp,
   Settings,
   HelpCircle,
+  DollarSign,
+  Megaphone,
+  Heart,
   Menu,
   X,
   LogOut,
@@ -33,6 +36,9 @@ const navSections = [
   {
     label: 'ANALYTICS',
     items: [
+      { path: '/profit-loss', label: 'Profit & Loss', icon: DollarSign },
+      { path: '/marketing', label: 'Marketing', icon: Megaphone },
+      { path: '/ltv', label: 'LTV & Cohorts', icon: Heart },
       { path: '/reports', label: 'Reports', icon: BarChart3 },
       { path: '/forecast', label: 'Forecast', icon: TrendingUp },
     ],
