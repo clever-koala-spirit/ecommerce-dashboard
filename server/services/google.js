@@ -244,11 +244,11 @@ export class GoogleAdsService {
         }
 
         const metrics = result.metrics;
-        aggregated[date].spend += Number(metrics.cost_micros || 0) / 1000000;
+        aggregated[date].spend += Number(metrics.costMicros || 0) / 1000000;
         aggregated[date].clicks += Number(metrics.clicks || 0);
         aggregated[date].impressions += Number(metrics.impressions || 0);
         aggregated[date].conversions += Number(metrics.conversions || 0);
-        aggregated[date].conversionValue += Number(metrics.all_conversions_value || 0);
+        aggregated[date].conversionValue += Number(metrics.allConversionsValue || 0);
       });
 
       return {
@@ -275,11 +275,11 @@ export class GoogleAdsService {
   }
 
   normalizeCampaign(campaign, metrics) {
-    const spend = Number(metrics?.cost_micros || 0) / 1000000;
+    const spend = Number(metrics?.costMicros || 0) / 1000000;
     const clicks = Number(metrics?.clicks || 0);
     const impressions = Number(metrics?.impressions || 0);
     const conversions = Number(metrics?.conversions || 0);
-    const conversionValue = Number(metrics?.all_conversions_value || 0);
+    const conversionValue = Number(metrics?.allConversionsValue || 0);
 
     return {
       id: campaign.id,
