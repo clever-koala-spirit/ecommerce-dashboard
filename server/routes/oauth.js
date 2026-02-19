@@ -40,8 +40,8 @@ function generatePKCE() {
 function getOAuthConfig(platform) {
   const config = {
     meta: {
-      authUrl: 'https://www.facebook.com/v19.0/dialog/oauth',
-      tokenUrl: 'https://graph.facebook.com/v19.0/oauth/access_token',
+      authUrl: 'https://www.facebook.com/v25.0/dialog/oauth',
+      tokenUrl: 'https://graph.facebook.com/v25.0/oauth/access_token',
       scope: 'ads_read,ads_management',
       clientId: process.env.META_APP_ID,
       clientSecret: process.env.META_APP_SECRET,
@@ -378,7 +378,7 @@ async function fetchPlatformInfo(platform, tokenData) {
     if (platform === 'meta') {
       // Fetch Meta ad accounts
       const accountsResponse = await fetch(
-        `https://graph.facebook.com/v19.0/me/adaccounts?access_token=${tokenData.access_token}&fields=id,name,currency`
+        `https://graph.facebook.com/v25.0/me/adaccounts?access_token=${tokenData.access_token}&fields=id,name,currency`
       );
       const accountsData = await accountsResponse.json();
 

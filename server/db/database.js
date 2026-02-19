@@ -325,6 +325,19 @@ export async function initDB() {
     )`);
   } catch (e) { /* ignore */ }
 
+  // Daily metrics cache for instant dashboard loading
+  db.run(`
+    CREATE TABLE IF NOT EXISTS daily_metrics (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      shop_domain TEXT NOT NULL,
+      metrics_json TEXT NOT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(date, platform, shop_domain)
+    );
+  `);
+
   // Contact form submissions
   db.run(`
     CREATE TABLE IF NOT EXISTS contact_submissions (
@@ -367,6 +380,7 @@ export async function initDB() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_chat_conversations_created ON chat_conversations(created_at);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_chat_conversations_human ON chat_conversations(needs_human);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_contact_submissions_created ON contact_submissions(created_at);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_daily_metrics_lookup ON daily_metrics(platform, shop_domain, date);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_newsletter_subscribers_email ON newsletter_subscribers(email);`);
 
   // Save initial schema to file and start auto-save

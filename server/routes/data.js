@@ -7,102 +7,89 @@ import { klaviyoService } from '../services/klaviyo.js';
 import { ga4Service } from '../services/ga4.js';
 import { getCachedOrFetch, invalidateCache } from '../middleware/cache.js';
 import { saveSnapshot, getHistory } from '../db/database.js';
+import { getCachedMetrics, getSyncStatus, syncShopData } from '../services/sync.js';
 
 const router = express.Router();
 
 const STORE_TIMEZONE = 'America/New_York';
 
 function getDateRange(days = 30) {
-  // Use store timezone for date calculations so ranges match Shopify admin
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: STORE_TIMEZONE });
   const [y, m, d] = todayStr.split('-').map(Number);
-  const today = new Date(y, m - 1, d); // local date, no TZ shift
+  const today = new Date(y, m - 1, d);
   const start = new Date(today.getTime() - days * 24 * 60 * 60 * 1000);
   const startStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+  return { start: startStr, end: todayStr };
+}
 
-  return {
-    start: startStr,
-    end: todayStr,
-  };
+/**
+ * Try to load data from daily_metrics cache first, fall back to live API
+ */
+async function getDataWithCache(platform, shopDomain, dateRange, liveFetchFn) {
+  // Check DB cache first
+  const cached = getCachedMetrics(platform, shopDomain, dateRange.start, dateRange.end);
+  if (cached && cached.length > 0) {
+    return cached.map(c => c.metrics);
+  }
+  // Fall back to live fetch
+  try {
+    const result = await liveFetchFn();
+    return result || [];
+  } catch (err) {
+    console.error(`[Dashboard] ${platform} fetch error:`, err.message);
+    return [];
+  }
 }
 
 // GET /api/data/dashboard - Combined data from all sources
 router.get('/dashboard', async (req, res) => {
   try {
     const { shopDomain, shopData } = req;
-    const { startDate, endDate, days } = req.query;
+    const { startDate, endDate, days, refresh } = req.query;
     let dateRange;
     if (startDate && endDate) {
       dateRange = { start: startDate, end: endDate };
     } else {
       dateRange = getDateRange(parseInt(days) || 90);
     }
-    const rangeDays = days || '90';
 
-    // Create shop-specific cache keys
-    const cacheKeyPrefix = `dashboard:${shopDomain}`;
+    // If refresh=true, force a live sync and update cache
+    if (refresh === 'true') {
+      try {
+        await syncShopData(shopDomain, dateRange);
+      } catch (err) {
+        console.error('[Dashboard] Refresh sync error:', err.message);
+      }
+    }
 
-    const shopifyData = await getCachedOrFetch(
-      `${cacheKeyPrefix}:shopify:${dateRange.start}:${dateRange.end}`,
-      async () => {
-        try {
-          if (!shopData?.accessToken) throw new Error('No Shopify access token');
-          const result = await shopifyService.fetchOrders(dateRange, shopData.accessToken, shopDomain);
-          if (result.connected && result.data && result.data.length > 0) {
-            return result.data;
-          }
-        } catch (err) {
-          console.error('[Dashboard] Shopify fetch error:', err.message);
-        }
-        return [];
-      },
-      300
-    );
-
-    const metaData = await getCachedOrFetch(
-      `${cacheKeyPrefix}:meta:${dateRange.start}:${dateRange.end}`,
-      async () => {
+    // Load all data from cache (instant) with live fallback
+    const [shopifyData, metaData, googleData, klaviyoData, ga4Data, tiktokData] = await Promise.all([
+      getDataWithCache('shopify', shopDomain, dateRange, async () => {
+        if (!shopData?.accessToken) return [];
+        const result = await shopifyService.fetchOrders(dateRange, shopData.accessToken, shopDomain);
+        return (result.connected && result.data?.length > 0) ? result.data : [];
+      }),
+      getDataWithCache('meta', shopDomain, dateRange, async () => {
         const result = await metaService.fetchDailyInsights(dateRange);
         return result.data || [];
-      },
-      300
-    );
-
-    const googleData = await getCachedOrFetch(
-      `${cacheKeyPrefix}:google:${dateRange.start}:${dateRange.end}`,
-      async () => {
+      }),
+      getDataWithCache('google', shopDomain, dateRange, async () => {
         const result = await googleAdsService.fetchDailyMetrics(dateRange, shopDomain);
         return result.data || [];
-      },
-      300
-    );
-
-    const klaviyoData = await getCachedOrFetch(
-      `${cacheKeyPrefix}:klaviyo:${dateRange.start}:${dateRange.end}`,
-      async () => {
+      }),
+      getDataWithCache('klaviyo', shopDomain, dateRange, async () => {
         const result = await klaviyoService.fetchMetrics(dateRange);
         return result.data || [];
-      },
-      300
-    );
-
-    const ga4Data = await getCachedOrFetch(
-      `${cacheKeyPrefix}:ga4:${dateRange.start}:${dateRange.end}`,
-      async () => {
+      }),
+      getDataWithCache('ga4', shopDomain, dateRange, async () => {
         const result = await ga4Service.fetchDailyMetrics(dateRange);
         return result.data || [];
-      },
-      300
-    );
-
-    const tiktokData = await getCachedOrFetch(
-      `${cacheKeyPrefix}:tiktok:${dateRange.start}:${dateRange.end}`,
-      async () => {
+      }),
+      getDataWithCache('tiktok', shopDomain, dateRange, async () => {
         const result = await tiktokService.fetchDailyMetrics(dateRange, shopDomain);
         return result.data || [];
-      },
-      300
-    );
+      }),
+    ]);
 
     const dashboardData = {
       shopify: shopifyData,
@@ -116,13 +103,23 @@ router.get('/dashboard', async (req, res) => {
 
     // Save snapshot to database for this shop
     const today = new Date().toISOString().split('T')[0];
-    // Save a revenue snapshot from Shopify data
     if (shopifyData && Array.isArray(shopifyData)) {
       const totalRevenue = shopifyData.reduce((sum, day) => sum + (day.revenue || 0), 0);
       await saveSnapshot(shopDomain, today, 'shopify', 'revenue', totalRevenue);
     }
 
     res.json(dashboardData);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/data/sync-status - Returns last sync time per platform
+router.get('/sync-status', (req, res) => {
+  try {
+    const { shopDomain } = req;
+    const status = getSyncStatus(shopDomain);
+    res.json({ shopDomain, platforms: status });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -135,10 +132,8 @@ router.get('/history', async (req, res) => {
     const { metric = 'revenue', days = 365 } = req.query;
     const dateRange = getDateRange(parseInt(days));
 
-    // Create shop-specific cache key
     const cacheKeyPrefix = `history:${shopDomain}`;
 
-    // Try to get from database first (for the specific shop)
     const dbHistory = await getHistory(shopDomain, metric, dateRange);
 
     if (dbHistory && dbHistory.length > 0) {
@@ -150,7 +145,6 @@ router.get('/history', async (req, res) => {
       });
     }
 
-    // Fall back to live API data
     const shopifyData = await getCachedOrFetch(
       `${cacheKeyPrefix}:${metric}:${days}d`,
       async () => {
@@ -278,7 +272,7 @@ router.get('/ga4/sessions', async (req, res) => {
 // POST /api/data/invalidate - Invalidate cache for a source
 router.post('/invalidate', (req, res) => {
   const { shopDomain } = req;
-  const { source, pattern = '*' } = req.body;
+  const { source } = req.body;
 
   if (source) {
     invalidateCache(`data:${shopDomain}:${source}:*`);

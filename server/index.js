@@ -12,6 +12,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { initDB, getDB } from './db/database.js';
 import { startCronJobs } from './cron/snapshots.js';
+import { startSyncSchedule } from './services/sync.js';
 import { log, requestLogger, errorLogger } from './utils/logger.js';
 import { sanitizeAllInputs } from './middleware/validation.js';
 import {
@@ -295,6 +296,9 @@ async function startServer() {
 
     startCronJobs();
     log.info('Cron jobs started');
+
+    startSyncSchedule();
+    log.info('Background data sync scheduled');
 
     // Security status
     const hasApiKey = !!process.env.SHOPIFY_API_KEY;
