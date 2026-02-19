@@ -55,7 +55,7 @@ export default function ProfitForecast() {
     const totalMonthlyFixed = fixedCosts.reduce((sum, c) => (c.isActive ? sum + c.monthlyAmount : 0), 0);
 
     const cogsPercentage = totalRevenue > 0 ? totalCOGS / totalRevenue : 0.35;
-    const shippingPercentage = totalRevenue > 0 ? totalShipping / totalRevenue : 0.08;
+    const shippingPercentage = 0; // Shipping is built into product price per Leo - not a separate cost
     const feesPercentage = totalRevenue > 0 ? totalTransactionFees / totalRevenue : 0.029;
 
     // Ad spend (assuming Meta + Google = 27.5k/month)
@@ -145,7 +145,7 @@ export default function ProfitForecast() {
       expected: scenarios.expected,
       optimistic: scenarios.optimistic,
       cashFlowData,
-      breakEvenDaily: monthlyAdSpend / 30 / (1 - cogsPercentage - shippingPercentage - feesPercentage),
+      breakEvenDaily: monthlyAdSpend / 30 / (1 - cogsPercentage - feesPercentage), // Removed shipping - built into product price
     };
   }, [dateRange, shopifyData]);
 
@@ -154,7 +154,7 @@ export default function ProfitForecast() {
     { label: 'COGS', key: 'cogs' },
     { label: 'Ad Spend', key: 'adSpend' },
     { label: 'Platform Costs', key: 'platformCosts' },
-    { label: 'Shipping', key: 'shipping' },
+    // Note: Shipping row removed - it's built into product price, not a separate cost
     { label: 'Transaction Fees', key: 'transactionFees' },
     { label: 'Fixed Costs', key: 'fixedCosts' },
     { label: 'Other Costs', key: 'otherCosts' },

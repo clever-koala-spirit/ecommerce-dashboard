@@ -55,7 +55,7 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
     currentGrossRevenue -
     currentRefunds -
     currentCogs -
-    currentShipping -
+    // Note: NOT subtracting shipping - it's built into product price per Leo
     currentAdSpend -
     currentPeriodFixedCosts;
 
@@ -97,7 +97,7 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
     prevGrossRevenue -
     prevRefunds -
     prevCogs -
-    prevShipping -
+    // Note: NOT subtracting shipping - it's built into product price per Leo
     prevAdSpend -
     prevPeriodFixedCosts;
 

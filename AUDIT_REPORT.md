@@ -8,10 +8,14 @@
 ## ✅ COMPLETED FIXES
 
 ### 1. Shipping Costs Fixed ✅
-- **Issue:** Dashboard showed shipping amounts ($50-120/day) when Paintly Kits doesn't charge shipping
-- **Root Cause:** `normalizeOrder()` was pulling `totalShippingPriceSet` from Shopify
-- **Fix:** Modified `server/services/shopify.js` to force `shipping: 0` in `normalizeOrder()`
-- **Result:** All shipping now shows $0.00 ✅
+- **Issue:** Dashboard showed shipping amounts ($50-120/day) when Paintly Kits doesn't charge separate shipping
+- **Leo's Clarification:** Shipping cost is built into product price - customers don't pay separate shipping
+- **Fixes Applied:**
+  - Modified `server/services/shopify.js` to force `shipping: 0` 
+  - Updated `client/src/components/kpi/KPIRow.jsx` to NOT subtract shipping from profit calculations
+  - Updated `client/src/components/forecast/ProfitForecast.jsx` to set shipping percentage to 0%
+  - Removed shipping row from profit forecast display (always $0)
+- **Result:** All shipping shows $0.00, profit calculations correct ✅  
 - **Status:** DEPLOYED & TESTED
 
 ### 2. Shopify App Scope Updated ✅
