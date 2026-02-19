@@ -387,10 +387,19 @@ async function fetchPlatformInfo(platform, tokenData) {
       const accountsData = await accountsResponse.json();
 
       if (accountsData.data && accountsData.data.length > 0) {
-        const primaryAccount = accountsData.data[0];
+        // Prefer account matching the shop name, or the one with active status (1)
+        const activeAccounts = accountsData.data.filter(a => a.account_status === 1);
+        const shopName = req.shopDomain?.replace('.myshopify.com', '').replace(/-/g, ' ') || '';
+        const matchingAccount = accountsData.data.find(a => 
+          a.name?.toLowerCase().includes('paintly kits') || 
+          a.name?.toLowerCase().includes(shopName.toLowerCase())
+        );
+        const primaryAccount = matchingAccount || activeAccounts[activeAccounts.length - 1] || accountsData.data[0];
         credentials.adAccountId = primaryAccount.id;
         credentials.accountName = primaryAccount.name;
         credentials.currency = primaryAccount.currency;
+        credentials.allAccounts = accountsData.data.map(a => ({ id: a.id, name: a.name, currency: a.currency }));
+        console.log(`[OAuth] Meta: selected account "${primaryAccount.name}" (${primaryAccount.id}) from ${accountsData.data.length} accounts`);
       }
     } else if (platform === 'google') {
       // For Google Ads, we need to get accessible customers
