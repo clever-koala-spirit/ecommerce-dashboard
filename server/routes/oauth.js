@@ -344,7 +344,7 @@ router.get('/:platform/callback', validateOAuthCallback, async (req, res) => {
     const tokenData = await tokenResponse.json();
 
     // Fetch platform account info and save credentials
-    const credentials = await fetchPlatformInfo(platform, tokenData);
+    const credentials = await fetchPlatformInfo(platform, tokenData, req);
 
     // Save encrypted credentials to database
     savePlatformConnection(shopDomain, platform, credentials);
@@ -370,7 +370,7 @@ router.get('/:platform/callback', validateOAuthCallback, async (req, res) => {
 /**
  * Fetch platform-specific account information and prepare credentials
  */
-async function fetchPlatformInfo(platform, tokenData) {
+async function fetchPlatformInfo(platform, tokenData, req = {}) {
   const credentials = {
     accessToken: tokenData.access_token,
     refreshToken: tokenData.refresh_token || null,
@@ -382,7 +382,7 @@ async function fetchPlatformInfo(platform, tokenData) {
     if (platform === 'meta') {
       // Fetch Meta ad accounts
       const accountsResponse = await fetch(
-        `https://graph.facebook.com/v25.0/me/adaccounts?access_token=${tokenData.access_token}&fields=id,name,currency`
+        `https://graph.facebook.com/v25.0/me/adaccounts?access_token=${tokenData.access_token}&fields=id,name,currency,account_status`
       );
       const accountsData = await accountsResponse.json();
 
