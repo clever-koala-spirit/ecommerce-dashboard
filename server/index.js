@@ -210,7 +210,15 @@ app.use('/api/connections', apiRateLimiter, requireShopAuth, connectionsRouter);
 app.use('/api/data', apiRateLimiter, requireShopAuth, dataRouter);
 app.use('/api/ai', apiRateLimiter, requireShopAuth, aiRouter);
 // OAuth routes need auth but shop context is optional (loadShopData already ran)
-app.use('/api/oauth', apiRateLimiter, (req, res, next) => {
+app.use('/api/oauth', (req, res, next) => {
+  if (req.path.includes('/callback')) {
+    console.log('[OAuth Raw Debug] Path:', req.path);
+    console.log('[OAuth Raw Debug] Full URL:', req.originalUrl);
+    console.log('[OAuth Raw Debug] Query:', JSON.stringify(req.query));
+    console.log('[OAuth Raw Debug] Hash present:', req.originalUrl.includes('#'));
+  }
+  next();
+}, apiRateLimiter, (req, res, next) => {
   // Callback routes don't carry auth headers (browser redirect from OAuth provider)
   // They authenticate via stored state/userId in the database instead
   if (req.path.includes('/callback')) {

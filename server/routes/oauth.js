@@ -241,6 +241,9 @@ router.get('/:platform/start', (req, res) => {
  * Handles OAuth callback — exchanges authorization code for access token
  */
 router.get('/:platform/callback', validateOAuthCallback, async (req, res) => {
+    console.log("[OAuth Debug] Full URL:", req.protocol + "://" + req.get("host") + req.originalUrl);
+    console.log("[OAuth Debug] Query:", JSON.stringify(req.query));
+    console.log("[OAuth Debug] Headers referer:", req.get("referer"));
   try {
     const { platform } = req.params;
     const { code, state, error, error_description } = req.query;
