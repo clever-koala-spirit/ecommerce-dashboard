@@ -6,7 +6,7 @@ import { tiktokService } from '../services/tiktok.js';
 import { klaviyoService } from '../services/klaviyo.js';
 import { ga4Service } from '../services/ga4.js';
 import { getCachedOrFetch, invalidateCache } from '../middleware/cache.js';
-import { saveSnapshot, getHistory } from '../db/database.js';
+import { saveSnapshot, getHistory, getDB } from '../db/database.js';
 import { getCachedMetrics, getSyncStatus, syncShopData } from '../services/sync.js';
 
 const router = express.Router();
@@ -274,15 +274,19 @@ router.post('/invalidate', (req, res) => {
   const { shopDomain } = req;
   const { source } = req.body;
 
+  // Clear both in-memory cache and DB daily_metrics cache
+  const db = getDB();
   if (source) {
     invalidateCache(`data:${shopDomain}:${source}:*`);
     invalidateCache(`dashboard:${shopDomain}:${source}:*`);
     invalidateCache(`history:${shopDomain}:${source}:*`);
+    db.run(`DELETE FROM daily_metrics WHERE shop_domain = ? AND platform = ?`, [shopDomain, source]);
     res.json({ message: `Cache invalidated for ${source} on shop ${shopDomain}` });
   } else {
     invalidateCache(`data:${shopDomain}:*`);
     invalidateCache(`dashboard:${shopDomain}:*`);
     invalidateCache(`history:${shopDomain}:*`);
+    db.run(`DELETE FROM daily_metrics WHERE shop_domain = ?`, [shopDomain]);
     res.json({ message: `All cache invalidated for shop ${shopDomain}` });
   }
 });
