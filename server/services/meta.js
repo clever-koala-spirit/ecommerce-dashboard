@@ -19,7 +19,9 @@ export class MetaService {
     
     if (shopDomain) {
       const connection = getPlatformConnection(shopDomain, 'meta');
-      console.log('[Meta] loadCredentials for', shopDomain, '- found:', !!connection, 'hasCreds:', !!(connection?.credentials), 'adAccountId:', connection?.credentials?.adAccountId);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[Meta] loadCredentials for', shopDomain, '- found:', !!connection, 'hasCreds:', !!(connection?.credentials), 'adAccountId:', connection?.credentials?.adAccountId);
+      }
       if (connection && connection.credentials) {
         this.accessToken = connection.credentials.accessToken;
         this.adAccountId = connection.credentials.adAccountId;

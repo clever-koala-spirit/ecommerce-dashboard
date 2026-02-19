@@ -211,7 +211,7 @@ app.use('/api/data', apiRateLimiter, requireShopAuth, dataRouter);
 app.use('/api/ai', apiRateLimiter, requireShopAuth, aiRouter);
 // OAuth routes need auth but shop context is optional (loadShopData already ran)
 app.use('/api/oauth', (req, res, next) => {
-  if (req.path.includes('/callback')) {
+  if (req.path.includes('/callback') && process.env.NODE_ENV !== 'production') {
     console.log('[OAuth Raw Debug] Path:', req.path);
     console.log('[OAuth Raw Debug] Full URL:', req.originalUrl);
     console.log('[OAuth Raw Debug] Query:', JSON.stringify(req.query));
@@ -249,9 +249,13 @@ app.use((req, res) => {
   }
   // Serve the SPA (handles React Router routes like /settings, /forecast, /privacy, /terms)
   const indexPath = path.resolve(clientDistPath, 'index.html');
-  console.log('[SPA] Attempting sendFile:', indexPath, 'exists:', fs.existsSync(indexPath));
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[SPA] Attempting sendFile:', indexPath, 'exists:', fs.existsSync(indexPath));
+  }
   res.sendFile(indexPath, (err) => {
-    console.log('[SPA] sendFile callback, err:', err ? err.message : null, 'headersSent:', res.headersSent);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[SPA] sendFile callback, err:', err ? err.message : null, 'headersSent:', res.headersSent);
+    }
     if (err && !res.headersSent) {
       res.status(404).json({ error: 'Frontend not built. Run: cd client && npm run build' });
     }

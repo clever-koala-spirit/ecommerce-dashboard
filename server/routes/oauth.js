@@ -241,9 +241,11 @@ router.get('/:platform/start', (req, res) => {
  * Handles OAuth callback — exchanges authorization code for access token
  */
 router.get('/:platform/callback', validateOAuthCallback, async (req, res) => {
-    console.log("[OAuth Debug] Full URL:", req.protocol + "://" + req.get("host") + req.originalUrl);
-    console.log("[OAuth Debug] Query:", JSON.stringify(req.query));
-    console.log("[OAuth Debug] Headers referer:", req.get("referer"));
+    if (process.env.NODE_ENV !== 'production') {
+      console.log("[OAuth Debug] Full URL:", req.protocol + "://" + req.get("host") + req.originalUrl);
+      console.log("[OAuth Debug] Query:", JSON.stringify(req.query));
+      console.log("[OAuth Debug] Headers referer:", req.get("referer"));
+    }
   try {
     const { platform } = req.params;
     const { code, state, error, error_description } = req.query;
@@ -410,7 +412,9 @@ async function fetchPlatformInfo(platform, tokenData, req = {}) {
         after = accountsData.paging.cursors.after;
       }
 
-      console.log(`[OAuth] Meta: ${allAccounts.length} total accounts found across all pages`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[OAuth] Meta: ${allAccounts.length} total accounts found across all pages`);
+      }
 
       if (allAccounts.length > 0) {
         // Option 1: Try to find "Paintly Kits" account specifically  
@@ -422,7 +426,9 @@ async function fetchPlatformInfo(platform, tokenData, req = {}) {
         );
         
         if (paintlyKitsAccount) {
-          console.log(`[OAuth] Meta: Found Paintly Kits account directly: "${paintlyKitsAccount.name}" (${paintlyKitsAccount.id})`);
+          if (process.env.NODE_ENV !== 'production') {
+            console.log(`[OAuth] Meta: Found Paintly Kits account directly: "${paintlyKitsAccount.name}" (${paintlyKitsAccount.id})`);
+          }
           credentials.adAccountId = paintlyKitsAccount.id;
           credentials.accountName = paintlyKitsAccount.name;
           credentials.currency = paintlyKitsAccount.currency;
@@ -448,7 +454,9 @@ async function fetchPlatformInfo(platform, tokenData, req = {}) {
               if (insResp.ok) {
                 const insData = await insResp.json();
                 const spend = insData.data?.[0]?.spend ? parseFloat(insData.data[0].spend) : 0;
-                console.log(`[OAuth] Meta: "${acct.name}" (${acct.id}) spend: $${spend}`);
+                if (process.env.NODE_ENV !== 'production') {
+                  console.log(`[OAuth] Meta: "${acct.name}" (${acct.id}) spend: $${spend}`);
+                }
                 
                 if (spend > highestSpend) {
                   highestSpend = spend;
@@ -471,7 +479,9 @@ async function fetchPlatformInfo(platform, tokenData, req = {}) {
           credentials.autoSelected = true;
           credentials.selectionMethod = bestAccount ? 'highest_spend' : 'fallback_first';
           
-          console.log(`[OAuth] Meta: SELECTED "${selectedAccount.name}" (${selectedAccount.id}) via ${credentials.selectionMethod} with $${highestSpend} spend`);
+          if (process.env.NODE_ENV !== 'production') {
+            console.log(`[OAuth] Meta: SELECTED "${selectedAccount.name}" (${selectedAccount.id}) via ${credentials.selectionMethod} with $${highestSpend} spend`);
+          }
         }
         
         // Mark that user should select their preferred account
