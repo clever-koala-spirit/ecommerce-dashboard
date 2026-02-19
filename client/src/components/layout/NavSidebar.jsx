@@ -25,15 +25,15 @@ const navSections = [
     label: 'MAIN',
     items: [
       { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { path: '/dashboard#orders', label: 'Orders', icon: ShoppingCart },
-      { path: '/dashboard#products', label: 'Products', icon: Package },
-      { path: '/dashboard#customers', label: 'Customers', icon: Users },
+      { path: '/orders', label: 'Orders', icon: ShoppingCart },
+      { path: '/products', label: 'Products', icon: Package },
+      { path: '/customers', label: 'Customers', icon: Users },
     ],
   },
   {
     label: 'ANALYTICS',
     items: [
-      { path: '/dashboard#reports', label: 'Reports', icon: BarChart3 },
+      { path: '/reports', label: 'Reports', icon: BarChart3 },
       { path: '/forecast', label: 'Forecast', icon: TrendingUp },
     ],
   },
@@ -53,7 +53,6 @@ export default function NavSidebar({ collapsed, onToggleCollapse, isMobile = fal
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (path) => {
-    if (path.includes('#')) return false;
     return location.pathname === path;
   };
 

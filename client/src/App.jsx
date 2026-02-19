@@ -8,6 +8,10 @@ import ChatWidget from './components/chat/ChatWidget';
 
 // Lazy load all pages for code splitting
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const OrdersPage = lazy(() => import('./pages/OrdersPage'));
+const ProductsPage = lazy(() => import('./pages/ProductsPage'));
+const CustomersPage = lazy(() => import('./pages/CustomersPage'));
+const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 const ForecastPage = lazy(() => import('./pages/ForecastPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const ConnectPage = lazy(() => import('./pages/ConnectPage'));
@@ -135,6 +139,26 @@ function App() {
             <Route path="/dashboard" element={
               <ErrorBoundary>
                 <DashboardPage />
+              </ErrorBoundary>
+            } />
+            <Route path="/orders" element={
+              <ErrorBoundary>
+                <OrdersPage />
+              </ErrorBoundary>
+            } />
+            <Route path="/products" element={
+              <ErrorBoundary>
+                <ProductsPage />
+              </ErrorBoundary>
+            } />
+            <Route path="/customers" element={
+              <ErrorBoundary>
+                <CustomersPage />
+              </ErrorBoundary>
+            } />
+            <Route path="/reports" element={
+              <ErrorBoundary>
+                <ReportsPage />
               </ErrorBoundary>
             } />
             <Route path="/forecast" element={
