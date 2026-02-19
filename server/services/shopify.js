@@ -270,6 +270,11 @@ export class ShopifyService {
                     title
                     quantity
                     originalTotalSet { shopMoney { amount } }
+                    variant {
+                      inventoryItem {
+                        unitCost { amount }
+                      }
+                    }
                   }
                 }
               }
@@ -346,6 +351,11 @@ export class ShopifyService {
       isNewCustomer: (order.customer?.numberOfOrders || 0) <= 1,
       isReturningCustomer: (order.customer?.numberOfOrders || 0) > 1,
       items: order.lineItems.edges.length,
+      cogs: order.lineItems.edges.reduce((sum, edge) => {
+        const unitCost = parseFloat(edge.node.variant?.inventoryItem?.unitCost?.amount || 0);
+        const quantity = edge.node.quantity || 0;
+        return sum + (unitCost * quantity);
+      }, 0),
     };
   }
 
@@ -399,6 +409,7 @@ export class ShopifyService {
       day.shipping += order.shipping;
       day.tax += order.tax;
       day.grossRevenue += order.grossRevenue;
+      day.cogs += order.cogs || 0;
       day.refundAmount += order.refundAmount;
       if (order.refundAmount > 0) day.refunds += 1;
       if (order.isNewCustomer) day.newCustomers += 1;
