@@ -512,8 +512,36 @@ async function fetchPlatformInfo(platform, tokenData, req = {}) {
       
       credentials.scope = tokenData.scope || 'https://www.googleapis.com/auth/adwords';
     } else if (platform === 'ga4') {
-      // For GA4, we might need to get available properties in the future
       credentials.scope = tokenData.scope || 'https://www.googleapis.com/auth/analytics.readonly';
+      // Auto-discover GA4 property
+      try {
+        const accountsResp = await fetch('https://analyticsadmin.googleapis.com/v1beta/accountSummaries', {
+          headers: { 'Authorization': `Bearer ${credentials.accessToken}` }
+        });
+        const accountsData = await accountsResp.json();
+        if (accountsData.accountSummaries?.length > 0) {
+          // Find property with most recent data or just pick first
+          let bestProperty = null;
+          for (const acct of accountsData.accountSummaries) {
+            for (const prop of (acct.propertySummaries || [])) {
+              if (!bestProperty) bestProperty = prop;
+              // Prefer properties with "paintly" or "slay" in name
+              if (prop.displayName?.toLowerCase().includes('paintly') || prop.displayName?.toLowerCase().includes('slay')) {
+                bestProperty = prop;
+              }
+            }
+          }
+          if (bestProperty) {
+            // property name is like "properties/123456" — extract the ID
+            const propId = bestProperty.property?.replace('properties/', '') || bestProperty.property;
+            credentials.propertyId = propId;
+            credentials.propertyName = bestProperty.displayName;
+            console.log(`[OAuth] GA4: Selected property "${bestProperty.displayName}" (${propId})`);
+          }
+        }
+      } catch (error) {
+        console.warn('[OAuth] Could not fetch GA4 properties:', error.message);
+      }
     } else if (platform === 'klaviyo') {
       credentials.scope = tokenData.scope || 'campaigns:read flows:read metrics:read';
     } else if (platform === 'tiktok') {
