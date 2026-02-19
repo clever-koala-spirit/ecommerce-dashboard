@@ -389,16 +389,23 @@ async function fetchPlatformInfo(platform, tokenData, req = {}) {
       if (accountsData.data && accountsData.data.length > 0) {
         console.log(`[OAuth] Meta: ${accountsData.data.length} accounts found:`, accountsData.data.map(a => `${a.name} (${a.id})`).join(', '));
         
-        // Find account with most recent spend by checking insights for each active account
+        // Find the account with the highest spend in the last 90 days
         let bestAccount = null;
+        let highestSpend = 0;
+        const since = new Date(Date.now() - 90*86400000).toISOString().split('T')[0];
+        const until = new Date().toISOString().split('T')[0];
+        
         for (const acct of accountsData.data) {
           try {
-            const insResp = await fetch(`https://graph.facebook.com/v25.0/${acct.id}/insights?fields=spend&time_range=${encodeURIComponent(JSON.stringify({since: new Date(Date.now() - 90*86400000).toISOString().split('T')[0], until: new Date().toISOString().split('T')[0]}))}&access_token=${tokenData.access_token}`);
+            const insResp = await fetch(`https://graph.facebook.com/v25.0/${acct.id}/insights?fields=spend&time_range=${encodeURIComponent(JSON.stringify({since, until}))}&access_token=${tokenData.access_token}`);
             const insData = await insResp.json();
-            if (insData.data && insData.data.length > 0 && parseFloat(insData.data[0].spend) > 0) {
+            const spend = insData.data?.[0]?.spend ? parseFloat(insData.data[0].spend) : 0;
+            if (spend > 0) {
+              console.log(`[OAuth] Meta: "${acct.name}" (${acct.id}) spend: $${spend}`);
+            }
+            if (spend > highestSpend) {
+              highestSpend = spend;
               bestAccount = acct;
-              console.log(`[OAuth] Meta: account "${acct.name}" has spend: $${insData.data[0].spend}`);
-              break;
             }
           } catch (e) { /* skip */ }
         }
@@ -408,7 +415,7 @@ async function fetchPlatformInfo(platform, tokenData, req = {}) {
         credentials.accountName = primaryAccount.name;
         credentials.currency = primaryAccount.currency;
         credentials.allAccounts = accountsData.data.map(a => ({ id: a.id, name: a.name, currency: a.currency }));
-        console.log(`[OAuth] Meta: selected account "${primaryAccount.name}" (${primaryAccount.id})`);
+        console.log(`[OAuth] Meta: SELECTED "${primaryAccount.name}" (${primaryAccount.id}) with $${highestSpend} spend`);
       }
     } else if (platform === 'google') {
       // For Google Ads, we need to get accessible customers
