@@ -299,17 +299,11 @@ export class GoogleAdsService {
   }
 
   getHeaders(accessToken) {
-    const headers = {
+    return {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
       'developer-token': this.developerToken,
     };
-    // Only include login-customer-id when accessing client accounts via a manager
-    // If the OAuth user has direct access, this header causes 403
-    if (process.env.GOOGLE_ADS_MANAGER_ID && process.env.GOOGLE_ADS_MANAGER_ID !== this.customerId) {
-      headers['login-customer-id'] = process.env.GOOGLE_ADS_MANAGER_ID.replace(/-/g, '');
-    }
-    return headers;
   }
 }
 
