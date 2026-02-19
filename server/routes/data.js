@@ -71,7 +71,7 @@ router.get('/dashboard', async (req, res) => {
     const googleData = await getCachedOrFetch(
       `${cacheKeyPrefix}:google:${dateRange.start}:${dateRange.end}`,
       async () => {
-        const result = await googleAdsService.fetchDailyMetrics(dateRange);
+        const result = await googleAdsService.fetchDailyMetrics(dateRange, shopDomain);
         return result.data || [];
       },
       300
@@ -222,7 +222,7 @@ router.get('/google/campaigns', async (req, res) => {
     const data = await getCachedOrFetch(
       `data:${shopDomain}:google:campaigns:30d`,
       async () => {
-        const result = await googleAdsService.fetchCampaigns(dateRange);
+        const result = await googleAdsService.fetchCampaigns(dateRange, shopDomain);
         return result.data || [];
       },
       300
