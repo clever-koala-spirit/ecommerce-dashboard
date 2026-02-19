@@ -70,7 +70,7 @@ router.get('/dashboard', async (req, res) => {
         return (result.connected && result.data?.length > 0) ? result.data : [];
       }),
       getDataWithCache('meta', shopDomain, dateRange, async () => {
-        const result = await metaService.fetchDailyInsights(dateRange);
+        const result = await metaService.fetchDailyInsights(dateRange, shopDomain);
         return result.data || [];
       }),
       getDataWithCache('google', shopDomain, dateRange, async () => {
@@ -78,11 +78,11 @@ router.get('/dashboard', async (req, res) => {
         return result.data || [];
       }),
       getDataWithCache('klaviyo', shopDomain, dateRange, async () => {
-        const result = await klaviyoService.fetchMetrics(dateRange);
+        const result = await klaviyoService.fetchMetrics(dateRange, shopDomain);
         return result.data || [];
       }),
       getDataWithCache('ga4', shopDomain, dateRange, async () => {
-        const result = await ga4Service.fetchDailyMetrics(dateRange);
+        const result = await ga4Service.fetchDailyMetrics(dateRange, shopDomain);
         return result.data || [];
       }),
       getDataWithCache('tiktok', shopDomain, dateRange, async () => {
@@ -195,7 +195,7 @@ router.get('/meta/campaigns', async (req, res) => {
     const data = await getCachedOrFetch(
       `data:${shopDomain}:meta:campaigns:30d`,
       async () => {
-        const result = await metaService.fetchCampaigns(dateRange);
+        const result = await metaService.fetchCampaigns(dateRange, shopDomain);
         return result.data || [];
       },
       300
@@ -257,7 +257,7 @@ router.get('/ga4/sessions', async (req, res) => {
     const data = await getCachedOrFetch(
       `data:${shopDomain}:ga4:sessions:30d`,
       async () => {
-        const result = await ga4Service.fetchDailyMetrics(dateRange);
+        const result = await ga4Service.fetchDailyMetrics(dateRange, shopDomain);
         return result.data || [];
       },
       300
