@@ -52,21 +52,14 @@ export async function isBackendAvailable() {
 // Build query string from date range filter
 // Always fetches 2x the range to support comparison with previous period
 function buildDateQuery(dateRange) {
-  if (!dateRange) return 'days=180';
+  if (!dateRange) return 'days=90';
 
   const { preset, customStart, customEnd } = dateRange;
 
-  // For custom ranges, extend start backwards by the range duration for comparison
   if (preset === 'custom' && customStart && customEnd) {
-    const start = new Date(customStart);
-    const end = new Date(customEnd);
-    const durationMs = end.getTime() - start.getTime();
-    const extendedStart = new Date(start.getTime() - durationMs - 86400000); // subtract duration + 1 day
-    const extStartStr = extendedStart.toISOString().split('T')[0];
-    return `startDate=${extStartStr}&endDate=${customEnd}`;
+    return `startDate=${customStart}&endDate=${customEnd}`;
   }
 
-  // Map presets to days parameter — double for comparison period
   const presetDays = {
     today: 1,
     yesterday: 2,
@@ -77,10 +70,7 @@ function buildDateQuery(dateRange) {
     ytd: Math.ceil((Date.now() - new Date(new Date().getFullYear(), 0, 1).getTime()) / 86400000) + 1,
   };
 
-  const baseDays = presetDays[preset] || 90;
-  // Fetch 2x + 1 to cover comparison period
-  const days = baseDays * 2 + 1;
-  return `days=${days}`;
+  return `days=${presetDays[preset] || 90}`;
 }
 
 // Get dashboard data (combined from all sources)
