@@ -335,4 +335,65 @@
   .theme-light .chart-tooltip {
     background: rgba(255, 255, 255, 0.85) !important;
   }
+
+  /* Premium number typography */
+  .metric-value {
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  /* Subtle pulse for live indicators */
+  @keyframes livePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .live-pulse {
+    animation: livePulse 2s ease-in-out infinite;
+  }
+
+  /* Smooth page transitions */
+  .page-content > * {
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+  }
+
+  .page-content > *:nth-child(1) { animation-delay: 0.02s; }
+  .page-content > *:nth-child(2) { animation-delay: 0.04s; }
+  .page-content > *:nth-child(3) { animation-delay: 0.06s; }
+  .page-content > *:nth-child(4) { animation-delay: 0.08s; }
+  .page-content > *:nth-child(5) { animation-delay: 0.10s; }
+  .page-content > *:nth-child(6) { animation-delay: 0.12s; }
+  .page-content > *:nth-child(7) { animation-delay: 0.14s; }
+  .page-content > *:nth-child(8) { animation-delay: 0.16s; }
+
+  /* Card hover glow */
+  .glow-card {
+    position: relative;
+  }
+  .glow-card::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(99,102,241,0.15), transparent, rgba(139,92,246,0.15));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+  }
+  .glow-card:hover::before {
+    opacity: 1;
+  }
+
+  /* Trust badge shimmer */
+  @keyframes trustShimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
+  .trust-badge {
+    background: linear-gradient(90deg, transparent, rgba(34,197,94,0.1), transparent);
+    background-size: 200% 100%;
+    animation: trustShimmer 3s linear infinite;
+  }
 }

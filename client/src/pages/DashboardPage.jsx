@@ -17,6 +17,8 @@ import BestSellingProducts from '../components/charts/BestSellingProducts';
 import InsightsEngine from '../components/forecast/InsightsEngine';
 import SampleDataBanner from '../components/SampleDataBanner';
 import ConnectionStatusBar from '../components/connections/ConnectionStatusBar';
+import DataFreshnessBar from '../components/common/DataFreshnessBar';
+import AIInsightsBanner from '../components/ai/AIInsightsBanner';
 import { SkeletonChart, SkeletonTable } from '../components/common/SkeletonCard';
 import { ErrorState } from '../components/common/EmptyState';
 
@@ -49,8 +51,9 @@ export default function DashboardPage() {
   return (
     <div className="p-6 lg:p-8 space-y-6 page-content" style={{ maxWidth: '1440px' }}>
       <SEO title="Dashboard" description="Your real-time ecommerce profit dashboard." path="/dashboard" />
-      <ConnectionStatusBar />
+      <DataFreshnessBar />
       <SampleDataBanner />
+      <AIInsightsBanner />
       <CodeEditor />
       <CustomWidgetRow />
 
