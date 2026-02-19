@@ -73,8 +73,22 @@ function buildDateQuery(dateRange) {
   return `days=${presetDays[preset] || 90}`;
 }
 
+// Get sync status (last sync time per platform)
+export async function fetchSyncStatus() {
+  try {
+    const available = await isBackendAvailable();
+    if (!available) return { platforms: {} };
+
+    const response = await apiFetch('/data/sync-status');
+    if (!response.ok) return { platforms: {} };
+    return await response.json();
+  } catch (error) {
+    return { platforms: {} };
+  }
+}
+
 // Get dashboard data (combined from all sources)
-export async function fetchDashboardData(dateRange = null) {
+export async function fetchDashboardData(dateRange = null, { refresh = false } = {}) {
   try {
     const available = await isBackendAvailable();
     if (!available) {
@@ -92,7 +106,7 @@ export async function fetchDashboardData(dateRange = null) {
       };
     }
 
-    const query = buildDateQuery(dateRange);
+    const query = buildDateQuery(dateRange) + (refresh ? '&refresh=true' : '');
     const response = await apiFetch(`/data/dashboard?${query}`);
     if (!response.ok) throw new Error('Failed to fetch dashboard data');
 

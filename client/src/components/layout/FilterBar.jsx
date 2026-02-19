@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
-import { ChevronDown, X, SlidersHorizontal, Download, Search, Bell, Sun, Moon } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { ChevronDown, X, SlidersHorizontal, Download, Search, Bell, Sun, Moon, RefreshCw } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useAuth } from '../../providers/AuthProvider';
 import { useTheme } from '../../contexts/ThemeContext';
+import { fetchSyncStatus } from '../../services/api';
 
 export default function FilterBar() {
   const dateRange = useStore((s) => s.dateRange);
@@ -27,6 +28,48 @@ export default function FilterBar() {
   const [showViewsMenu, setShowViewsMenu] = useState(false);
   const [viewName, setViewName] = useState('');
   const [iconRotating, setIconRotating] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState(null);
+
+  const fetchDashboardData = useStore((s) => s.fetchDashboardData);
+
+  // Fetch sync status on mount and periodically
+  useEffect(() => {
+    const loadSyncStatus = async () => {
+      const status = await fetchSyncStatus();
+      if (status.platforms) {
+        const times = Object.values(status.platforms).map(p => p.lastSync).filter(Boolean);
+        if (times.length > 0) {
+          const latest = times.sort().pop();
+          setLastSyncTime(new Date(latest));
+        }
+      }
+    };
+    loadSyncStatus();
+    const interval = setInterval(loadSyncStatus, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchDashboardData(null, true); // pass refresh=true
+      setLastSyncTime(new Date());
+    } catch (err) {
+      console.error('Refresh failed:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [fetchDashboardData]);
+
+  const formatSyncTime = (date) => {
+    if (!date) return null;
+    const diff = Math.floor((Date.now() - date.getTime()) / 60000);
+    if (diff < 1) return 'Just now';
+    if (diff < 60) return `${diff}m ago`;
+    if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
+    return `${Math.floor(diff / 1440)}d ago`;
+  };
 
   const dateRangeOptions = [
     { label: 'Today', value: 'today' },
@@ -159,6 +202,26 @@ export default function FilterBar() {
               </span>
             )}
           </button>
+
+          {/* Sync Status & Refresh */}
+          <div className="flex items-center gap-1.5 hidden sm:flex">
+            {lastSyncTime && (
+              <span className="text-[10px] font-medium" style={{ color: colors.textTertiary }}>
+                Synced {formatSyncTime(lastSyncTime)}
+              </span>
+            )}
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="p-2 rounded-xl transition-all duration-200"
+              style={{ color: colors.textSecondary, background: btnBg }}
+              onMouseEnter={(e) => { if (!isRefreshing) { e.currentTarget.style.background = btnBgHover; e.currentTarget.style.color = colors.text; } }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = btnBg; e.currentTarget.style.color = colors.textSecondary; }}
+              title="Refresh data from live APIs"
+            >
+              <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
+            </button>
+          </div>
 
           {/* Export */}
           <button
