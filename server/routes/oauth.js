@@ -45,6 +45,7 @@ function getOAuthConfig(platform) {
       scope: 'ads_read,ads_management',
       clientId: process.env.META_APP_ID,
       clientSecret: process.env.META_APP_SECRET,
+      extraParams: { response_mode: 'query' },
     },
     google: {
       authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
