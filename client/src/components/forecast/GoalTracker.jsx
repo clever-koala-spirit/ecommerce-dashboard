@@ -1,19 +1,20 @@
 import React, { useMemo, useState } from 'react';
 import { useStore } from '../../store/useStore';
+import { useTheme } from '../../contexts/ThemeContext';
 import { forecast } from '../../utils/forecast';
-import { filterDataByDateRange } from '../../utils/formatters';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
 import { COLORS } from '../../utils/colors';
 
 export default function GoalTracker() {
-  const dateRange = useStore((state) => state.dateRange);
+  const { colors } = useTheme();
   const shopifyData = useStore((state) => state.shopifyData);
-  const [revenueGoal, setRevenueGoal] = useState(1350000); // Monthly target
-  const [profitGoal, setProfitGoal] = useState(405000); // Monthly profit target
+  const [revenueGoal, setRevenueGoal] = useState(1350000);
+  const [profitGoal, setProfitGoal] = useState(405000);
   const [editMode, setEditMode] = useState(false);
 
   const goals = useMemo(() => {
-    const historicalData = filterDataByDateRange(shopifyData || [], dateRange);
+    // Use ALL historical data for better forecasting
+    const historicalData = shopifyData || [];
 
     if (historicalData.length === 0) {
       return {
@@ -27,7 +28,6 @@ export default function GoalTracker() {
       };
     }
 
-    // Get current month progress
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -40,9 +40,8 @@ export default function GoalTracker() {
     const currentMonthRevenue = currentMonthData.reduce((sum, d) => sum + (d.revenue || 0), 0);
     const currentMonthCOGS = currentMonthData.reduce((sum, d) => sum + (d.cogs || 0), 0);
 
-    // Run forecast for rest of month
-    const lastDaysInMonth = historicalData.slice(-30);
-    const dataForForecast = lastDaysInMonth.map((d) => ({
+    // Use ALL data for forecast, not just last 30 days
+    const dataForForecast = historicalData.map((d) => ({
       date: d.date,
       value: d.revenue,
     }));
@@ -53,20 +52,14 @@ export default function GoalTracker() {
       confidence: 0.95,
     });
 
-    // Project remaining revenue
     const projectedAdditionalRevenue = forecastResult.values.reduce((sum, v) => sum + v.predicted, 0);
     const projectedMonthRevenue = currentMonthRevenue + projectedAdditionalRevenue;
 
-    // Estimate profit (40% COGS, 8% platform fees, ~27.5k ad spend)
     const cogsPercentage = currentMonthRevenue > 0 ? currentMonthCOGS / currentMonthRevenue : 0.4;
     const estimatedCOGS = projectedMonthRevenue * cogsPercentage;
-    const estimatedFees = 0; // No estimated fees
-    const estimatedAdSpend = 0; // No estimated ad spend
-    const estimatedOtherCosts = 0; // No estimated costs
 
-    const projectedMonthProfit = projectedMonthRevenue - estimatedCOGS - estimatedFees - estimatedAdSpend - estimatedOtherCosts;
+    const projectedMonthProfit = projectedMonthRevenue - estimatedCOGS;
 
-    // Calculate probability (using confidence intervals)
     let revenueProbability = 50;
     let profitProbability = 50;
 
@@ -74,7 +67,6 @@ export default function GoalTracker() {
       const avgUpper = forecastResult.values.reduce((sum, v) => sum + v.upper, 0) / forecastResult.values.length;
       const avgLower = forecastResult.values.reduce((sum, v) => sum + v.lower, 0) / forecastResult.values.length;
 
-      // Rough probability calculation
       const revenueDiff = revenueGoal - currentMonthRevenue;
       const midpoint = (avgUpper + avgLower) / 2;
 
@@ -92,7 +84,6 @@ export default function GoalTracker() {
     const revenueProgress = (currentMonthRevenue / revenueGoal) * 100;
     const profitProgress = (projectedMonthProfit / profitGoal) * 100;
 
-    // Status determination
     let status = 'on-pace';
     if (revenueProgress < 60 && daysLeft > 10) {
       status = 'behind';
@@ -112,7 +103,7 @@ export default function GoalTracker() {
       status,
       monthEnd: monthEnd.toLocaleDateString(),
     };
-  }, [dateRange, revenueGoal, profitGoal]);
+  }, [shopifyData, revenueGoal, profitGoal]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -130,18 +121,19 @@ export default function GoalTracker() {
   const statusColor = getStatusColor(goals.status);
 
   return (
-    <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-6 mb-6">
+    <div className="backdrop-blur rounded-xl p-6 mb-6" style={{ backgroundColor: colors.surface, border: `1px solid ${colors.border}` }}>
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-slate-100">Monthly Goals</h3>
-          <p className="text-sm text-slate-400 mt-1">
+          <h3 className="text-lg font-semibold" style={{ color: colors.text }}>Monthly Goals</h3>
+          <p className="text-sm mt-1" style={{ color: colors.textSecondary }}>
             {goals.daysRemaining} days remaining in month
           </p>
         </div>
         <button
           onClick={() => setEditMode(!editMode)}
-          className="px-3 py-1.5 bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded-lg font-medium text-sm transition-all"
+          className="px-3 py-1.5 rounded-lg font-medium text-sm transition-all"
+          style={{ backgroundColor: colors.background, color: colors.textSecondary }}
         >
           {editMode ? 'Done' : 'Edit'}
         </button>
@@ -149,28 +141,30 @@ export default function GoalTracker() {
 
       {/* Edit Mode */}
       {editMode && (
-        <div className="bg-slate-700/30 rounded-lg p-4 mb-6 border border-slate-700/50">
+        <div className="rounded-lg p-4 mb-6" style={{ backgroundColor: colors.background, border: `1px solid ${colors.border}` }}>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-200 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: colors.text }}>
                 Monthly Revenue Target
               </label>
               <input
                 type="number"
                 value={revenueGoal}
                 onChange={(e) => setRevenueGoal(parseFloat(e.target.value))}
-                className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                className="w-full rounded px-3 py-2"
+                style={{ backgroundColor: colors.surface, border: `1px solid ${colors.border}`, color: colors.text }}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-200 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: colors.text }}>
                 Monthly Profit Target
               </label>
               <input
                 type="number"
                 value={profitGoal}
                 onChange={(e) => setProfitGoal(parseFloat(e.target.value))}
-                className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                className="w-full rounded px-3 py-2"
+                style={{ backgroundColor: colors.surface, border: `1px solid ${colors.border}`, color: colors.text }}
               />
             </div>
           </div>
@@ -183,28 +177,26 @@ export default function GoalTracker() {
         <div>
           <div className="flex items-start justify-between mb-3">
             <div>
-              <p className="text-sm text-slate-400">Revenue Goal</p>
-              <p className="text-2xl font-bold text-slate-100 mt-1">
+              <p className="text-sm" style={{ color: colors.textSecondary }}>Revenue Goal</p>
+              <p className="text-2xl font-bold mt-1" style={{ color: colors.text }}>
                 {formatCurrency(revenueGoal)}
               </p>
             </div>
-            <div
-              className={`px-3 py-1.5 rounded-lg ${statusColor.bg} ${statusColor.text} text-xs font-semibold`}
-            >
+            <div className={`px-3 py-1.5 rounded-lg ${statusColor.bg} ${statusColor.text} text-xs font-semibold`}>
               {statusColor.label}
             </div>
           </div>
 
           <div className="mb-4">
             <div className="flex items-end justify-between mb-2">
-              <span className="text-sm text-slate-300">
+              <span className="text-sm" style={{ color: colors.textSecondary }}>
                 {formatCurrency(goals.currentMonthRevenue)} / {formatCurrency(revenueGoal)}
               </span>
-              <span className="text-sm font-semibold text-slate-100">
+              <span className="text-sm font-semibold" style={{ color: colors.text }}>
                 {Math.round(goals.revenueProgress)}%
               </span>
             </div>
-            <div className="w-full bg-slate-700/30 rounded-full h-3 overflow-hidden border border-slate-700/50">
+            <div className="w-full rounded-full h-3 overflow-hidden" style={{ backgroundColor: colors.background, border: `1px solid ${colors.border}` }}>
               <div
                 className="bg-gradient-to-r from-blue-500 to-blue-600 h-full transition-all duration-500"
                 style={{ width: `${goals.revenueProgress}%` }}
@@ -212,17 +204,13 @@ export default function GoalTracker() {
             </div>
           </div>
 
-          <div className="bg-slate-700/20 rounded-lg p-3 border border-slate-700/50">
-            <p className="text-xs text-slate-400 mb-1">Projected Month-End</p>
+          <div className="rounded-lg p-3" style={{ backgroundColor: colors.background, border: `1px solid ${colors.border}` }}>
+            <p className="text-xs mb-1" style={{ color: colors.textSecondary }}>Projected Month-End</p>
             <p className="text-lg font-semibold text-blue-400">
               {formatCurrency(goals.projectedRevenue)}
             </p>
             <p className={`text-xs mt-2 ${
-              goals.revenueProbability > 70
-                ? 'text-green-400'
-                : goals.revenueProbability > 40
-                ? 'text-yellow-400'
-                : 'text-red-400'
+              goals.revenueProbability > 70 ? 'text-green-400' : goals.revenueProbability > 40 ? 'text-yellow-400' : 'text-red-400'
             }`}>
               {goals.revenueProbability}% probability of hitting goal
             </p>
@@ -233,34 +221,28 @@ export default function GoalTracker() {
         <div>
           <div className="flex items-start justify-between mb-3">
             <div>
-              <p className="text-sm text-slate-400">Profit Goal</p>
-              <p className="text-2xl font-bold text-slate-100 mt-1">
+              <p className="text-sm" style={{ color: colors.textSecondary }}>Profit Goal</p>
+              <p className="text-2xl font-bold mt-1" style={{ color: colors.text }}>
                 {formatCurrency(profitGoal)}
               </p>
             </div>
-            <div
-              className={`px-3 py-1.5 rounded-lg ${
-                goals.profitProbability > 70
-                  ? 'bg-green-500/20 text-green-400'
-                  : goals.profitProbability > 40
-                  ? 'bg-yellow-500/20 text-yellow-400'
-                  : 'bg-red-500/20 text-red-400'
-              } text-xs font-semibold`}
-            >
+            <div className={`px-3 py-1.5 rounded-lg ${
+              goals.profitProbability > 70 ? 'bg-green-500/20 text-green-400' : goals.profitProbability > 40 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'
+            } text-xs font-semibold`}>
               {goals.profitProbability}% Likely
             </div>
           </div>
 
           <div className="mb-4">
             <div className="flex items-end justify-between mb-2">
-              <span className="text-sm text-slate-300">
+              <span className="text-sm" style={{ color: colors.textSecondary }}>
                 Projected: {formatCurrency(goals.projectedProfit)}
               </span>
-              <span className="text-sm font-semibold text-slate-100">
+              <span className="text-sm font-semibold" style={{ color: colors.text }}>
                 {Math.round(goals.profitProgress)}%
               </span>
             </div>
-            <div className="w-full bg-slate-700/30 rounded-full h-3 overflow-hidden border border-slate-700/50">
+            <div className="w-full rounded-full h-3 overflow-hidden" style={{ backgroundColor: colors.background, border: `1px solid ${colors.border}` }}>
               <div
                 className={`h-full transition-all duration-500 ${
                   goals.projectedProfit > profitGoal
@@ -272,15 +254,14 @@ export default function GoalTracker() {
             </div>
           </div>
 
-          <div className="bg-slate-700/20 rounded-lg p-3 border border-slate-700/50">
-            <p className="text-xs text-slate-400 mb-1">Projected Margin</p>
+          <div className="rounded-lg p-3" style={{ backgroundColor: colors.background, border: `1px solid ${colors.border}` }}>
+            <p className="text-xs mb-1" style={{ color: colors.textSecondary }}>Projected Margin</p>
             <p className="text-lg font-semibold text-green-400">
               {goals.projectedRevenue > 0
                 ? ((goals.projectedProfit / goals.projectedRevenue) * 100).toFixed(1)
-                : '0'}
-              %
+                : '0'}%
             </p>
-            <p className="text-xs text-slate-400 mt-2">
+            <p className="text-xs mt-2" style={{ color: colors.textSecondary }}>
               {goals.daysRemaining} days remaining
             </p>
           </div>
@@ -288,7 +269,7 @@ export default function GoalTracker() {
       </div>
 
       {/* Insights */}
-      <div className="border-t border-slate-700/50 pt-4 mt-6">
+      <div className="pt-4 mt-6" style={{ borderTop: `1px solid ${colors.border}` }}>
         {goals.status === 'ahead' && (
           <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
             <p className="text-sm text-green-300">

@@ -181,32 +181,38 @@ export function linearRegression(data) {
  * @returns {number|null} Seasonality period or null
  */
 export function detectSeasonality(data) {
-  if (!data || data.length < 30) return null;
+  if (!data || data.length < 14) return null;
+
+  const mean = data.reduce((a, b) => a + b, 0) / data.length;
+  const variance = data.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / data.length;
+
+  if (variance === 0) return null;
 
   const lags = [7, 14, 30];
   let bestLag = null;
-  let bestCorr = 0;
+  let bestCorr = -Infinity;
 
   for (const lag of lags) {
-    if (data.length <= lag) continue;
+    if (data.length <= lag + 2) continue;
 
-    let sum = 0;
+    // Proper autocorrelation calculation
+    let numerator = 0;
     let count = 0;
     for (let i = lag; i < data.length; i++) {
-      sum += data[i] * data[i - lag];
+      numerator += (data[i] - mean) * (data[i - lag] - mean);
       count++;
     }
-    const lagMean = sum / count;
+    const corr = numerator / (count * variance);
 
-    // Normalize
-    const mean = data.reduce((a, b) => a + b, 0) / data.length;
-    const variance = data.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / data.length;
-    const corr = variance !== 0 ? lagMean / variance : 0;
-
-    if (corr > bestCorr && corr > 0.5) {
+    if (corr > bestCorr && corr > 0.15) {
       bestCorr = corr;
       bestLag = lag;
     }
+  }
+
+  // Default to weekly seasonality if we have enough data and no strong signal
+  if (bestLag === null && data.length >= 14) {
+    bestLag = 7;
   }
 
   return bestLag;
@@ -338,7 +344,7 @@ export function forecast(historicalData, horizon, options = {}) {
   // Choose method
   let selectedMethod = method;
   if (method === 'auto') {
-    if (values.length >= 60 && detectedSeasonality) {
+    if (detectedSeasonality && values.length >= detectedSeasonality * 2) {
       selectedMethod = 'holt_winters';
     } else if (values.length >= 14) {
       selectedMethod = 'double_exponential';
@@ -357,7 +363,41 @@ export function forecast(historicalData, horizon, options = {}) {
   switch (selectedMethod) {
     case 'holt_winters':
       if (detectedSeasonality && values.length >= detectedSeasonality * 2) {
-        const hw = holtWinters(values, detectedSeasonality, 0.2, 0.1, 0.1);
+        // Auto-optimize parameters by testing combinations
+        let bestHW = null;
+        let bestHWError = Infinity;
+        const hwHoldout = Math.max(detectedSeasonality, Math.ceil(values.length * 0.15));
+        const hwTrain = values.slice(0, values.length - hwHoldout);
+        const hwTest = values.slice(-hwHoldout);
+
+        for (const a of [0.1, 0.2, 0.3, 0.5]) {
+          for (const b of [0.01, 0.05, 0.1]) {
+            for (const g of [0.05, 0.1, 0.2]) {
+              if (hwTrain.length >= detectedSeasonality * 2) {
+                const candidate = holtWinters(hwTrain, detectedSeasonality, a, b, g);
+                // Forecast hwHoldout steps
+                let lvl = candidate.level;
+                let tr = candidate.trend;
+                const seas = [...candidate.seasonals];
+                let mse = 0;
+                for (let fi = 0; fi < hwHoldout; fi++) {
+                  const si = (hwTrain.length + fi) % detectedSeasonality;
+                  lvl += tr;
+                  const pred = Math.max(0, lvl * (seas[si] || 1));
+                  mse += Math.pow(hwTest[fi] - pred, 2);
+                }
+                mse /= hwHoldout;
+                if (mse < bestHWError) {
+                  bestHWError = mse;
+                  bestHW = { alpha: a, beta: b, gamma: g };
+                }
+              }
+            }
+          }
+        }
+
+        const hwParams = bestHW || { alpha: 0.2, beta: 0.1, gamma: 0.1 };
+        const hw = holtWinters(values, detectedSeasonality, hwParams.alpha, hwParams.beta, hwParams.gamma);
         fitted = hw.result;
         trend = hw.trend;
 

@@ -1,9 +1,11 @@
 import React, { useMemo, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
+import { useTheme } from '../../contexts/ThemeContext';
 import { filterDataByDateRange } from '../../utils/formatters';
 import { formatCurrency, formatNumber, formatPercent } from '../../utils/formatters';
 
 export default function InsightsEngine() {
+  const { colors } = useTheme();
   const dateRange = useStore((state) => state.dateRange);
   const addInsights = useStore((state) => state.addInsights);
   const storeShopifyData = useStore((state) => state.shopifyData);
@@ -15,7 +17,6 @@ export default function InsightsEngine() {
   const insights = useMemo(() => {
     const generatedInsights = [];
 
-    // Get all relevant data
     const shopifyData = filterDataByDateRange(storeShopifyData || [], dateRange);
     const metaData = filterDataByDateRange(storeMetaData || [], dateRange);
     const googleData = filterDataByDateRange(storeGoogleData || [], dateRange);
@@ -25,7 +26,6 @@ export default function InsightsEngine() {
     if (shopifyData.length === 0) return [];
 
     // ANOMALY DETECTION
-    // Check for revenue anomalies
     const revenues = shopifyData.map((d) => d.revenue);
     const revenueMean = revenues.reduce((a, b) => a + b, 0) / revenues.length;
     const revenueStdDev = Math.sqrt(
@@ -53,13 +53,10 @@ export default function InsightsEngine() {
     });
 
     // TREND DETECTION
-    // Check for declining revenue trend (3+ days)
     const last7days = shopifyData.slice(-7);
     let declineCount = 0;
     for (let i = 1; i < last7days.length; i++) {
-      if (last7days[i].revenue < last7days[i - 1].revenue) {
-        declineCount++;
-      }
+      if (last7days[i].revenue < last7days[i - 1].revenue) declineCount++;
     }
 
     if (declineCount >= 4) {
@@ -76,14 +73,10 @@ export default function InsightsEngine() {
       });
     }
 
-    // Check for improving trend (3+ consecutive days up)
     let improveCount = 0;
     for (let i = 1; i < last7days.length; i++) {
-      if (last7days[i].revenue > last7days[i - 1].revenue) {
-        improveCount++;
-      } else {
-        improveCount = 0;
-      }
+      if (last7days[i].revenue > last7days[i - 1].revenue) improveCount++;
+      else improveCount = 0;
     }
 
     if (improveCount >= 3) {
@@ -99,7 +92,6 @@ export default function InsightsEngine() {
     }
 
     // CHANNEL COMPARISON
-    // ROAS comparison
     const metaAvgROAS = metaData.reduce((sum, d) => sum + (d.roas || 0), 0) / Math.max(1, metaData.length);
     const googleAvgROAS = googleData.reduce((sum, d) => sum + (d.roas || 0), 0) / Math.max(1, googleData.length);
 
@@ -115,7 +107,6 @@ export default function InsightsEngine() {
       });
     }
 
-    // CPA comparison
     const metaCPA = metaData.reduce((sum, d) => sum + (d.cpa || 0), 0) / Math.max(1, metaData.length);
     const googleCPA = googleData.reduce((sum, d) => sum + (d.cpa || 0), 0) / Math.max(1, googleData.length);
 
@@ -134,7 +125,6 @@ export default function InsightsEngine() {
     }
 
     // CONVERSION METRICS
-    // Check conversion rate
     if (ga4Data.length > 0) {
       const conversionRates = ga4Data.map((d) => d.conversionRate);
       const convMean = conversionRates.reduce((a, b) => a + b, 0) / conversionRates.length;
@@ -172,7 +162,6 @@ export default function InsightsEngine() {
     }
 
     // POSITIVE SIGNALS
-    // Email performance
     if (klaviyoData.length > 0) {
       const emailRevenue = klaviyoData.reduce((sum, d) => sum + (d.flowRevenue || 0) + (d.campaignRevenue || 0), 0);
       const totalRevenue = shopifyData.reduce((sum, d) => sum + d.revenue, 0);
@@ -203,8 +192,7 @@ export default function InsightsEngine() {
         severity: 'success',
         title: 'Average Order Value Growing',
         body: `AOV increased to ${formatCurrency(aovTrend)}, up ${(
-          ((aovTrend - prevAOVTrend) / prevAOVTrend) *
-          100
+          ((aovTrend - prevAOVTrend) / prevAOVTrend) * 100
         ).toFixed(1)}% from previous week. Your upselling is working.`,
         action: 'View Products',
         timestamp: new Date(),
@@ -212,8 +200,7 @@ export default function InsightsEngine() {
       });
     }
 
-    // INVENTORY/SUPPLY SIGNALS
-    // Check for stocked products driving revenue
+    // DEMAND SIGNALS
     const topRevenue = shopifyData.slice(-7).reduce((sum, d) => sum + d.revenue, 0) / 7;
     const topOrders = shopifyData.slice(-7).reduce((sum, d) => sum + d.orders, 0) / 7;
 
@@ -234,7 +221,6 @@ export default function InsightsEngine() {
     return generatedInsights;
   }, [dateRange, storeShopifyData, storeMetaData, storeGoogleData, storeKlaviyoData, storeGa4Data]);
 
-  // Push insights to store on change
   useEffect(() => {
     if (insights.length > 0) {
       addInsights(insights);
@@ -243,55 +229,40 @@ export default function InsightsEngine() {
 
   const getSeverityIcon = (severity) => {
     switch (severity) {
-      case 'critical':
-        return '🔴';
-      case 'warning':
-        return '🟡';
-      case 'info':
-        return '🔵';
-      case 'success':
-        return '🟢';
-      default:
-        return '◯';
+      case 'critical': return '🔴';
+      case 'warning': return '🟡';
+      case 'info': return '🔵';
+      case 'success': return '🟢';
+      default: return '◯';
     }
   };
 
   const getSeverityColor = (severity) => {
     switch (severity) {
-      case 'critical':
-        return 'border-red-500/30 bg-red-500/10';
-      case 'warning':
-        return 'border-yellow-500/30 bg-yellow-500/10';
-      case 'info':
-        return 'border-blue-500/30 bg-blue-500/10';
-      case 'success':
-        return 'border-green-500/30 bg-green-500/10';
-      default:
-        return 'border-slate-600/30 bg-slate-600/10';
+      case 'critical': return 'border-red-500/30 bg-red-500/10';
+      case 'warning': return 'border-yellow-500/30 bg-yellow-500/10';
+      case 'info': return 'border-blue-500/30 bg-blue-500/10';
+      case 'success': return 'border-green-500/30 bg-green-500/10';
+      default: return 'border-slate-600/30 bg-slate-600/10';
     }
   };
 
   const getSeverityTextColor = (severity) => {
     switch (severity) {
-      case 'critical':
-        return 'text-red-400';
-      case 'warning':
-        return 'text-yellow-400';
-      case 'info':
-        return 'text-blue-400';
-      case 'success':
-        return 'text-green-400';
-      default:
-        return 'text-slate-400';
+      case 'critical': return 'text-red-400';
+      case 'warning': return 'text-yellow-400';
+      case 'info': return 'text-blue-400';
+      case 'success': return 'text-green-400';
+      default: return 'text-slate-400';
     }
   };
 
   return (
-    <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-6">
+    <div className="backdrop-blur rounded-xl p-6" style={{ backgroundColor: colors.surface, border: `1px solid ${colors.border}` }}>
       {/* Header */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-slate-100">Insights</h3>
-        <p className="text-sm text-slate-400 mt-1">
+        <h3 className="text-lg font-semibold" style={{ color: colors.text }}>Insights</h3>
+        <p className="text-sm mt-1" style={{ color: colors.textSecondary }}>
           {insights.length} automated insights from your data
         </p>
       </div>
@@ -310,22 +281,22 @@ export default function InsightsEngine() {
                   <h4 className={`font-semibold ${getSeverityTextColor(insight.severity)}`}>
                     {insight.title}
                   </h4>
-                  <p className="text-sm text-slate-300 mt-1">{insight.body}</p>
+                  <p className="text-sm mt-1" style={{ color: colors.textSecondary }}>{insight.body}</p>
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="text-center py-8 text-slate-400">
+        <div className="text-center py-8" style={{ color: colors.textSecondary }}>
           <p className="text-sm">No insights available for this date range.</p>
         </div>
       )}
 
       {/* Footer */}
       {insights.length > 8 && (
-        <div className="border-t border-slate-700/50 pt-4 mt-4">
-          <p className="text-xs text-slate-400 text-center">
+        <div className="pt-4 mt-4" style={{ borderTop: `1px solid ${colors.border}` }}>
+          <p className="text-xs text-center" style={{ color: colors.textSecondary }}>
             Showing 8 of {insights.length} insights
           </p>
         </div>

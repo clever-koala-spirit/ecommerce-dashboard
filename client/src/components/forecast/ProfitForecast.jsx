@@ -2,17 +2,20 @@ import React, { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO, addDays } from 'date-fns';
 import { useStore } from '../../store/useStore';
+import { useTheme } from '../../contexts/ThemeContext';
 import { forecast } from '../../utils/forecast';
-import { filterDataByDateRange } from '../../utils/formatters';
 import { formatCurrency } from '../../utils/formatters';
 import { COLORS } from '../../utils/colors';
 
 export default function ProfitForecast() {
-  const dateRange = useStore((state) => state.dateRange);
+  const { colors } = useTheme();
   const shopifyData = useStore((state) => state.shopifyData);
+  const googleData = useStore((state) => state.googleData);
+  const metaData = useStore((state) => state.metaData);
 
   const forecast_data = useMemo(() => {
-    const historicalData = filterDataByDateRange(shopifyData || [], dateRange);
+    // Use ALL historical data for better forecasting
+    const historicalData = shopifyData || [];
 
     if (historicalData.length === 0) {
       return {
@@ -23,16 +26,19 @@ export default function ProfitForecast() {
       };
     }
 
-    // Calculate 30-day aggregates
     const last30days = historicalData.slice(-30);
 
     const totalRevenue = last30days.reduce((sum, d) => sum + (d.revenue || 0), 0);
     const totalCOGS = last30days.reduce((sum, d) => sum + (d.cogs || 0), 0);
     const totalShipping = last30days.reduce((sum, d) => sum + (d.shipping || 0), 0);
     const totalTransactionFees = last30days.reduce((sum, d) => sum + (d.transactionFees || 0), 0);
-    const avgDailyRevenue = totalRevenue / Math.max(1, last30days.length);
 
-    // Run forecast for next 30 days
+    // Calculate actual ad spend from connected platforms
+    const metaSpend = (metaData || []).slice(-30).reduce((sum, d) => sum + (d.spend || 0), 0);
+    const googleSpend = (googleData || []).slice(-30).reduce((sum, d) => sum + (d.spend || d.cost || 0), 0);
+    const totalAdSpend = metaSpend + googleSpend;
+
+    // Use ALL data for forecast
     const dataForForecast = historicalData.map((d) => ({
       date: d.date,
       value: d.revenue,
@@ -43,33 +49,29 @@ export default function ProfitForecast() {
       confidence: 0.95,
     });
 
-    // Calculate projections
     const projected30d = {
       revenue: revenueF.values.reduce((sum, v) => sum + v.predicted, 0),
       lower: revenueF.values.reduce((sum, v) => sum + v.lower, 0),
       upper: revenueF.values.reduce((sum, v) => sum + v.upper, 0),
     };
 
-    // Fixed and variable costs
     const fixedCosts = useStore.getState().fixedCosts || [];
     const totalMonthlyFixed = fixedCosts.reduce((sum, c) => (c.isActive ? sum + c.monthlyAmount : 0), 0);
 
     const cogsPercentage = totalRevenue > 0 ? totalCOGS / totalRevenue : 0.35;
-    const shippingPercentage = 0; // Shipping is built into product price per Leo - not a separate cost
     const feesPercentage = totalRevenue > 0 ? totalTransactionFees / totalRevenue : 0.029;
 
-    // Ad spend (assuming Meta + Google = 27.5k/month)
-    const monthlyAdSpend = 0; // No estimated ad spend - use real data only
+    // Use real ad spend data from connected platforms
+    const monthlyAdSpend = totalAdSpend;
 
     const platformCosts = 800;
     const otherCosts = 1200;
 
-    // Three scenarios
     const scenarios = {
       conservative: {
         revenue: projected30d.lower,
         cogs: projected30d.lower * cogsPercentage,
-        shipping: projected30d.lower * shippingPercentage,
+        shipping: 0,
         adSpend: monthlyAdSpend,
         platformCosts,
         transactionFees: projected30d.lower * feesPercentage,
@@ -79,7 +81,7 @@ export default function ProfitForecast() {
       expected: {
         revenue: projected30d.revenue,
         cogs: projected30d.revenue * cogsPercentage,
-        shipping: projected30d.revenue * shippingPercentage,
+        shipping: 0,
         adSpend: monthlyAdSpend,
         platformCosts,
         transactionFees: projected30d.revenue * feesPercentage,
@@ -89,7 +91,7 @@ export default function ProfitForecast() {
       optimistic: {
         revenue: projected30d.upper,
         cogs: projected30d.upper * cogsPercentage,
-        shipping: projected30d.upper * shippingPercentage,
+        shipping: 0,
         adSpend: monthlyAdSpend,
         platformCosts,
         transactionFees: projected30d.upper * feesPercentage,
@@ -98,7 +100,6 @@ export default function ProfitForecast() {
       },
     };
 
-    // Calculate net profit for each scenario
     for (const [key, scenario] of Object.entries(scenarios)) {
       scenario.totalCosts =
         scenario.cogs +
@@ -119,7 +120,6 @@ export default function ProfitForecast() {
 
     const dailyRevenue = projected30d.revenue / 30;
     const dailyCOGS = (projected30d.revenue * cogsPercentage) / 30;
-    const dailyShipping = (projected30d.revenue * shippingPercentage) / 30;
     const dailyFees = (projected30d.revenue * feesPercentage) / 30;
     const dailyAdSpend = monthlyAdSpend / 30;
     const dailyPlatformCosts = platformCosts / 30;
@@ -130,7 +130,7 @@ export default function ProfitForecast() {
 
     for (let i = 0; i < 60; i++) {
       currentDate = addDays(currentDate, 1);
-      const dailyNetCash = dailyRevenue - dailyCOGS - dailyShipping - dailyFees - dailyAdSpend - dailyPlatformCosts - dailyOtherCosts - dailyFixedCosts;
+      const dailyNetCash = dailyRevenue - dailyCOGS - dailyFees - dailyAdSpend - dailyPlatformCosts - dailyOtherCosts - dailyFixedCosts;
       cumulativeCashFlow += dailyNetCash;
 
       cashFlowData.push({
@@ -145,16 +145,15 @@ export default function ProfitForecast() {
       expected: scenarios.expected,
       optimistic: scenarios.optimistic,
       cashFlowData,
-      breakEvenDaily: monthlyAdSpend / 30 / (1 - cogsPercentage - feesPercentage), // Removed shipping - built into product price
+      breakEvenDaily: monthlyAdSpend / 30 / (1 - cogsPercentage - feesPercentage),
     };
-  }, [dateRange, shopifyData]);
+  }, [shopifyData, googleData, metaData]);
 
   const rows = [
     { label: 'Revenue', key: 'revenue' },
     { label: 'COGS', key: 'cogs' },
     { label: 'Ad Spend', key: 'adSpend' },
     { label: 'Platform Costs', key: 'platformCosts' },
-    // Note: Shipping row removed - it's built into product price, not a separate cost
     { label: 'Transaction Fees', key: 'transactionFees' },
     { label: 'Fixed Costs', key: 'fixedCosts' },
     { label: 'Other Costs', key: 'otherCosts' },
@@ -166,8 +165,8 @@ export default function ProfitForecast() {
     if (!active || !payload) return null;
 
     return (
-      <div className="bg-slate-800 border border-slate-700 rounded p-3 shadow-lg">
-        <p className="text-slate-300 text-sm">{payload[0].payload.date}</p>
+      <div className="rounded p-3 shadow-lg" style={{ backgroundColor: colors.surface, border: `1px solid ${colors.border}` }}>
+        <p className="text-sm" style={{ color: colors.textSecondary }}>{payload[0].payload.date}</p>
         <p className="text-purple-400 font-medium">
           Cumulative: {formatCurrency(payload[0].payload.cumulativeCashFlow)}
         </p>
@@ -176,71 +175,66 @@ export default function ProfitForecast() {
   };
 
   return (
-    <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-6 h-full flex flex-col">
+    <div className="backdrop-blur rounded-xl p-6 h-full flex flex-col" style={{ backgroundColor: colors.surface, border: `1px solid ${colors.border}` }}>
       {/* Header */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-slate-100">P&L Forecast</h3>
-        <p className="text-sm text-slate-400 mt-1">30-day profit & loss projection</p>
+        <h3 className="text-lg font-semibold" style={{ color: colors.text }}>P&L Forecast</h3>
+        <p className="text-sm mt-1" style={{ color: colors.textSecondary }}>30-day profit & loss projection</p>
       </div>
 
       {/* Scenarios Table */}
       <div className="overflow-x-auto mb-6">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-700/50">
-              <th className="text-left py-2 px-3 text-slate-300 font-semibold">Metric</th>
-              <th className="text-right py-2 px-3 text-slate-300 font-semibold">Conservative</th>
-              <th className="text-right py-2 px-3 text-slate-300 font-semibold">Expected</th>
-              <th className="text-right py-2 px-3 text-slate-300 font-semibold">Optimistic</th>
+            <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
+              <th className="text-left py-2 px-3 font-semibold" style={{ color: colors.textSecondary }}>Metric</th>
+              <th className="text-right py-2 px-3 font-semibold" style={{ color: colors.textSecondary }}>Conservative</th>
+              <th className="text-right py-2 px-3 font-semibold" style={{ color: colors.textSecondary }}>Expected</th>
+              <th className="text-right py-2 px-3 font-semibold" style={{ color: colors.textSecondary }}>Optimistic</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, idx) => (
               <tr
                 key={idx}
-                className={`border-b border-slate-700/30 ${
-                  row.isProfit || row.isMargin
-                    ? 'bg-slate-700/20 font-semibold'
-                    : idx % 2 === 0
-                    ? 'bg-slate-800/20'
-                    : ''
-                }`}
+                style={{
+                  borderBottom: `1px solid ${colors.border}`,
+                  backgroundColor: (row.isProfit || row.isMargin) ? `${colors.background}` : idx % 2 === 0 ? `${colors.background}80` : 'transparent',
+                  fontWeight: (row.isProfit || row.isMargin) ? 600 : 400,
+                }}
               >
-                <td className="py-2 px-3 text-slate-200">{row.label}</td>
+                <td className="py-2 px-3" style={{ color: colors.text }}>{row.label}</td>
                 <td
-                  className={`py-2 px-3 text-right ${
-                    row.isProfit
-                      ? forecast_data.conservative.netProfit > 0
-                        ? 'text-green-400'
-                        : 'text-red-400'
-                      : 'text-slate-100'
-                  }`}
+                  className="py-2 px-3 text-right"
+                  style={{
+                    color: row.isProfit
+                      ? forecast_data.conservative.netProfit > 0 ? '#34d399' : '#f87171'
+                      : colors.text,
+                  }}
                 >
                   {row.isMargin
                     ? `${forecast_data.conservative[row.key]?.toFixed(1) || '0'}%`
                     : formatCurrency(forecast_data.conservative[row.key] || 0)}
                 </td>
                 <td
-                  className={`py-2 px-3 text-right ${
-                    row.isProfit
-                      ? forecast_data.expected.netProfit > 0
-                        ? 'text-green-400'
-                        : 'text-red-400'
-                      : 'text-slate-100'
-                  }`}
+                  className="py-2 px-3 text-right"
+                  style={{
+                    color: row.isProfit
+                      ? forecast_data.expected.netProfit > 0 ? '#34d399' : '#f87171'
+                      : colors.text,
+                  }}
                 >
                   {row.isMargin
                     ? `${forecast_data.expected[row.key]?.toFixed(1) || '0'}%`
                     : formatCurrency(forecast_data.expected[row.key] || 0)}
                 </td>
                 <td
-                  className={`py-2 px-3 text-right ${
-                    row.isProfit
-                      ? forecast_data.optimistic.netProfit > 0
-                        ? 'text-green-400'
-                        : 'text-red-400'
-                      : 'text-slate-100'
-                  }`}
+                  className="py-2 px-3 text-right"
+                  style={{
+                    color: row.isProfit
+                      ? forecast_data.optimistic.netProfit > 0 ? '#34d399' : '#f87171'
+                      : colors.text,
+                  }}
                 >
                   {row.isMargin
                     ? `${forecast_data.optimistic[row.key]?.toFixed(1) || '0'}%`
@@ -253,8 +247,8 @@ export default function ProfitForecast() {
       </div>
 
       {/* Cash Flow Chart */}
-      <div className="border-t border-slate-700/50 pt-6 flex-1">
-        <h4 className="text-sm font-semibold text-slate-100 mb-4">Cumulative Cash Flow (60 days)</h4>
+      <div className="pt-6 flex-1" style={{ borderTop: `1px solid ${colors.border}` }}>
+        <h4 className="text-sm font-semibold mb-4" style={{ color: colors.text }}>Cumulative Cash Flow (60 days)</h4>
         <div className="h-48">
           {forecast_data.cashFlowData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
@@ -268,16 +262,16 @@ export default function ProfitForecast() {
                     <stop offset="95%" stopColor={COLORS.BLUE[500]} stopOpacity={0.01} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" />
+                <CartesianGrid strokeDasharray="3 3" stroke={colors.chartGrid || colors.border} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: '#cbd5e1', fontSize: 12 }}
-                  stroke="#475569"
+                  tick={{ fill: colors.textSecondary, fontSize: 12 }}
+                  stroke={colors.border}
                 />
                 <YAxis
-                  tick={{ fill: '#cbd5e1', fontSize: 12 }}
+                  tick={{ fill: colors.textSecondary, fontSize: 12 }}
                   tickFormatter={(value) => `$${Math.round(value / 1000)}K`}
-                  stroke="#475569"
+                  stroke={colors.border}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Area
@@ -291,7 +285,7 @@ export default function ProfitForecast() {
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-full text-slate-400">
+            <div className="flex items-center justify-center h-full" style={{ color: colors.textSecondary }}>
               No data available
             </div>
           )}

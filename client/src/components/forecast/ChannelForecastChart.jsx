@@ -2,12 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { useStore } from '../../store/useStore';
+import { useTheme } from '../../contexts/ThemeContext';
 import { forecast } from '../../utils/forecast';
-import { filterDataByDateRange } from '../../utils/formatters';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
 import { CHANNEL_COLORS } from '../../utils/colors';
 
 export default function ChannelForecastChart() {
+  const { colors } = useTheme();
   const [horizon, setHorizon] = useState(30);
   const [visibleChannels, setVisibleChannels] = useState({
     meta: true,
@@ -16,7 +17,6 @@ export default function ChannelForecastChart() {
     organic: true,
   });
 
-  const dateRange = useStore((state) => state.dateRange);
   const shopifyData = useStore((state) => state.shopifyData);
   const storeMetaData = useStore((state) => state.metaData);
   const storeGoogleData = useStore((state) => state.googleData);
@@ -24,13 +24,12 @@ export default function ChannelForecastChart() {
   const storeGa4Data = useStore((state) => state.ga4Data);
 
   const chartData = useMemo(() => {
-    const historical = filterDataByDateRange(shopifyData || [], dateRange);
-    const metaData = filterDataByDateRange(storeMetaData || [], dateRange);
-    const googleData = filterDataByDateRange(storeGoogleData || [], dateRange);
-    const klaviyoData = filterDataByDateRange(storeKlaviyoData || [], dateRange);
-    const ga4Data = filterDataByDateRange(storeGa4Data || [], dateRange);
-
-    const combined = [];
+    // Use ALL available data for better forecasting (not filtered by dateRange)
+    const historical = shopifyData || [];
+    const metaData = storeMetaData || [];
+    const googleData = storeGoogleData || [];
+    const klaviyoData = storeKlaviyoData || [];
+    const ga4Data = storeGa4Data || [];
 
     // Combine all data by date
     const dateMap = {};
@@ -38,7 +37,6 @@ export default function ChannelForecastChart() {
       dateMap[d.date] = { ...dateMap[d.date], date: d.date };
     });
 
-    // Add channel revenues
     metaData.forEach((d) => {
       if (!dateMap[d.date]) dateMap[d.date] = { date: d.date };
       dateMap[d.date].meta_actual = d.revenue;
@@ -59,7 +57,6 @@ export default function ChannelForecastChart() {
       dateMap[d.date].organic_actual = d.organicSessions * (d.revenue / d.sessions);
     });
 
-    // Create combined array
     const combined_data = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date));
 
     // Run forecasts for each channel
@@ -114,7 +111,7 @@ export default function ChannelForecastChart() {
     }
 
     return { data: result, forecasts: forecastResults };
-  }, [dateRange, horizon]);
+  }, [shopifyData, storeMetaData, storeGoogleData, storeKlaviyoData, storeGa4Data, horizon]);
 
   const projections = useMemo(() => {
     const result = {};
@@ -138,8 +135,8 @@ export default function ChannelForecastChart() {
     if (!active || !payload) return null;
 
     return (
-      <div className="bg-slate-800 border border-slate-700 rounded p-3 shadow-lg">
-        <p className="text-slate-300 text-sm">{payload[0].payload.date}</p>
+      <div className="rounded p-3 shadow-lg" style={{ backgroundColor: colors.surface, border: `1px solid ${colors.border}` }}>
+        <p className="text-sm" style={{ color: colors.textSecondary }}>{payload[0].payload.date}</p>
         {payload.map((entry, index) => (
           <p key={index} style={{ color: entry.color }} className="text-sm">
             {entry.name}: {formatCurrency(entry.value)}
@@ -157,12 +154,12 @@ export default function ChannelForecastChart() {
   };
 
   return (
-    <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-6">
+    <div className="backdrop-blur rounded-xl p-6" style={{ backgroundColor: colors.surface, border: `1px solid ${colors.border}` }}>
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-slate-100">Channel Performance Forecast</h3>
-          <p className="text-sm text-slate-400 mt-1">Per-channel revenue projections</p>
+          <h3 className="text-lg font-semibold" style={{ color: colors.text }}>Channel Performance Forecast</h3>
+          <p className="text-sm mt-1" style={{ color: colors.textSecondary }}>Per-channel revenue projections</p>
         </div>
         <div className="flex gap-2">
           {[7, 14, 30, 60].map((h) => (
@@ -172,8 +169,9 @@ export default function ChannelForecastChart() {
               className={`px-3 py-1 rounded text-sm font-medium transition-all ${
                 horizon === h
                   ? 'bg-purple-600 text-white'
-                  : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
+                  : ''
               }`}
+              style={horizon !== h ? { backgroundColor: colors.background, color: colors.textSecondary } : {}}
             >
               {h}d
             </button>
@@ -192,11 +190,12 @@ export default function ChannelForecastChart() {
           <button
             key={key}
             onClick={() => toggleChannel(key)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-              visibleChannels[key]
-                ? 'bg-slate-700/50 border border-slate-600'
-                : 'bg-slate-800/50 text-slate-500'
-            }`}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+            style={{
+              backgroundColor: visibleChannels[key] ? colors.background : colors.surface,
+              border: visibleChannels[key] ? `1px solid ${colors.border}` : '1px solid transparent',
+              color: visibleChannels[key] ? colors.text : colors.textSecondary,
+            }}
           >
             <div
               className="w-2 h-2 rounded-full"
@@ -218,128 +217,60 @@ export default function ChannelForecastChart() {
               data={chartData.data}
               margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" />
+              <CartesianGrid strokeDasharray="3 3" stroke={colors.chartGrid || colors.border} />
               <XAxis
                 dataKey="date"
-                tick={{ fill: '#cbd5e1', fontSize: 12 }}
+                tick={{ fill: colors.textSecondary, fontSize: 12 }}
                 tickFormatter={(date) => format(parseISO(date), 'MMM d')}
-                stroke="#475569"
+                stroke={colors.border}
               />
               <YAxis
-                tick={{ fill: '#cbd5e1', fontSize: 12 }}
+                tick={{ fill: colors.textSecondary, fontSize: 12 }}
                 tickFormatter={(value) => formatNumber(value / 1000) + 'K'}
-                stroke="#475569"
+                stroke={colors.border}
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend wrapperStyle={{ paddingTop: '20px' }} />
 
               {visibleChannels.meta && (
                 <>
-                  <Line
-                    type="monotone"
-                    dataKey="meta_actual"
-                    stroke={CHANNEL_COLORS.meta}
-                    strokeWidth={2}
-                    dot={false}
-                    name="Meta (Actual)"
-                    isAnimationActive={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="meta_forecast"
-                    stroke={CHANNEL_COLORS.meta}
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    dot={false}
-                    name="Meta (Forecast)"
-                    isAnimationActive={false}
-                  />
+                  <Line type="monotone" dataKey="meta_actual" stroke={CHANNEL_COLORS.meta} strokeWidth={2} dot={false} name="Meta (Actual)" isAnimationActive={false} />
+                  <Line type="monotone" dataKey="meta_forecast" stroke={CHANNEL_COLORS.meta} strokeWidth={2} strokeDasharray="5 5" dot={false} name="Meta (Forecast)" isAnimationActive={false} />
                 </>
               )}
 
               {visibleChannels.google && (
                 <>
-                  <Line
-                    type="monotone"
-                    dataKey="google_actual"
-                    stroke={CHANNEL_COLORS.google}
-                    strokeWidth={2}
-                    dot={false}
-                    name="Google (Actual)"
-                    isAnimationActive={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="google_forecast"
-                    stroke={CHANNEL_COLORS.google}
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    dot={false}
-                    name="Google (Forecast)"
-                    isAnimationActive={false}
-                  />
+                  <Line type="monotone" dataKey="google_actual" stroke={CHANNEL_COLORS.google} strokeWidth={2} dot={false} name="Google (Actual)" isAnimationActive={false} />
+                  <Line type="monotone" dataKey="google_forecast" stroke={CHANNEL_COLORS.google} strokeWidth={2} strokeDasharray="5 5" dot={false} name="Google (Forecast)" isAnimationActive={false} />
                 </>
               )}
 
               {visibleChannels.klaviyo && (
                 <>
-                  <Line
-                    type="monotone"
-                    dataKey="klaviyo_actual"
-                    stroke={CHANNEL_COLORS.klaviyo}
-                    strokeWidth={2}
-                    dot={false}
-                    name="Klaviyo (Actual)"
-                    isAnimationActive={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="klaviyo_forecast"
-                    stroke={CHANNEL_COLORS.klaviyo}
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    dot={false}
-                    name="Klaviyo (Forecast)"
-                    isAnimationActive={false}
-                  />
+                  <Line type="monotone" dataKey="klaviyo_actual" stroke={CHANNEL_COLORS.klaviyo} strokeWidth={2} dot={false} name="Klaviyo (Actual)" isAnimationActive={false} />
+                  <Line type="monotone" dataKey="klaviyo_forecast" stroke={CHANNEL_COLORS.klaviyo} strokeWidth={2} strokeDasharray="5 5" dot={false} name="Klaviyo (Forecast)" isAnimationActive={false} />
                 </>
               )}
 
               {visibleChannels.organic && (
                 <>
-                  <Line
-                    type="monotone"
-                    dataKey="organic_actual"
-                    stroke={CHANNEL_COLORS.organic}
-                    strokeWidth={2}
-                    dot={false}
-                    name="Organic (Actual)"
-                    isAnimationActive={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="organic_forecast"
-                    stroke={CHANNEL_COLORS.organic}
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    dot={false}
-                    name="Organic (Forecast)"
-                    isAnimationActive={false}
-                  />
+                  <Line type="monotone" dataKey="organic_actual" stroke={CHANNEL_COLORS.organic} strokeWidth={2} dot={false} name="Organic (Actual)" isAnimationActive={false} />
+                  <Line type="monotone" dataKey="organic_forecast" stroke={CHANNEL_COLORS.organic} strokeWidth={2} strokeDasharray="5 5" dot={false} name="Organic (Forecast)" isAnimationActive={false} />
                 </>
               )}
             </LineChart>
           </ResponsiveContainer>
         </div>
       ) : (
-        <div className="h-64 flex items-center justify-center text-slate-400">
+        <div className="h-64 flex items-center justify-center" style={{ color: colors.textSecondary }}>
           No data available for forecast
         </div>
       )}
 
       {/* Channel Projections Table */}
-      <div className="border-t border-slate-700/50 pt-6">
-        <h4 className="text-sm font-semibold text-slate-100 mb-4">Next 30-Day Projections</h4>
+      <div className="pt-6" style={{ borderTop: `1px solid ${colors.border}` }}>
+        <h4 className="text-sm font-semibold mb-4" style={{ color: colors.text }}>Next 30-Day Projections</h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { key: 'meta', label: 'Meta Ads', color: CHANNEL_COLORS.meta },
@@ -351,26 +282,20 @@ export default function ChannelForecastChart() {
             return (
               <div
                 key={key}
-                className="bg-slate-700/30 rounded-lg p-3 border border-slate-700/50"
+                className="rounded-lg p-3"
+                style={{ backgroundColor: colors.background, border: `1px solid ${colors.border}` }}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: color }}
-                  />
-                  <p className="text-xs text-slate-400">{label}</p>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+                  <p className="text-xs" style={{ color: colors.textSecondary }}>{label}</p>
                 </div>
-                <p className="text-lg font-semibold text-slate-100">
+                <p className="text-lg font-semibold" style={{ color: colors.text }}>
                   {projection?.next30d ? formatCurrency(projection.next30d) : '$0'}
                 </p>
                 {projection?.trend && (
                   <p className={`text-xs mt-1 ${
-                    projection.trend === 'up'
-                      ? 'text-green-400'
-                      : projection.trend === 'down'
-                      ? 'text-red-400'
-                      : 'text-slate-400'
-                  }`}>
+                    projection.trend === 'up' ? 'text-green-400' : projection.trend === 'down' ? 'text-red-400' : ''
+                  }`} style={projection.trend === 'flat' ? { color: colors.textSecondary } : {}}>
                     {projection.trend === 'up' ? '↑ Up' : projection.trend === 'down' ? '↓ Down' : '→ Flat'}
                   </p>
                 )}

@@ -12,21 +12,20 @@ import {
 } from 'recharts';
 import { format, parseISO, addDays } from 'date-fns';
 import { useStore } from '../../store/useStore';
+import { useTheme } from '../../contexts/ThemeContext';
 import { forecast } from '../../utils/forecast';
-import { filterDataByDateRange } from '../../utils/formatters';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
 import { FORECAST_COLORS, COLORS } from '../../utils/colors';
 
 export default function RevenueForecastChart() {
+  const { colors } = useTheme();
   const [horizon, setHorizon] = useState(30);
-  const dateRange = useStore((state) => state.dateRange);
   const shopifyData = useStore((state) => state.shopifyData);
 
   const chartData = useMemo(() => {
-    // Get historical revenue data
-    const historicalData = filterDataByDateRange(shopifyData || [], dateRange);
+    // Use ALL available historical data for better forecasting
+    const historicalData = shopifyData || [];
 
-    // Prepare data for forecast function
     const dataForForecast = historicalData.map((d) => ({
       date: d.date,
       value: d.revenue,
@@ -36,13 +35,11 @@ export default function RevenueForecastChart() {
       return { data: [], forecast: null, metrics: {} };
     }
 
-    // Run forecast
     const forecastResult = forecast(dataForForecast, horizon, {
       method: 'auto',
       confidence: 0.95,
     });
 
-    // Combine historical and forecast data
     const combinedData = [
       ...historicalData.map((d) => ({
         date: d.date,
@@ -65,7 +62,7 @@ export default function RevenueForecastChart() {
       forecast: forecastResult,
       metrics: forecastResult.metrics,
     };
-  }, [dateRange, horizon]);
+  }, [shopifyData, horizon]);
 
   const monthlyProjection = useMemo(() => {
     if (!chartData.forecast || chartData.forecast.values.length === 0) {
@@ -96,8 +93,8 @@ export default function RevenueForecastChart() {
 
     const data = payload[0].payload;
     return (
-      <div className="bg-slate-800 border border-slate-700 rounded p-3 shadow-lg">
-        <p className="text-slate-300 text-sm">{data.date}</p>
+      <div className="rounded p-3 shadow-lg" style={{ backgroundColor: colors.surface, border: `1px solid ${colors.border}` }}>
+        <p className="text-sm" style={{ color: colors.textSecondary }}>{data.date}</p>
         {data.actual !== null && (
           <p className="text-blue-400 font-medium">
             Actual: {formatCurrency(data.actual)}
@@ -118,18 +115,18 @@ export default function RevenueForecastChart() {
   };
 
   return (
-    <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-6 h-full">
+    <div className="backdrop-blur rounded-xl p-6 h-full" style={{ backgroundColor: colors.surface, border: `1px solid ${colors.border}` }}>
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-slate-100">Revenue Forecast</h3>
-          <p className="text-sm text-slate-400 mt-1">
+          <h3 className="text-lg font-semibold" style={{ color: colors.text }}>Revenue Forecast</h3>
+          <p className="text-sm mt-1" style={{ color: colors.textSecondary }}>
             {chartData.forecast?.dataPoints || 0} days historical data
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="bg-slate-700/50 px-3 py-1 rounded-full">
-            <span className="text-xs font-medium text-slate-300">
+          <div className="px-3 py-1 rounded-full" style={{ backgroundColor: colors.background }}>
+            <span className="text-xs font-medium" style={{ color: colors.textSecondary }}>
               Accuracy: {accuracy.toFixed(1)}%
             </span>
           </div>
@@ -139,8 +136,9 @@ export default function RevenueForecastChart() {
                 ? 'bg-green-500/20 text-green-400'
                 : trendDirection === 'down'
                 ? 'bg-red-500/20 text-red-400'
-                : 'bg-slate-600/50 text-slate-300'
+                : ''
             }`}
+            style={trendDirection === 'flat' ? { backgroundColor: colors.background, color: colors.textSecondary } : {}}
           >
             {trendDirection === 'up' ? '↑ Up' : trendDirection === 'down' ? '↓ Down' : '→ Flat'}
           </div>
@@ -154,10 +152,9 @@ export default function RevenueForecastChart() {
             key={h}
             onClick={() => setHorizon(h)}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-              horizon === h
-                ? 'bg-purple-600 text-white'
-                : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
+              horizon === h ? 'bg-purple-600 text-white' : ''
             }`}
+            style={horizon !== h ? { backgroundColor: colors.background, color: colors.textSecondary } : {}}
           >
             {h}d
           </button>
@@ -174,34 +171,25 @@ export default function RevenueForecastChart() {
             >
               <defs>
                 <linearGradient id="colorConfidence" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="5%"
-                    stopColor={FORECAST_COLORS.confidence95}
-                    stopOpacity={0.3}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor={FORECAST_COLORS.confidence95}
-                    stopOpacity={0.01}
-                  />
+                  <stop offset="5%" stopColor={FORECAST_COLORS.confidence95} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={FORECAST_COLORS.confidence95} stopOpacity={0.01} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" />
+              <CartesianGrid strokeDasharray="3 3" stroke={colors.chartGrid || colors.border} />
               <XAxis
                 dataKey="date"
-                tick={{ fill: '#cbd5e1', fontSize: 12 }}
+                tick={{ fill: colors.textSecondary, fontSize: 12 }}
                 tickFormatter={(date) => format(parseISO(date), 'MMM d')}
-                stroke="#475569"
+                stroke={colors.border}
               />
               <YAxis
-                tick={{ fill: '#cbd5e1', fontSize: 12 }}
+                tick={{ fill: colors.textSecondary, fontSize: 12 }}
                 tickFormatter={(value) => formatNumber(value / 1000) + 'K'}
-                stroke="#475569"
+                stroke={colors.border}
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend wrapperStyle={{ paddingTop: '20px' }} />
 
-              {/* Confidence interval band */}
               <Area
                 type="monotone"
                 dataKey="upper"
@@ -211,7 +199,6 @@ export default function RevenueForecastChart() {
                 isAnimationActive={false}
               />
 
-              {/* Actual revenue */}
               <Line
                 type="monotone"
                 dataKey="actual"
@@ -222,7 +209,6 @@ export default function RevenueForecastChart() {
                 isAnimationActive={false}
               />
 
-              {/* Forecast */}
               <Line
                 type="monotone"
                 dataKey="predicted"
@@ -237,22 +223,23 @@ export default function RevenueForecastChart() {
           </ResponsiveContainer>
         </div>
       ) : (
-        <div className="h-64 flex items-center justify-center text-slate-400">
+        <div className="h-64 flex items-center justify-center" style={{ color: colors.textSecondary }}>
           No data available for forecast
         </div>
       )}
 
       {/* Monthly Projections */}
-      <div className="border-t border-slate-700/50 pt-6">
-        <h4 className="text-sm font-semibold text-slate-100 mb-4">Monthly Projections</h4>
+      <div className="pt-6" style={{ borderTop: `1px solid ${colors.border}` }}>
+        <h4 className="text-sm font-semibold mb-4" style={{ color: colors.text }}>Monthly Projections</h4>
         <div className="grid grid-cols-2 gap-3">
           {monthlyProjection.slice(0, 4).map((month, idx) => (
             <div
               key={idx}
-              className="bg-slate-700/30 rounded-lg p-3 border border-slate-700/50"
+              className="rounded-lg p-3"
+              style={{ backgroundColor: colors.background, border: `1px solid ${colors.border}` }}
             >
-              <p className="text-xs text-slate-400">{month.month}</p>
-              <p className="text-lg font-semibold text-slate-100 mt-1">
+              <p className="text-xs" style={{ color: colors.textSecondary }}>{month.month}</p>
+              <p className="text-lg font-semibold mt-1" style={{ color: colors.text }}>
                 {formatCurrency(month.projected)}
               </p>
             </div>
@@ -261,24 +248,24 @@ export default function RevenueForecastChart() {
       </div>
 
       {/* Metrics */}
-      <div className="border-t border-slate-700/50 pt-6 mt-6">
-        <h4 className="text-sm font-semibold text-slate-100 mb-3">Accuracy Metrics</h4>
+      <div className="pt-6 mt-6" style={{ borderTop: `1px solid ${colors.border}` }}>
+        <h4 className="text-sm font-semibold mb-3" style={{ color: colors.text }}>Accuracy Metrics</h4>
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-slate-700/20 rounded p-3">
-            <p className="text-xs text-slate-400">MAPE</p>
-            <p className="text-sm font-semibold text-slate-100 mt-1">
+          <div className="rounded p-3" style={{ backgroundColor: colors.background }}>
+            <p className="text-xs" style={{ color: colors.textSecondary }}>MAPE</p>
+            <p className="text-sm font-semibold mt-1" style={{ color: colors.text }}>
               {chartData.metrics.mape?.toFixed(1) || 'N/A'}%
             </p>
           </div>
-          <div className="bg-slate-700/20 rounded p-3">
-            <p className="text-xs text-slate-400">RMSE</p>
-            <p className="text-sm font-semibold text-slate-100 mt-1">
+          <div className="rounded p-3" style={{ backgroundColor: colors.background }}>
+            <p className="text-xs" style={{ color: colors.textSecondary }}>RMSE</p>
+            <p className="text-sm font-semibold mt-1" style={{ color: colors.text }}>
               {formatCurrency(chartData.metrics.rmse || 0)}
             </p>
           </div>
-          <div className="bg-slate-700/20 rounded p-3">
-            <p className="text-xs text-slate-400">MAE</p>
-            <p className="text-sm font-semibold text-slate-100 mt-1">
+          <div className="rounded p-3" style={{ backgroundColor: colors.background }}>
+            <p className="text-xs" style={{ color: colors.textSecondary }}>MAE</p>
+            <p className="text-sm font-semibold mt-1" style={{ color: colors.text }}>
               {formatCurrency(chartData.metrics.mae || 0)}
             </p>
           </div>

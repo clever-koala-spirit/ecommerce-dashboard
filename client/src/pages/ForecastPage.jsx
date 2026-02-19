@@ -7,8 +7,11 @@ import ChannelForecastChart from '../components/forecast/ChannelForecastChart';
 import BudgetSimulator from '../components/forecast/BudgetSimulator';
 import InsightsEngine from '../components/forecast/InsightsEngine';
 import SampleDataBanner from '../components/SampleDataBanner';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function ForecastPage() {
+  const { colors } = useTheme();
+
   return (
     <div className="p-6">
       <SEO title="Forecast" description="AI-powered revenue forecasting and budget optimization." path="/forecast" />
@@ -16,10 +19,10 @@ export default function ForecastPage() {
 
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>
+        <h1 className="text-3xl font-semibold mb-2" style={{ color: colors.text }}>
           Forecasting & Predictive Analytics
         </h1>
-        <p style={{ color: 'var(--color-text-secondary)' }}>
+        <p style={{ color: colors.textSecondary }}>
           AI-powered predictions using time series analysis on your historical data
         </p>
       </div>
@@ -53,15 +56,15 @@ export default function ForecastPage() {
       </div>
 
       {/* Footer Info */}
-      <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-6 mt-8">
+      <div className="rounded-xl p-6 mt-8" style={{ backgroundColor: colors.surface, border: `1px solid ${colors.border}` }}>
         <div className="flex gap-3">
           <span className="text-2xl">💡</span>
           <div>
-            <h3 className="font-semibold text-blue-200">About These Forecasts</h3>
-            <p className="text-sm text-blue-300 mt-2">
+            <h3 className="font-semibold" style={{ color: colors.accent }}>About These Forecasts</h3>
+            <p className="text-sm mt-2" style={{ color: colors.textSecondary }}>
               All forecasting is performed client-side using pure JavaScript time series algorithms. We use exponential smoothing, Holt-Winters seasonal decomposition, and linear regression depending on your data characteristics. The system automatically detects seasonality patterns (weekly and monthly) and adjusts predictions accordingly. Confidence intervals widen over longer forecasts to reflect increasing uncertainty.
             </p>
-            <p className="text-sm text-blue-300 mt-2">
+            <p className="text-sm mt-2" style={{ color: colors.textSecondary }}>
               Budget simulator uses historical ROAS and CPA data to project revenue impact of different spending scenarios. Insights are generated automatically by analyzing anomalies, trends, channel performance, and conversion metrics.
             </p>
           </div>

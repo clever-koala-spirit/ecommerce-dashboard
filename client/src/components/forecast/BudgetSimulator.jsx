@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 import { useStore } from '../../store/useStore';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   simulateScenario,
   findOptimalAllocation,
@@ -12,6 +13,7 @@ import { formatCurrency, formatNumber } from '../../utils/formatters';
 import { CHANNEL_COLORS } from '../../utils/colors';
 
 export default function BudgetSimulator() {
+  const { colors } = useTheme();
   const metaData = useStore((state) => state.metaData);
   const googleData = useStore((state) => state.googleData);
 
@@ -64,11 +66,10 @@ export default function BudgetSimulator() {
           revenue.push(d.conversionValue);
         });
       } else {
-        // TikTok estimation
         for (let i = 0; i < 20; i++) {
           const s = 100 + i * 500;
           spend.push(s);
-          revenue.push(s * 2.8 * (1 - i * 0.02)); // Diminishing returns
+          revenue.push(s * 2.8 * (1 - i * 0.02));
         }
       }
 
@@ -78,7 +79,6 @@ export default function BudgetSimulator() {
     return result;
   }, []);
 
-  // Calculate impact of potential budget shifts
   const shiftImpact = useMemo(() => {
     return calculateBudgetShiftImpact(
       budgets,
@@ -107,7 +107,6 @@ export default function BudgetSimulator() {
     }
   };
 
-  // Diminishing returns visualization data
   const diminishingChartsData = useMemo(() => {
     const result = {};
     const channels = ['meta', 'google', 'tiktok'];
@@ -144,12 +143,12 @@ export default function BudgetSimulator() {
   const currentAllocation = budgets.meta + budgets.google + budgets.tiktok;
 
   return (
-    <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-6">
+    <div className="backdrop-blur rounded-xl p-6" style={{ backgroundColor: colors.surface, border: `1px solid ${colors.border}` }}>
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-slate-100">Budget Simulator</h3>
-          <p className="text-sm text-slate-400 mt-1">
+          <h3 className="text-lg font-semibold" style={{ color: colors.text }}>Budget Simulator</h3>
+          <p className="text-sm mt-1" style={{ color: colors.textSecondary }}>
             Adjust channel budgets to see impact on revenue, ROAS, and profit
           </p>
         </div>
@@ -170,7 +169,7 @@ export default function BudgetSimulator() {
         ].map(({ key, label, color }) => (
           <div key={key}>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-slate-200 flex items-center gap-2">
+              <label className="text-sm font-medium flex items-center gap-2" style={{ color: colors.text }}>
                 <div
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: color }}
@@ -181,7 +180,8 @@ export default function BudgetSimulator() {
                 type="number"
                 value={budgets[key]}
                 onChange={(e) => handleBudgetChange(key, parseFloat(e.target.value))}
-                className="bg-slate-700 border border-slate-600 rounded px-3 py-1 text-white text-sm w-32 text-right"
+                className="rounded px-3 py-1 text-sm w-32 text-right"
+                style={{ backgroundColor: colors.background, border: `1px solid ${colors.border}`, color: colors.text }}
               />
             </div>
             <input
@@ -195,46 +195,46 @@ export default function BudgetSimulator() {
               style={{
                 background: `linear-gradient(to right, ${color} 0%, ${color} ${
                   (budgets[key] / 50000) * 100
-                }%, #334155 ${(budgets[key] / 50000) * 100}%, #334155 100%)`,
+                }%, ${colors.border} ${(budgets[key] / 50000) * 100}%, ${colors.border} 100%)`,
               }}
             />
-            <p className="text-xs text-slate-400 mt-1">$0 - $50,000</p>
+            <p className="text-xs mt-1" style={{ color: colors.textSecondary }}>$0 - $50,000</p>
           </div>
         ))}
       </div>
 
       {/* Live Projections */}
-      <div className="bg-slate-700/30 rounded-lg p-4 mb-8 border border-slate-700/50">
-        <h4 className="text-sm font-semibold text-slate-100 mb-4">
+      <div className="rounded-lg p-4 mb-8" style={{ backgroundColor: colors.background, border: `1px solid ${colors.border}` }}>
+        <h4 className="text-sm font-semibold mb-4" style={{ color: colors.text }}>
           {showOptimized ? 'Optimized Scenario' : 'Current Scenario'}
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <div>
-            <p className="text-xs text-slate-400">Total Budget</p>
-            <p className="text-lg font-semibold text-slate-100 mt-1">
+            <p className="text-xs" style={{ color: colors.textSecondary }}>Total Budget</p>
+            <p className="text-lg font-semibold mt-1" style={{ color: colors.text }}>
               {formatCurrency(currentAllocation)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-400">Projected Revenue</p>
+            <p className="text-xs" style={{ color: colors.textSecondary }}>Projected Revenue</p>
             <p className="text-lg font-semibold text-blue-400 mt-1">
               {formatCurrency(scenario.totalRevenue)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-400">Projected ROAS</p>
-            <p className="text-lg font-semibold text-slate-100 mt-1">
+            <p className="text-xs" style={{ color: colors.textSecondary }}>Projected ROAS</p>
+            <p className="text-lg font-semibold mt-1" style={{ color: colors.text }}>
               {scenario.roas?.toFixed(2) || '0.00'}x
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-400">Projected CPA</p>
-            <p className="text-lg font-semibold text-slate-100 mt-1">
+            <p className="text-xs" style={{ color: colors.textSecondary }}>Projected CPA</p>
+            <p className="text-lg font-semibold mt-1" style={{ color: colors.text }}>
               {formatCurrency(scenario.totalCPA)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-400">Projected Profit</p>
+            <p className="text-xs" style={{ color: colors.textSecondary }}>Projected Profit</p>
             <p
               className={`text-lg font-semibold mt-1 ${
                 scenario.profit > 0 ? 'text-green-400' : 'text-red-400'
@@ -247,11 +247,11 @@ export default function BudgetSimulator() {
       </div>
 
       {/* Budget Shift Suggestion */}
-      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-8">
-        <p className="text-sm text-blue-300">
+      <div className="rounded-lg p-4 mb-8" style={{ backgroundColor: `${colors.accent}15`, border: `1px solid ${colors.accent}40` }}>
+        <p className="text-sm" style={{ color: colors.accent }}>
           💡 {shiftImpact.recommendation}
         </p>
-        <p className="text-xs text-blue-300/70 mt-2">
+        <p className="text-xs mt-2" style={{ color: colors.textSecondary }}>
           Profit impact: {formatCurrency(shiftImpact.profitDelta)} (
           {shiftImpact.profitDelta > 0 ? '+' : ''}
           {((shiftImpact.profitDelta / shiftImpact.currentProfit) * 100).toFixed(1)}%)
@@ -259,34 +259,35 @@ export default function BudgetSimulator() {
       </div>
 
       {/* Diminishing Returns Curves */}
-      <div className="border-t border-slate-700/50 pt-6">
-        <h4 className="text-sm font-semibold text-slate-100 mb-4">Diminishing Returns Analysis</h4>
+      <div className="pt-6" style={{ borderTop: `1px solid ${colors.border}` }}>
+        <h4 className="text-sm font-semibold mb-4" style={{ color: colors.text }}>Diminishing Returns Analysis</h4>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {[
             { key: 'meta', label: 'Meta Ads', color: CHANNEL_COLORS.meta },
             { key: 'google', label: 'Google Ads', color: CHANNEL_COLORS.google },
             { key: 'tiktok', label: 'TikTok', color: '#000' },
           ].map(({ key, label, color }) => (
-            <div key={key} className="bg-slate-700/20 rounded-lg p-3">
-              <p className="text-xs font-medium text-slate-300 mb-3">{label}</p>
+            <div key={key} className="rounded-lg p-3" style={{ backgroundColor: colors.background }}>
+              <p className="text-xs font-medium mb-3" style={{ color: colors.textSecondary }}>{label}</p>
               <div className="h-32">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={diminishingChartsData[key]}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={colors.chartGrid || colors.border} />
                     <XAxis
                       dataKey="spend"
-                      tick={{ fontSize: 10, fill: '#94a3b8' }}
+                      tick={{ fontSize: 10, fill: colors.textSecondary }}
                       tickFormatter={(v) => formatNumber(v / 1000) + 'K'}
                     />
                     <YAxis
-                      tick={{ fontSize: 10, fill: '#94a3b8' }}
+                      tick={{ fontSize: 10, fill: colors.textSecondary }}
                       tickFormatter={(v) => formatNumber(v / 1000) + 'K'}
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: '#1e293b',
-                        border: '1px solid #475569',
+                        backgroundColor: colors.surface,
+                        border: `1px solid ${colors.border}`,
                         borderRadius: '6px',
+                        color: colors.text,
                       }}
                       formatter={(v) => formatCurrency(v)}
                     />
@@ -301,7 +302,7 @@ export default function BudgetSimulator() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-              <p className="text-xs text-slate-400 mt-2">
+              <p className="text-xs mt-2" style={{ color: colors.textSecondary }}>
                 Current: {formatCurrency(budgets[key])}
               </p>
             </div>
@@ -310,9 +311,9 @@ export default function BudgetSimulator() {
       </div>
 
       {/* Recommendation Box */}
-      <div className="border-t border-slate-700/50 pt-6 mt-6">
-        <h4 className="text-sm font-semibold text-slate-100 mb-3">Smart Allocation Tip</h4>
-        <p className="text-sm text-slate-300">
+      <div className="pt-6 mt-6" style={{ borderTop: `1px solid ${colors.border}` }}>
+        <h4 className="text-sm font-semibold mb-3" style={{ color: colors.text }}>Smart Allocation Tip</h4>
+        <p className="text-sm" style={{ color: colors.textSecondary }}>
           Based on diminishing returns analysis, Google Ads shows stronger efficiency gains at higher
           budgets. Consider reallocating 15-20% from Meta to Google for potential profit improvements.
         </p>
