@@ -100,7 +100,7 @@ export class GoogleAdsService {
 
       const response = await withRetry(() =>
         queueRequest('google', () =>
-          fetch('https://googleads.googleapis.com/v19/customers:listAccessibleCustomers', {
+          fetch('https://googleads.googleapis.com/v20/customers:listAccessibleCustomers', {
             headers: this.getHeaders(accessToken),
           })
         )
@@ -157,7 +157,7 @@ export class GoogleAdsService {
 
       const response = await withRetry(() =>
         queueRequest('google', () =>
-          fetch(`https://googleads.googleapis.com/v19/customers/${customerId}/googleAds:search`, {
+          fetch(`https://googleads.googleapis.com/v20/customers/${customerId}/googleAds:search`, {
             method: 'POST',
             headers: this.getHeaders(accessToken),
             body: JSON.stringify({ query }),
@@ -214,7 +214,7 @@ export class GoogleAdsService {
 
       const response = await withRetry(() =>
         queueRequest('google', () =>
-          fetch(`https://googleads.googleapis.com/v19/customers/${customerId}/googleAds:search`, {
+          fetch(`https://googleads.googleapis.com/v20/customers/${customerId}/googleAds:search`, {
             method: 'POST',
             headers: this.getHeaders(accessToken),
             body: JSON.stringify({ query }),
@@ -299,13 +299,17 @@ export class GoogleAdsService {
   }
 
   getHeaders(accessToken) {
-    const managerId = (process.env.GOOGLE_ADS_MANAGER_ID || this.customerId).replace(/-/g, '');
-    return {
+    const headers = {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
       'developer-token': this.developerToken,
-      'login-customer-id': managerId,
     };
+    // Only include login-customer-id when accessing client accounts via a manager
+    // If the OAuth user has direct access, this header causes 403
+    if (process.env.GOOGLE_ADS_MANAGER_ID && process.env.GOOGLE_ADS_MANAGER_ID !== this.customerId) {
+      headers['login-customer-id'] = process.env.GOOGLE_ADS_MANAGER_ID.replace(/-/g, '');
+    }
+    return headers;
   }
 }
 
