@@ -100,7 +100,7 @@ export class GoogleAdsService {
 
       const response = await withRetry(() =>
         queueRequest('google', () =>
-          fetch('https://googleads.googleapis.com/v19/customers', {
+          fetch('https://googleads.googleapis.com/v19/customers:listAccessibleCustomers', {
             headers: this.getHeaders(accessToken),
           })
         )
@@ -299,11 +299,12 @@ export class GoogleAdsService {
   }
 
   getHeaders(accessToken) {
+    const managerId = (process.env.GOOGLE_ADS_MANAGER_ID || this.customerId).replace(/-/g, '');
     return {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
       'developer-token': this.developerToken,
-      'login-customer-id': this.customerId,
+      'login-customer-id': managerId,
     };
   }
 }

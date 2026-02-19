@@ -301,7 +301,7 @@ async function startServer() {
     const hasSecret = !!process.env.SHOPIFY_API_SECRET;
     const hasEncryptionKey = !!process.env.ENCRYPTION_KEY;
 
-    app.listen(PORT, () => {
+    app.listen(PORT, '127.0.0.1', () => {
       log.info('Server started', {
         version: '2.0.0',
         port: PORT,
