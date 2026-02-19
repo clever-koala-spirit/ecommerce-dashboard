@@ -13,4 +13,4 @@ redirect_urls = [
 api_version = "2026-01"
 
 [access_scopes]
-scopes = "read_products,read_orders,read_customers,read_analytics"
+scopes = "read_products,read_orders,read_customers,read_analytics,read_inventory"

@@ -46,7 +46,7 @@ const navSections = [
   },
 ];
 
-export default function NavSidebar({ collapsed, onToggleCollapse }) {
+export default function NavSidebar({ collapsed, onToggleCollapse, isMobile = false }) {
   const location = useLocation();
   const { logout, user } = useAuth();
   const { colors, theme } = useTheme();

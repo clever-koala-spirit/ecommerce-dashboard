@@ -380,42 +380,102 @@ async function fetchPlatformInfo(platform, tokenData, req = {}) {
 
   try {
     if (platform === 'meta') {
-      // Fetch Meta ad accounts
-      const accountsResponse = await fetch(
-        `https://graph.facebook.com/v25.0/me/adaccounts?access_token=${tokenData.access_token}&fields=id,name,currency,account_status`
-      );
-      const accountsData = await accountsResponse.json();
+      // Fetch ALL Meta ad accounts with pagination
+      const allAccounts = [];
+      let after = null;
+      
+      while (true) {
+        const url = new URL('https://graph.facebook.com/v25.0/me/adaccounts');
+        url.searchParams.set('access_token', tokenData.access_token);
+        url.searchParams.set('fields', 'id,name,currency,account_status');
+        url.searchParams.set('limit', '100');
+        if (after) url.searchParams.set('after', after);
 
-      if (accountsData.data && accountsData.data.length > 0) {
-        console.log(`[OAuth] Meta: ${accountsData.data.length} accounts found:`, accountsData.data.map(a => `${a.name} (${a.id})`).join(', '));
+        const accountsResponse = await fetch(url);
+        const accountsData = await accountsResponse.json();
+
+        if (accountsData.error) {
+          console.error('[OAuth] Meta accounts fetch error:', accountsData.error);
+          break;
+        }
+
+        if (accountsData.data && accountsData.data.length > 0) {
+          allAccounts.push(...accountsData.data);
+        }
+
+        // Check for next page
+        if (!accountsData.paging?.cursors?.after) {
+          break;
+        }
+        after = accountsData.paging.cursors.after;
+      }
+
+      console.log(`[OAuth] Meta: ${allAccounts.length} total accounts found across all pages`);
+
+      if (allAccounts.length > 0) {
+        // Option 1: Try to find "Paintly Kits" account specifically  
+        const paintlyKitsAccount = allAccounts.find(a => 
+          a.name && (
+            a.name.toLowerCase().includes('paintly kits') ||
+            a.id === 'act_1443313269934181'
+          )
+        );
         
-        // Find the account with the highest spend in the last 90 days
-        let bestAccount = null;
-        let highestSpend = 0;
-        const since = new Date(Date.now() - 90*86400000).toISOString().split('T')[0];
-        const until = new Date().toISOString().split('T')[0];
-        
-        for (const acct of accountsData.data) {
-          try {
-            const insResp = await fetch(`https://graph.facebook.com/v25.0/${acct.id}/insights?fields=spend&time_range=${encodeURIComponent(JSON.stringify({since, until}))}&access_token=${tokenData.access_token}`);
-            const insData = await insResp.json();
-            const spend = insData.data?.[0]?.spend ? parseFloat(insData.data[0].spend) : 0;
-            if (spend > 0) {
-              console.log(`[OAuth] Meta: "${acct.name}" (${acct.id}) spend: $${spend}`);
+        if (paintlyKitsAccount) {
+          console.log(`[OAuth] Meta: Found Paintly Kits account directly: "${paintlyKitsAccount.name}" (${paintlyKitsAccount.id})`);
+          credentials.adAccountId = paintlyKitsAccount.id;
+          credentials.accountName = paintlyKitsAccount.name;
+          credentials.currency = paintlyKitsAccount.currency;
+          credentials.allAccounts = allAccounts.map(a => ({ id: a.id, name: a.name, currency: a.currency }));
+          credentials.autoSelected = true;
+          credentials.selectionMethod = 'paintly_kits_match';
+        } else {
+          // Option 2: Check spend for top 5 accounts (to avoid rate limits)
+          let bestAccount = null;
+          let highestSpend = 0;
+          const since = new Date(Date.now() - 90*86400000).toISOString().split('T')[0];
+          const until = new Date().toISOString().split('T')[0];
+          
+          // Only check first 5 accounts to avoid rate limits
+          const accountsToCheck = allAccounts.slice(0, 5);
+          
+          for (const acct of accountsToCheck) {
+            try {
+              const insResp = await fetch(
+                `https://graph.facebook.com/v25.0/${acct.id}/insights?fields=spend&time_range=${encodeURIComponent(JSON.stringify({since, until}))}&access_token=${tokenData.access_token}`
+              );
+              
+              if (insResp.ok) {
+                const insData = await insResp.json();
+                const spend = insData.data?.[0]?.spend ? parseFloat(insData.data[0].spend) : 0;
+                console.log(`[OAuth] Meta: "${acct.name}" (${acct.id}) spend: $${spend}`);
+                
+                if (spend > highestSpend) {
+                  highestSpend = spend;
+                  bestAccount = acct;
+                }
+              } else {
+                console.warn(`[OAuth] Meta: Could not fetch insights for ${acct.name} (${acct.id}): ${insResp.status}`);
+              }
+            } catch (e) {
+              console.warn(`[OAuth] Meta: Error checking spend for ${acct.name}:`, e.message);
             }
-            if (spend > highestSpend) {
-              highestSpend = spend;
-              bestAccount = acct;
-            }
-          } catch (e) { /* skip */ }
+          }
+          
+          // Use highest spend account or fallback to first account
+          const selectedAccount = bestAccount || allAccounts[0];
+          credentials.adAccountId = selectedAccount.id;
+          credentials.accountName = selectedAccount.name;
+          credentials.currency = selectedAccount.currency;
+          credentials.allAccounts = allAccounts.map(a => ({ id: a.id, name: a.name, currency: a.currency }));
+          credentials.autoSelected = true;
+          credentials.selectionMethod = bestAccount ? 'highest_spend' : 'fallback_first';
+          
+          console.log(`[OAuth] Meta: SELECTED "${selectedAccount.name}" (${selectedAccount.id}) via ${credentials.selectionMethod} with $${highestSpend} spend`);
         }
         
-        const primaryAccount = bestAccount || accountsData.data[0];
-        credentials.adAccountId = primaryAccount.id;
-        credentials.accountName = primaryAccount.name;
-        credentials.currency = primaryAccount.currency;
-        credentials.allAccounts = accountsData.data.map(a => ({ id: a.id, name: a.name, currency: a.currency }));
-        console.log(`[OAuth] Meta: SELECTED "${primaryAccount.name}" (${primaryAccount.id}) with $${highestSpend} spend`);
+        // Mark that user should select their preferred account
+        credentials.needsAccountSelection = allAccounts.length > 1;
       }
     } else if (platform === 'google') {
       // For Google Ads, we need to get accessible customers
@@ -543,6 +603,107 @@ router.post('/klaviyo/connect', async (req, res) => {
   } catch (error) {
     log.error('Klaviyo API key connection failed', error, { shopDomain });
     res.status(500).json({ error: 'Failed to connect Klaviyo' });
+  }
+});
+
+/**
+ * GET /api/oauth/meta/accounts
+ * Get all available Meta ad accounts for account selection
+ */
+router.get('/meta/accounts', async (req, res) => {
+  try {
+    const { platform } = req.params;
+    const db = getDB();
+    let shopDomain = null;
+    if (req.userId) {
+      try {
+        const result = db.exec('SELECT shop_domain FROM users WHERE id = ?', [req.userId]);
+        if (result.length > 0 && result[0].values.length > 0) shopDomain = result[0].values[0][0];
+      } catch (e) { /* ignore */ }
+    }
+
+    const connection = getPlatformConnection(shopDomain, 'meta');
+    if (!connection) {
+      return res.status(404).json({ error: 'Meta not connected' });
+    }
+
+    const { credentials } = connection;
+    
+    res.json({
+      currentAccount: {
+        id: credentials.adAccountId,
+        name: credentials.accountName,
+        currency: credentials.currency
+      },
+      availableAccounts: credentials.allAccounts || [],
+      needsSelection: credentials.needsAccountSelection || false
+    });
+  } catch (error) {
+    console.error('[OAuth] Error getting Meta accounts:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/oauth/meta/select-account
+ * Switch to a different Meta ad account
+ */
+router.post('/meta/select-account', async (req, res) => {
+  try {
+    const { accountId } = req.body;
+    const db = getDB();
+    let shopDomain = null;
+    if (req.userId) {
+      try {
+        const result = db.exec('SELECT shop_domain FROM users WHERE id = ?', [req.userId]);
+        if (result.length > 0 && result[0].values.length > 0) shopDomain = result[0].values[0][0];
+      } catch (e) { /* ignore */ }
+    }
+
+    if (!accountId) {
+      return res.status(400).json({ error: 'Account ID is required' });
+    }
+
+    const connection = getPlatformConnection(shopDomain, 'meta');
+    if (!connection) {
+      return res.status(404).json({ error: 'Meta not connected' });
+    }
+
+    const { credentials } = connection;
+    
+    // Find the selected account in available accounts
+    const selectedAccount = credentials.allAccounts?.find(a => a.id === accountId);
+    if (!selectedAccount) {
+      return res.status(400).json({ error: 'Account not found in available accounts' });
+    }
+
+    // Update credentials with selected account
+    const updatedCredentials = {
+      ...credentials,
+      adAccountId: selectedAccount.id,
+      accountName: selectedAccount.name,
+      currency: selectedAccount.currency,
+      autoSelected: false,
+      selectionMethod: 'user_selected',
+      needsAccountSelection: false,
+      selectedAt: new Date().toISOString()
+    };
+
+    // Save updated credentials
+    savePlatformConnection(shopDomain, 'meta', updatedCredentials);
+
+    res.json({
+      success: true,
+      selectedAccount: {
+        id: selectedAccount.id,
+        name: selectedAccount.name,
+        currency: selectedAccount.currency
+      },
+      message: `Switched to Meta ad account: ${selectedAccount.name}`
+    });
+  } catch (error) {
+    console.error('[OAuth] Error selecting Meta account:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

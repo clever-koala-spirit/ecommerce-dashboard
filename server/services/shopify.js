@@ -344,7 +344,7 @@ export class ShopifyService {
       name: order.name,
       date: toStoreDate(order.createdAt),
       revenue: parseFloat(order.subtotalPriceSet?.shopMoney?.amount || 0),
-      shipping: parseFloat(order.totalShippingPriceSet?.shopMoney?.amount || 0),
+      shipping: 0, // Paintly Kits doesn't charge shipping - force to $0
       tax: parseFloat(order.totalTaxSet?.shopMoney?.amount || 0),
       grossRevenue: parseFloat(order.totalPriceSet?.shopMoney?.amount || 0),
       refundAmount: parseFloat(order.totalRefundedSet?.shopMoney?.amount || 0),

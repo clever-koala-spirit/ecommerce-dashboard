@@ -5,7 +5,7 @@ import { useAuth } from '../../providers/AuthProvider';
 import { useTheme } from '../../contexts/ThemeContext';
 import { fetchSyncStatus } from '../../services/api';
 
-export default function FilterBar() {
+export default function FilterBar({ isMobile = false }) {
   const dateRange = useStore((s) => s.dateRange);
   const setDateRange = useStore((s) => s.setDateRange);
   const comparisonEnabled = useStore((s) => s.comparisonEnabled);
@@ -132,12 +132,15 @@ export default function FilterBar() {
       style={{ background: colors.bgCard, borderColor: colors.border, transition: 'background-color 0.3s ease, border-color 0.3s ease', backdropFilter: 'blur(20px) saturate(180%)' }}
     >
       {/* Main top bar */}
-      <div className="px-6 py-4 flex items-center gap-4">
+      <div className={`${isMobile ? 'px-4 py-3' : 'px-6 py-4'} flex items-center gap-${isMobile ? '2' : '4'}`}>
         {/* Title */}
-        <h1 className="text-xl font-bold mr-4 hidden sm:block" style={{ color: colors.text }}>Dashboard</h1>
+        <h1 className={`text-xl font-bold mr-4 ${isMobile ? 'hidden' : 'hidden sm:block'}`} style={{ color: colors.text }}>Dashboard</h1>
+
+        {/* Mobile menu toggle space (handled by NavSidebar) */}
+        {isMobile && <div className="w-12" />}
 
         {/* Date Range Pills */}
-        <div className="flex gap-1 flex-wrap">
+        <div className={`flex gap-1 ${isMobile ? 'overflow-x-auto' : 'flex-wrap'}`}>
           {dateRangeOptions.map((option) => (
             <button
               key={option.value}
