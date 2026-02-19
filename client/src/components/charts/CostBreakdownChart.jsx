@@ -115,7 +115,7 @@ export default function CostBreakdownChart() {
       pieChartData: pieData,
       totalCosts: grandTotal,
     };
-  }, [dateRange]);
+  }, [dateRange, shopifyData, metaData, googleData]);
 
   if (!areaChartData || areaChartData.length === 0) {
     return (

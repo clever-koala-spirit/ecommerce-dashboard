@@ -96,7 +96,7 @@ export default function PaidAdsChart() {
         spend,
       };
     });
-  }, [dateRange, platform]);
+  }, [dateRange, platform, metaData, googleData]);
 
   if (chartData.length === 0) {
     return (

@@ -149,7 +149,7 @@ export default function EfficiencyCharts() {
         ltvCacStats: { current: ltvCacCurrent, average: ltvCacAverage },
         contributionStats: { current: contributionCurrent, average: contributionAverage },
       };
-    }, [dateRange]);
+    }, [dateRange, shopifyData, metaData, googleData]);
 
   if (
     !merData ||

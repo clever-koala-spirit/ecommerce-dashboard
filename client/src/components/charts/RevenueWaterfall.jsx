@@ -124,7 +124,7 @@ export default function RevenueWaterfall() {
     ];
 
     return data;
-  }, [dateRange]);
+  }, [dateRange, shopifyData, metaData, googleData]);
 
   // Custom render to create waterfall effect
   const CustomBar = (props) => {

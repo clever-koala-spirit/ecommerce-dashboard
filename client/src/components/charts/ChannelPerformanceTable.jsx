@@ -103,7 +103,7 @@ export default function ChannelPerformanceTable() {
     });
 
     return channelsWithMetrics;
-  }, [dateRange]);
+  }, [dateRange, shopifyData, metaData, googleData, ga4Data]);
 
   const handleSort = (key) => {
     let direction = 'desc';

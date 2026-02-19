@@ -127,7 +127,7 @@ export default function KlaviyoChart() {
     }));
 
     return { chartData: data, flowStats: stats };
-  }, [dateRange]);
+  }, [dateRange, klaviyoData]);
 
   if (chartData.length === 0) {
     return (

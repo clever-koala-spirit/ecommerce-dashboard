@@ -147,7 +147,7 @@ export default function ProfitForecast() {
       cashFlowData,
       breakEvenDaily: monthlyAdSpend / 30 / (1 - cogsPercentage - shippingPercentage - feesPercentage),
     };
-  }, [dateRange]);
+  }, [dateRange, shopifyData]);
 
   const rows = [
     { label: 'Revenue', key: 'revenue' },

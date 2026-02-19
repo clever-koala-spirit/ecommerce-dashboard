@@ -232,7 +232,7 @@ export default function InsightsEngine() {
     }
 
     return generatedInsights;
-  }, [dateRange]);
+  }, [dateRange, storeShopifyData, storeMetaData, storeGoogleData, storeKlaviyoData, storeGa4Data]);
 
   // Push insights to store on change
   useEffect(() => {

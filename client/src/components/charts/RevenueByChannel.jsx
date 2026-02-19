@@ -92,7 +92,7 @@ export default function RevenueByChannel() {
       channels: channels.filter((c) => c.value > 0),
       totalRevenue,
     };
-  }, [dateRange]);
+  }, [dateRange, shopifyData, metaData, googleData, ga4Data]);
 
   if (chartData.channels.length === 0 || chartData.totalRevenue === 0) {
     return (

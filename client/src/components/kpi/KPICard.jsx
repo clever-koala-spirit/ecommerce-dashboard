@@ -88,18 +88,20 @@ export default function KPICard({
       </div>
 
       <div className="flex items-center justify-between gap-3">
+        {previousValue != null && (
         <div className="flex items-center gap-2">
           <span
             className="px-2 py-0.5 rounded-md text-[11px] font-semibold"
             style={{
-              background: isPositive ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
-              color: deltaColor,
+              background: delta.positive === null ? 'rgba(128,128,128,0.12)' : isPositive ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
+              color: delta.positive === null ? 'var(--color-text-muted)' : deltaColor,
             }}
           >
-            {isPositive ? '↑' : '↓'} {delta.value}
+            {delta.positive === null ? '' : isPositive ? '↑' : '↓'} {delta.value}
           </span>
-          <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>From last period</span>
+          <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>vs previous</span>
         </div>
+        )}
 
         {sparklineChartData.length > 1 && (
           <div className="w-16 h-8">

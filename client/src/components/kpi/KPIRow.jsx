@@ -309,6 +309,7 @@ function computeMetrics(dateRange, fixedCosts, shopifyData, metaData, googleData
 
 export default function KPIRow() {
   const dateRange = useStore((state) => state.dateRange);
+  const comparisonEnabled = useStore((state) => state.comparisonEnabled);
   const fixedCosts = useStore((state) => state.fixedCosts);
   const shopifyData = useStore((state) => state.shopifyData);
   const metaData = useStore((state) => state.metaData);
@@ -341,7 +342,7 @@ export default function KPIRow() {
           key={metric.title}
           title={metric.title}
           value={metric.current}
-          previousValue={metric.previous}
+          previousValue={comparisonEnabled ? metric.previous : null}
           format={metric.format}
           suffix={metric.suffix}
           sparklineData={metric.sparkline}
