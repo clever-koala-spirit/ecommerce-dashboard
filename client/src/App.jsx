@@ -35,6 +35,7 @@ const AcademyPage = lazy(() => import('./pages/AcademyPage'));
 const ProfitLossPage = lazy(() => import('./pages/ProfitLossPage'));
 const MarketingPage = lazy(() => import('./pages/MarketingPage'));
 const LtvCohortPage = lazy(() => import('./pages/LtvCohortPage'));
+const PredictionsDashboard = lazy(() => import('./components/predictions/PredictionsDashboard'));
 
 function LoadingScreen() {
   return (
@@ -182,6 +183,11 @@ function App() {
             <Route path="/forecast" element={
               <ErrorBoundary>
                 <ForecastPage />
+              </ErrorBoundary>
+            } />
+            <Route path="/predictions" element={
+              <ErrorBoundary>
+                <PredictionsDashboard />
               </ErrorBoundary>
             } />
             <Route path="/settings" element={

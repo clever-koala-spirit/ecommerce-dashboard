@@ -41,6 +41,15 @@ import billingRouter from './routes/billing.js';
 import chatRouter from './routes/chat.js';
 import contactRouter from './routes/contact.js';
 import newsletterRouter from './routes/newsletter.js';
+import predictionsRouter from './routes/predictions.js';
+
+// Pentagon Security & JARVIS Middleware
+import { 
+  encryptPredictionResponse, 
+  auditPredictionRequest, 
+  verifyRequestIntegrity 
+} from './middleware/pentagon_security.js';
+import { jarvisErrorRecovery } from './middleware/jarvis_router.js';
 
 const app = express();
 app.set('trust proxy', 1); // Behind nginx
@@ -209,6 +218,15 @@ app.get('/app', verifyShopifyRequest, (req, res) => {
 app.use('/api/connections', apiRateLimiter, requireShopAuth, connectionsRouter);
 app.use('/api/data', apiRateLimiter, requireShopAuth, dataRouter);
 app.use('/api/ai', apiRateLimiter, requireShopAuth, aiRouter);
+app.use('/api/predictions', 
+  apiRateLimiter, 
+  requireShopAuth, 
+  verifyRequestIntegrity,
+  auditPredictionRequest,
+  encryptPredictionResponse,
+  jarvisErrorRecovery,
+  predictionsRouter
+);
 // OAuth routes need auth but shop context is optional (loadShopData already ran)
 app.use('/api/oauth', (req, res, next) => {
   if (req.path.includes('/callback') && process.env.NODE_ENV !== 'production') {

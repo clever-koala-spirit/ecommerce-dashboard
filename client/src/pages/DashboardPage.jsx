@@ -19,6 +19,7 @@ import SampleDataBanner from '../components/SampleDataBanner';
 import ConnectionStatusBar from '../components/connections/ConnectionStatusBar';
 import DataFreshnessBar from '../components/common/DataFreshnessBar';
 import AIInsightsBanner from '../components/ai/AIInsightsBanner';
+import PredictionsOverview from '../components/predictions/PredictionsOverview';
 import { SkeletonChart, SkeletonTable } from '../components/common/SkeletonCard';
 import { ErrorState } from '../components/common/EmptyState';
 
@@ -67,6 +68,11 @@ export default function DashboardPage() {
       {/* KPI Cards */}
       <div className="animate-fadeIn" style={{ animationDelay: '0.05s', animationFillMode: 'backwards' }}>
         <KPIRow />
+      </div>
+
+      {/* AI Predictions Section */}
+      <div className="animate-fadeIn" style={{ animationDelay: '0.08s', animationFillMode: 'backwards' }}>
+        <PredictionsOverview />
       </div>
 
       {/* Total Sales - Main Chart */}
