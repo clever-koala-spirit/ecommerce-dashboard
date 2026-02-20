@@ -112,11 +112,10 @@ export default function LoginPage() {
             <div className="relative bg-gradient-to-b from-[#1c2033]/90 to-[#151922]/80 backdrop-blur-xl border border-indigo-500/20 rounded-3xl p-8 shadow-2xl">
               {/* Social Login Buttons */}
               <div className="space-y-3 mb-5">
-                <a href={`${import.meta.env.VITE_API_URL || ''}/api/auth?shop=`}
+                <a href={`${import.meta.env.VITE_API_URL || ''}/api/auth/oauth/shopify`}
                   onClick={(e) => {
                     e.preventDefault();
-                    const shop = prompt('Enter your Shopify store domain (e.g. mystore.myshopify.com)');
-                    if (shop) window.location.href = `${import.meta.env.VITE_API_URL || ''}/api/auth?shop=${encodeURIComponent(shop)}`;
+                    window.location.href = `${import.meta.env.VITE_API_URL || ''}/api/auth/oauth/shopify`;
                   }}
                   className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[#96bf48]/10 border border-[#96bf48]/30 hover:border-[#96bf48]/60 rounded-xl text-[#96bf48] font-medium transition-all duration-200 cursor-pointer">
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M15.34 3.04c-.14-.05-.28-.01-.37.1-.07.1-1.62 1.87-1.62 1.87s-.44-.1-.98-.17c-.14-.75-.39-1.8-.69-2.4-.76-1.52-1.71-1.58-2.12-1.53-.05 0-.1.01-.15.02C8.96.64 8.56.03 8.14.01c-.02 0-.04 0-.06 0-.34.02-.62.27-.84.76-.4.87-.63 2.22-.7 2.84-1.2.37-2.04.63-2.13.66-.66.21-.68.23-.77.85C3.55 5.73 2 17.64 2 17.64l10.97 1.9L20 17.98s-4.53-14.71-4.66-15.14zM10.5 5.07v-.16c0-.56.08-1.3.22-1.82.56.1.93.71 1.1 1.14-.44.1-.88.22-1.32.33v.5zm1.5-3.15c.18 0 .35.09.5.26.35.38.62 1.08.72 1.74-.53.16-1.12.35-1.64.5.17-.73.48-1.7.89-2.22.11-.13.27-.22.42-.26.04-.01.08-.02.11-.02zM9.5 1.28c.05 0 .15.01.28.1.53.32.88 1.63 1 2.31-.64.2-1.34.42-1.97.61.24-1.18.58-2.54.93-2.93.05-.05.1-.08.16-.09h.01z"/></svg>
