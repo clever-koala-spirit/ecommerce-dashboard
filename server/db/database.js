@@ -33,6 +33,7 @@ export function encrypt(text) {
 }
 
 export function decrypt(encryptedText) {
+  if (!encryptedText) return null;
   const [ivHex, authTagHex, encrypted] = encryptedText.split(':');
   const iv = Buffer.from(ivHex, 'hex');
   const authTag = Buffer.from(authTagHex, 'hex');
