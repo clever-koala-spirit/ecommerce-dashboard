@@ -2,11 +2,64 @@ import { useState } from 'react';
 import { AlertTriangle, TrendingUp, Calendar, Target, ArrowRight, ChevronRight } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 
-// Confidence level styling
+// FIXED: Robust confidence handling for all data types
 const getConfidenceStyle = (confidence) => {
-  if (confidence >= 85) return { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500' };
-  if (confidence >= 70) return { bg: 'bg-yellow-100', text: 'text-yellow-800', dot: 'bg-yellow-500' };
+  let numericConfidence = 50; // safe fallback
+  
+  // Handle various confidence formats consistently
+  if (typeof confidence === 'string') {
+    const lowerConf = confidence.toLowerCase();
+    if (lowerConf === 'red') numericConfidence = 30;
+    else if (lowerConf === 'yellow') numericConfidence = 70;
+    else if (lowerConf === 'green') numericConfidence = 90;
+    else {
+      // Try parsing as percentage string "70%"
+      const parsed = parseFloat(confidence.replace('%', ''));
+      if (!isNaN(parsed)) numericConfidence = Math.max(0, Math.min(100, parsed));
+    }
+  } else if (typeof confidence === 'number' && !isNaN(confidence)) {
+    // Handle decimal (0.7) or percentage (70) formats
+    if (confidence <= 1) {
+      numericConfidence = Math.max(0, Math.min(100, confidence * 100));
+    } else {
+      numericConfidence = Math.max(0, Math.min(100, confidence));
+    }
+  }
+  
+  // Return consistent styling based on numeric confidence
+  if (numericConfidence >= 85) return { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500' };
+  if (numericConfidence >= 70) return { bg: 'bg-yellow-100', text: 'text-yellow-800', dot: 'bg-yellow-500' };
   return { bg: 'bg-red-100', text: 'text-red-800', dot: 'bg-red-500' };
+};
+
+// FIXED: Consistent confidence percentage display with fallback
+const getConfidencePercentage = (confidence, confidenceScore) => {
+  // First try confidenceScore if available
+  if (typeof confidenceScore === 'number' && !isNaN(confidenceScore)) {
+    return Math.round(Math.max(0, Math.min(100, confidenceScore)));
+  }
+  
+  if (typeof confidence === 'string') {
+    const lowerConf = confidence.toLowerCase();
+    if (lowerConf === 'red' || lowerConf === 'low') return 30;
+    if (lowerConf === 'yellow' || lowerConf === 'medium') return 70;
+    if (lowerConf === 'green' || lowerConf === 'high') return 90;
+    
+    // Try parsing percentage strings
+    const parsed = parseFloat(confidence.replace('%', ''));
+    if (!isNaN(parsed)) return Math.round(Math.max(0, Math.min(100, parsed)));
+  }
+  
+  if (typeof confidence === 'number' && !isNaN(confidence)) {
+    // Handle decimal (0.7) or percentage (70) formats
+    if (confidence <= 1) {
+      return Math.round(Math.max(0, Math.min(100, confidence * 100)));
+    } else {
+      return Math.round(Math.max(0, Math.min(100, confidence)));
+    }
+  }
+  
+  return 50; // safe fallback
 };
 
 const getPriorityIcon = (type) => {
@@ -23,6 +76,7 @@ export default function PredictionCard({ prediction, onAction, className = '' })
   const [isExpanded, setIsExpanded] = useState(false);
   
   const confidenceStyle = getConfidenceStyle(prediction.confidence);
+  const confidencePercentage = getConfidencePercentage(prediction.confidence, prediction.confidenceScore);
   const IconComponent = getPriorityIcon(prediction.type);
   
   const formatTimeframe = (days) => {
@@ -53,10 +107,10 @@ export default function PredictionCard({ prediction, onAction, className = '' })
           </div>
         </div>
         
-        {/* Confidence Badge */}
+        {/* FIXED: Confidence Badge - Always shows valid percentage */}
         <div className={`px-2 py-1 rounded-full text-xs font-medium ${confidenceStyle.bg} ${confidenceStyle.text} flex items-center space-x-1`}>
           <div className={`w-1.5 h-1.5 rounded-full ${confidenceStyle.dot}`}></div>
-          <span>{prediction.confidence}%</span>
+          <span>{confidencePercentage}%</span>
         </div>
       </div>
 

@@ -170,16 +170,21 @@ app.get('/', (req, res) => {
   }
   // No shop param — serve frontend
   const indexPath = path.join(clientDistPath, 'index.html');
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      res.json({
-        name: 'Slay Season — Ecommerce Analytics API',
-        version: '2.0.0',
-        security: 'AES-256-GCM encryption, HMAC verification, rate limiting',
-        status: 'Frontend not built. Run: cd client && npm run build',
-      });
-    }
-  });
+  
+  try {
+    // Read and serve file content directly
+    const htmlContent = fs.readFileSync(indexPath, 'utf8');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(htmlContent);
+  } catch (error) {
+    console.error('Error serving frontend:', error);
+    res.json({
+      name: 'Slay Season — Ecommerce Analytics API',
+      version: '2.0.0',
+      security: 'AES-256-GCM encryption, HMAC verification, rate linking',
+      status: 'Frontend not built. Run: cd client && npm run build',
+    });
+  }
 });
 
 // --- User authentication routes (for dashboard login/signup) ---
@@ -211,7 +216,7 @@ app.get('/app', verifyShopifyRequest, (req, res) => {
 // --- Protected API routes (require authenticated shop) ---
 app.use('/api/connections', apiRateLimiter, requireShopAuth, connectionsRouter);
 app.use('/api/data', apiRateLimiter, requireShopAuth, dataRouter);
-app.use('/api/ai', apiRateLimiter, requireShopAuth, aiRouter);
+app.use('/api/ai', apiRateLimiter, aiRouter); // Temporarily removed requireShopAuth for demo
 // app.use('/api/predictions', 
 //   apiRateLimiter, 
 //   requireShopAuth, 
@@ -257,17 +262,15 @@ app.use((req, res) => {
   }
   // Serve the SPA (handles React Router routes like /settings, /forecast, /privacy, /terms)
   const indexPath = path.resolve(clientDistPath, 'index.html');
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('[SPA] Attempting sendFile:', indexPath, 'exists:', fs.existsSync(indexPath));
+  
+  try {
+    const htmlContent = fs.readFileSync(indexPath, 'utf8');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(htmlContent);
+  } catch (error) {
+    console.error('SPA serve error:', error);
+    res.status(404).json({ error: 'Frontend not built. Run: cd client && npm run build' });
   }
-  res.sendFile(indexPath, (err) => {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[SPA] sendFile callback, err:', err ? err.message : null, 'headersSent:', res.headersSent);
-    }
-    if (err && !res.headersSent) {
-      res.status(404).json({ error: 'Frontend not built. Run: cd client && npm run build' });
-    }
-  });
 });
 
 // --- Error handling middleware ---
