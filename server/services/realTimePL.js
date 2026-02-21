@@ -5,7 +5,6 @@
 
 import { getDB } from '../db/database.js';
 import { log } from '../utils/logger.js';
-import { io } from '../index.js'; // WebSocket for real-time updates
 
 class RealTimePL {
   constructor() {
@@ -684,9 +683,9 @@ class RealTimePL {
    * Emit real-time P&L updates via WebSocket
    */
   emitPLUpdate(shopDomain, plUpdate) {
-    if (io) {
-      io.to(`shop_${shopDomain}`).emit('pl_update', plUpdate);
-    }
+    // TODO: Implement WebSocket connection for real-time updates
+    // This would emit to connected clients in production
+    log.info('P&L update ready for WebSocket emission', { shopDomain, plUpdate });
   }
 
   /**
