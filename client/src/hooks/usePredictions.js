@@ -68,6 +68,7 @@ export const usePredictions = () => {
         fatigue_score: 0.7,
         days_remaining: 3,
         confidence: 'yellow',
+        confidenceScore: 70,
         recommendation: '⚠️ Warning: Creative showing fatigue signs. Prepare replacement creative.',
         action_button: {
           text: "Refresh Creative Now",
@@ -92,6 +93,7 @@ export const usePredictions = () => {
         optimized_budget: { total: 12400 },
         expected_improvement: 0.23,
         confidence: 'green',
+        confidenceScore: 90,
         recommendation: '🚀 High Impact: Budget reallocation will significantly boost performance.',
         action_button: {
           text: "Increase Budget $2K",
@@ -117,6 +119,7 @@ export const usePredictions = () => {
           confidence: 'high'
         }],
         confidence: 'green',
+        confidenceScore: 85,
         recommendation: '🎯 High Priority: 270 customers ready to buy. Launch campaign in next 2-5 days.',
         action_button: {
           text: "Launch Targeted Campaign",
@@ -146,6 +149,7 @@ export const usePredictions = () => {
           }
         ],
         confidence: 'green',
+        confidenceScore: 85,
         recommendation: '🔥 Hot Products: 3 items trending. Consider increasing inventory.',
         action_button: {
           text: "Stock Up Now",
@@ -174,6 +178,7 @@ export const usePredictions = () => {
           }
         ],
         confidence: 'green',
+        confidenceScore: 88,
         recommendation: '🎯 Strategic: Multiple high-impact opportunities identified. Prioritize execution.',
         action_button: {
           text: "Capitalize on Gap",
@@ -284,11 +289,41 @@ export const usePredictions = () => {
     }
   }, [fetchCreativeFatigue, fetchBudgetOptimization, fetchCustomerTiming, fetchProductVelocity, fetchCrossMerchant]);
 
+  // FIXED: Robust confidence calculation helper
+  const getConfidenceNumeric = (confidence) => {
+    if (typeof confidence === 'string') {
+      const lowerConf = confidence.toLowerCase();
+      if (lowerConf === 'red') return 0.3;
+      if (lowerConf === 'yellow') return 0.7;
+      if (lowerConf === 'green') return 0.9;
+      
+      // Parse percentage strings
+      const parsed = parseFloat(confidence.replace('%', ''));
+      if (!isNaN(parsed)) {
+        if (parsed <= 1) return parsed;
+        return parsed / 100; // convert percentage to decimal
+      }
+    }
+    
+    if (typeof confidence === 'number' && !isNaN(confidence)) {
+      // Handle decimal (0.7) or percentage (70) formats
+      if (confidence <= 1) {
+        return confidence;
+      } else {
+        return confidence / 100;
+      }
+    }
+    
+    return 0.5; // safe fallback
+  };
+
   // Helper functions
   const calculateOverallConfidence = (predictions) => {
-    const confidenceMap = { red: 0.3, yellow: 0.6, green: 0.9 };
+    if (!predictions || predictions.length === 0) return 'yellow';
+    
     const avgConfidence = predictions.reduce((sum, pred) => {
-      return sum + (confidenceMap[pred.confidence] || 0.5);
+      const confidenceValue = getConfidenceNumeric(pred.confidence);
+      return sum + confidenceValue;
     }, 0) / predictions.length;
     
     if (avgConfidence > 0.7) return 'green';
@@ -347,6 +382,7 @@ export const usePredictions = () => {
         fatigue_score: 0.7,
         days_remaining: 3,
         confidence: 'yellow',
+        confidenceScore: 70,
         recommendation: '⚠️ Warning: Creative showing fatigue signs. Prepare replacement creative.',
         action_button: {
           text: "Refresh Creative Now",
@@ -365,6 +401,7 @@ export const usePredictions = () => {
       budget_optimization: {
         expected_improvement: 0.23,
         confidence: 'green',
+        confidenceScore: 90,
         recommendation: '🚀 High Impact: Budget reallocation will significantly boost performance.',
         action_button: {
           text: "Increase Budget $2K",
@@ -382,6 +419,7 @@ export const usePredictions = () => {
       },
       customer_timing: {
         confidence: 'green',
+        confidenceScore: 85,
         recommendation: '🎯 High Priority: 270 customers ready to buy. Launch campaign in next 2-5 days.',
         action_button: {
           text: "Launch Targeted Campaign",
@@ -399,6 +437,7 @@ export const usePredictions = () => {
       },
       product_velocity: {
         confidence: 'green',
+        confidenceScore: 85,
         recommendation: '🔥 Hot Products: 3 items trending. Consider increasing inventory.',
         action_button: {
           text: "Stock Up Now",
@@ -416,6 +455,7 @@ export const usePredictions = () => {
       },
       cross_merchant: {
         confidence: 'green',
+        confidenceScore: 88,
         recommendation: '🎯 Strategic: Multiple high-impact opportunities identified. Prioritize execution.',
         action_button: {
           text: "Capitalize on Gap",

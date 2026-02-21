@@ -5,14 +5,30 @@ import { mockData } from '../mock/mockData.js';
 
 const router = express.Router();
 
-// In-memory storage for AI config (in production, use database/env)
-let aiConfig = {
-  provider: null,
-  model: null,
-  apiKey: null,
-};
+// In-memory storage for AI config (initialized lazily after dotenv loads)
+let aiConfig = null;
 
-// POST /api/ai/chat - Chat with AI
+function getAiConfig() {
+  if (!aiConfig) {
+    aiConfig = {
+      provider: process.env.OPENAI_API_KEY ? 'openai' : null,
+      model: 'gpt-4-turbo',
+      apiKey: process.env.OPENAI_API_KEY || null,
+    };
+    
+    // Debug log for development
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[AI Config] Lazy init - Raw env OPENAI_API_KEY:', !!process.env.OPENAI_API_KEY);
+      console.log('[AI Config] Provider:', aiConfig.provider);
+      console.log('[AI Config] Model:', aiConfig.model); 
+      console.log('[AI Config] Has API Key:', !!aiConfig.apiKey);
+      console.log('[AI Config] Key starts with:', aiConfig.apiKey?.substring(0, 10) + '...');
+    }
+  }
+  return aiConfig;
+}
+
+// POST /api/ai/chat - Chat with AI (no auth required for better UX)
 router.post('/chat', async (req, res) => {
   try {
     const { message, history = [], filters } = req.body;
@@ -22,7 +38,8 @@ router.post('/chat', async (req, res) => {
     }
 
     // Check if AI is configured
-    if (!aiConfig.provider || !aiConfig.apiKey) {
+    const config = getAiConfig();
+    if (!config.provider || !config.apiKey) {
       return res.json({
         text: 'AI Assistant not yet configured. Please add your LLM API key in Settings.',
         actions: [],
@@ -35,9 +52,9 @@ router.post('/chat', async (req, res) => {
 
     // Call AI service
     const response = await chatWithAI(message, history, dataContext, {
-      provider: aiConfig.provider,
-      apiKey: aiConfig.apiKey,
-      model: aiConfig.model,
+      provider: config.provider,
+      apiKey: config.apiKey,
+      model: config.model,
     });
 
     return res.json(response);
@@ -53,10 +70,11 @@ router.post('/chat', async (req, res) => {
 
 // GET /api/ai/config - Get current AI config (no API key returned)
 router.get('/config', (req, res) => {
+  const config = getAiConfig();
   return res.json({
-    provider: aiConfig.provider,
-    model: aiConfig.model,
-    configured: !!aiConfig.apiKey,
+    provider: config.provider,
+    model: config.model,
+    configured: !!config.apiKey,
   });
 });
 

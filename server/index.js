@@ -13,6 +13,11 @@ import cookieParser from 'cookie-parser';
 import { initDB, getDB } from './db/database.js';
 import { startCronJobs } from './cron/snapshots.js';
 import { startSyncSchedule } from './services/sync.js';
+import attributionEngine from './services/attributionEngine.js';
+import realTimePL from './services/realTimePL.js';
+import customerJourney from './services/customerJourney.js';
+import revenueAnalytics from './services/revenueAnalytics.js';
+import dataProcessor from './services/dataProcessor.js';
 import { log, requestLogger, errorLogger } from './utils/logger.js';
 import { sanitizeAllInputs } from './middleware/validation.js';
 import {
@@ -41,7 +46,8 @@ import billingRouter from './routes/billing.js';
 import chatRouter from './routes/chat.js';
 import contactRouter from './routes/contact.js';
 import newsletterRouter from './routes/newsletter.js';
-// import predictionsRouter from './routes/predictions.js'; // Temporarily disabled due to module format issues
+import predictionsRouter from './routes/predictions.js';
+import analyticsRouter from './routes/analytics.js';
 
 // Note: Consolidated security is integrated into existing security.js middleware
 
@@ -217,11 +223,8 @@ app.get('/app', verifyShopifyRequest, (req, res) => {
 app.use('/api/connections', apiRateLimiter, requireShopAuth, connectionsRouter);
 app.use('/api/data', apiRateLimiter, requireShopAuth, dataRouter);
 app.use('/api/ai', apiRateLimiter, aiRouter); // Temporarily removed requireShopAuth for demo
-// app.use('/api/predictions', 
-//   apiRateLimiter, 
-//   requireShopAuth, 
-//   predictionsRouter
-// ); // Temporarily disabled - predictions consolidated into existing endpoints
+app.use('/api/predictions', apiRateLimiter, predictionsRouter);
+app.use('/api/analytics', apiRateLimiter, analyticsRouter);
 // OAuth routes need auth but shop context is optional (loadShopData already ran)
 app.use('/api/oauth', (req, res, next) => {
   if (req.path.includes('/callback') && process.env.NODE_ENV !== 'production') {
@@ -316,6 +319,18 @@ async function startServer() {
 
     await initDB();
     log.info('Database initialized with encrypted storage');
+
+    // Initialize competitor-beating backend features
+    attributionEngine.initializeTables();
+    realTimePL.initializeTables();
+    customerJourney.initializeTables();
+    revenueAnalytics.initializeTables();
+    dataProcessor.initializeTables();
+    log.info('Advanced analytics systems initialized');
+
+    // Start data processing pipeline
+    dataProcessor.startProcessing();
+    log.info('Real-time data processing pipeline started');
 
     startCronJobs();
     log.info('Cron jobs started');

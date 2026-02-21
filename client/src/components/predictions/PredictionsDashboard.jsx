@@ -53,13 +53,41 @@ export default function PredictionsDashboard() {
     }
   }, [fetchPredictions, startRealTimeUpdates, realTimeEnabled]);
 
+  // FIXED: Robust confidence calculation for dashboard stats
+  const getConfidenceNumeric = (confidence) => {
+    if (typeof confidence === 'string') {
+      const lowerConf = confidence.toLowerCase();
+      if (lowerConf === 'red') return 0.3;
+      if (lowerConf === 'yellow') return 0.7;
+      if (lowerConf === 'green') return 0.9;
+      
+      // Parse percentage strings
+      const parsed = parseFloat(confidence.replace('%', ''));
+      if (!isNaN(parsed)) {
+        if (parsed <= 1) return parsed;
+        return parsed / 100; // convert percentage to decimal
+      }
+    }
+    
+    if (typeof confidence === 'number' && !isNaN(confidence)) {
+      // Handle decimal (0.7) or percentage (70) formats
+      if (confidence <= 1) {
+        return confidence;
+      } else {
+        return confidence / 100;
+      }
+    }
+    
+    return 0.5; // safe fallback
+  };
+
   // Update dashboard stats when predictions change
   useEffect(() => {
     if (predictions?.predictions) {
       const predList = Object.values(predictions.predictions);
       const highPriority = predList.filter(p => p.widget_config?.urgency === 'HIGH').length;
       const avgConfidence = predList.reduce((sum, p) => {
-        const confidenceScore = p.confidence === 'green' ? 0.9 : p.confidence === 'yellow' ? 0.6 : 0.3;
+        const confidenceScore = getConfidenceNumeric(p.confidence);
         return sum + confidenceScore;
       }, 0) / predList.length;
 

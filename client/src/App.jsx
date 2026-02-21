@@ -4,6 +4,7 @@ import { useAuth } from './providers/AuthProvider';
 import { useShopify } from './providers/ShopifyProvider';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import DashboardLayout from './components/layout/DashboardLayout';
+import ModernDashboardLayout from './components/layout/ModernDashboardLayout';
 import ChatWidget from './components/chat/ChatWidget';
 
 // Lazy load all pages for code splitting
@@ -37,6 +38,8 @@ const MarketingPage = lazy(() => import('./pages/MarketingPage'));
 const LtvCohortPage = lazy(() => import('./pages/LtvCohortPage'));
 const PredictionsDashboard = lazy(() => import('./components/predictions/PredictionsDashboard'));
 const PaintlyDashboard = lazy(() => import('./components/predictions/PaintlyDashboard'));
+const AttributionPage = lazy(() => import('./pages/AttributionPage'));
+const NewProfitLossPage = lazy(() => import('./pages/NewProfitLossPage'));
 
 function LoadingScreen() {
   return (
@@ -137,7 +140,7 @@ function App() {
           <Route element={
             <ErrorBoundary>
               <ProtectedRoute>
-                <DashboardLayout />
+                <ModernDashboardLayout />
               </ProtectedRoute>
             </ErrorBoundary>
           }>
@@ -166,9 +169,14 @@ function App() {
                 <ReportsPage />
               </ErrorBoundary>
             } />
+            <Route path="/attribution" element={
+              <ErrorBoundary>
+                <AttributionPage />
+              </ErrorBoundary>
+            } />
             <Route path="/profit-loss" element={
               <ErrorBoundary>
-                <ProfitLossPage />
+                <NewProfitLossPage />
               </ErrorBoundary>
             } />
             <Route path="/marketing" element={

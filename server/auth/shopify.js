@@ -5,10 +5,27 @@
 import crypto from 'crypto';
 import { saveShop, getShop, setShopNonce, getShopNonce } from '../db/database.js';
 
-const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
-const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
-const SHOPIFY_SCOPES = process.env.SHOPIFY_SCOPES || 'read_orders,read_products,read_analytics,read_inventory';
-const APP_URL = process.env.APP_URL || 'https://slayseason.com';
+// Lazy-loaded config to ensure environment variables are loaded
+let _shopifyConfig = null;
+
+function getShopifyConfig() {
+  if (!_shopifyConfig) {
+    _shopifyConfig = {
+      SHOPIFY_API_KEY: process.env.SHOPIFY_API_KEY,
+      SHOPIFY_API_SECRET: process.env.SHOPIFY_API_SECRET,
+      SHOPIFY_SCOPES: process.env.SHOPIFY_SCOPES || 'read_orders,read_products,read_analytics,read_inventory',
+      APP_URL: process.env.APP_URL || 'https://slayseason.com'
+    };
+
+    // Debug log for development
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[Shopify Auth] Lazy init - API Key:', _shopifyConfig.SHOPIFY_API_KEY ? `${_shopifyConfig.SHOPIFY_API_KEY.substring(0, 8)}...` : 'undefined');
+      console.log('[Shopify Auth] API Secret:', _shopifyConfig.SHOPIFY_API_SECRET ? `${_shopifyConfig.SHOPIFY_API_SECRET.substring(0, 8)}...` : 'undefined');
+      console.log('[Shopify Auth] App URL:', _shopifyConfig.APP_URL);
+    }
+  }
+  return _shopifyConfig;
+}
 
 // --- Security: Validate Shopify shop domain format ---
 function isValidShopDomain(shop) {
@@ -20,6 +37,8 @@ function isValidShopDomain(shop) {
 export function verifyHMAC(query) {
   const { hmac, ...params } = query;
   if (!hmac) return false;
+  
+  const config = getShopifyConfig();
 
   const sortedParams = Object.keys(params)
     .sort()
@@ -27,7 +46,7 @@ export function verifyHMAC(query) {
     .join('&');
 
   const generatedHmac = crypto
-    .createHmac('sha256', SHOPIFY_API_SECRET)
+    .createHmac('sha256', config.SHOPIFY_API_SECRET)
     .update(sortedParams)
     .digest('hex');
 
@@ -62,6 +81,8 @@ export function verifyWebhookHMAC(body, hmacHeader) {
 // --- Step 1: Start OAuth — redirect merchant to Shopify ---
 export function handleAuthStart(req, res) {
   const { shop } = req.query;
+  const config = getShopifyConfig();
+  const { SHOPIFY_API_KEY, SHOPIFY_SCOPES, APP_URL } = config;
 
   if (!shop || !isValidShopDomain(shop)) {
     return res.status(400).json({ error: 'Invalid shop domain. Must be xxx.myshopify.com' });
@@ -91,6 +112,8 @@ export function handleAuthStart(req, res) {
 // --- Step 2: OAuth Callback — exchange code for access token ---
 export async function handleAuthCallback(req, res) {
   const { shop, hmac, code, state, timestamp } = req.query;
+  const config = getShopifyConfig();
+  const { SHOPIFY_API_KEY, SHOPIFY_API_SECRET, APP_URL } = config;
 
   // Security check 1: Validate shop domain
   if (!shop || !isValidShopDomain(shop)) {
@@ -202,6 +225,9 @@ export async function handleAuthCallback(req, res) {
 
 // --- Register mandatory webhooks (GDPR compliance) ---
 async function registerWebhooks(shop, accessToken) {
+  const config = getShopifyConfig();
+  const { APP_URL } = config;
+  
   const webhooks = [
     { topic: 'app/uninstalled', address: `${APP_URL}/api/webhooks/app-uninstalled` },
     { topic: 'customers/data_request', address: `${APP_URL}/api/webhooks/customers-data-request` },

@@ -50,12 +50,14 @@ export default function AIChatPanel() {
     setIsLoading(true);
 
     try {
-      const shopDomain = sessionStorage.getItem('shopDomain');
+      const shopDomain = sessionStorage.getItem('shopDomain') || localStorage.getItem('ss_shop');
+      const token = localStorage.getItem('ss_token');
       const headers = {
         'Content-Type': 'application/json',
-        ...(shopDomain && { 'X-Shop-Domain': shopDomain })
+        ...(shopDomain && { 'X-Shop-Domain': shopDomain }),
+        ...(token && { 'Authorization': `Bearer ${token}` })
       };
-      const apiUrl = `${import.meta.env.VITE_API_URL || ''}/api/ai/chat`;
+      const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/ai/chat`;
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers,

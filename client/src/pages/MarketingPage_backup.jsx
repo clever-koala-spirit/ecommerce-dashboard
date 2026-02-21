@@ -5,7 +5,7 @@ import SEO from '../components/common/SEO';
 import { formatCurrency, formatNumber, filterDataByDateRange, getPreviousPeriod } from '../utils/formatters';
 import { COLORS } from '../utils/colors';
 import EmptyState from '../components/common/EmptyState';
-import AttributionDashboard from '../components/attribution/AttributionDashboard';
+import AttributionEngine from '../components/attribution/AttributionEngine';
 import {
   AreaChart, Area, LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -157,7 +157,7 @@ export default function MarketingPage() {
 
   return (
     <div className="p-6 lg:p-8 space-y-6 page-content" style={{ maxWidth: '1440px' }}>
-      <SEO title="Marketing" description="Advanced attribution modeling and marketing analytics" path="/marketing" />
+      <SEO title="Marketing" description="Ad performance and marketing analytics" path="/marketing" />
 
       <div className="flex justify-between items-start">
         <div>
@@ -208,7 +208,7 @@ export default function MarketingPage() {
               />
             </div>
           ) : (
-            <AttributionDashboard data={{ shopifyData, metaData, googleData, dateRange }} />
+            <AttributionEngine data={{ shopifyData, metaData, googleData, dateRange }} />
           )}
         </>
       )}
@@ -222,80 +222,87 @@ export default function MarketingPage() {
             </div>
           ) : (
             <>
-              {/* Summary KPIs */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                <MetricCard label="Total Ad Spend" value={data.totalSpend} delta={data.spendDelta} color={COLORS.RED[500]} colors={colors} />
-                <MetricCard label="Ad Revenue" value={data.totalRevenue} delta={data.revDelta} color={COLORS.BLUE[500]} colors={colors} />
-                <MetricCard label="Blended ROAS" value={data.blendedRoas} format="ratio" color={data.blendedRoas >= 2 ? COLORS.GREEN[500] : COLORS.YELLOW[600]} colors={colors} />
-                <MetricCard label="MER" value={data.mer} format="ratio" color={COLORS.PURPLE[500]} colors={colors} />
-                <MetricCard label="Blended CAC" value={data.cac} color={COLORS.ORANGE[500]} colors={colors} />
-                <MetricCard label="CTR" value={data.blendedCtr} format="percent" color={COLORS.CYAN[500]} colors={colors} />
-              </div>
 
-              {/* Spend + ROAS trend */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="rounded-2xl p-6" style={{ background: colors.bgCard, border: `1px solid ${colors.border}` }}>
-                  <h3 className="font-semibold mb-4" style={{ color: colors.text }}>Daily Ad Spend by Channel</h3>
-                  <ResponsiveContainer width="100%" height={280}>
-                    <AreaChart data={data.dailyTrend} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-chart-grid)" strokeOpacity={0.5} vertical={false} />
-                      <XAxis dataKey="date" tick={{ fill: colors.textSecondary, fontSize: 11 }} />
-                      <YAxis tick={{ fill: colors.textSecondary, fontSize: 11 }} tickFormatter={v => `$${v}`} />
-                      <Tooltip content={<ChartTooltip />} />
-                      <Area type="monotone" dataKey="metaSpend" name="Meta Spend" stackId="1" fill="#1877F2" fillOpacity={0.3} stroke="#1877F2" strokeWidth={2} />
-                      <Area type="monotone" dataKey="googleSpend" name="Google Spend" stackId="1" fill="#EA4335" fillOpacity={0.3} stroke="#EA4335" strokeWidth={2} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
+      {!hasData ? (
+        <div className="rounded-2xl p-8" style={{ background: colors.bgCard, border: `1px solid ${colors.border}` }}>
+          <EmptyState icon="trend" title="No ad data available" message="Connect Meta Ads or Google Ads in Settings to see marketing performance." />
+        </div>
+      ) : (
+        <>
+          {/* Summary KPIs */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            <MetricCard label="Total Ad Spend" value={data.totalSpend} delta={data.spendDelta} color={COLORS.RED[500]} colors={colors} />
+            <MetricCard label="Ad Revenue" value={data.totalRevenue} delta={data.revDelta} color={COLORS.BLUE[500]} colors={colors} />
+            <MetricCard label="Blended ROAS" value={data.blendedRoas} format="ratio" color={data.blendedRoas >= 2 ? COLORS.GREEN[500] : COLORS.YELLOW[600]} colors={colors} />
+            <MetricCard label="MER" value={data.mer} format="ratio" color={COLORS.PURPLE[500]} colors={colors} />
+            <MetricCard label="Blended CAC" value={data.cac} color={COLORS.ORANGE[500]} colors={colors} />
+            <MetricCard label="CTR" value={data.blendedCtr} format="percent" color={COLORS.CYAN[500]} colors={colors} />
+          </div>
 
-                <div className="rounded-2xl p-6" style={{ background: colors.bgCard, border: `1px solid ${colors.border}` }}>
-                  <h3 className="font-semibold mb-4" style={{ color: colors.text }}>Daily ROAS by Channel</h3>
-                  <ResponsiveContainer width="100%" height={280}>
-                    <LineChart data={data.dailyTrend} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-chart-grid)" strokeOpacity={0.5} vertical={false} />
-                      <XAxis dataKey="date" tick={{ fill: colors.textSecondary, fontSize: 11 }} />
-                      <YAxis tick={{ fill: colors.textSecondary, fontSize: 11 }} tickFormatter={v => `${v.toFixed(1)}x`} />
-                      <Tooltip content={<ChartTooltip />} />
-                      <Line type="monotone" dataKey="metaROAS" name="Meta ROAS" stroke="#1877F2" strokeWidth={2} dot={false} />
-                      <Line type="monotone" dataKey="googleROAS" name="Google ROAS" stroke="#EA4335" strokeWidth={2} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
+          {/* Spend + ROAS trend */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="rounded-2xl p-6" style={{ background: colors.bgCard, border: `1px solid ${colors.border}` }}>
+              <h3 className="font-semibold mb-4" style={{ color: colors.text }}>Daily Ad Spend by Channel</h3>
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={data.dailyTrend} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-chart-grid)" strokeOpacity={0.5} vertical={false} />
+                  <XAxis dataKey="date" tick={{ fill: colors.textSecondary, fontSize: 11 }} />
+                  <YAxis tick={{ fill: colors.textSecondary, fontSize: 11 }} tickFormatter={v => `$${v}`} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Area type="monotone" dataKey="metaSpend" name="Meta Spend" stackId="1" fill="#1877F2" fillOpacity={0.3} stroke="#1877F2" strokeWidth={2} />
+                  <Area type="monotone" dataKey="googleSpend" name="Google Spend" stackId="1" fill="#EA4335" fillOpacity={0.3} stroke="#EA4335" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
 
-              {/* Channel Comparison Table */}
-              <div className="rounded-2xl p-6 overflow-x-auto" style={{ background: colors.bgCard, border: `1px solid ${colors.border}` }}>
-                <h3 className="font-semibold mb-4" style={{ color: colors.text }}>Channel Comparison</h3>
-                <table className="w-full">
-                  <thead>
-                    <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
-                      {['Channel', 'Spend', 'Revenue', 'ROAS', 'Clicks', 'Impressions', 'CTR', 'CPC'].map(h => (
-                        <th key={h} className={`py-2 px-4 text-xs font-semibold ${h === 'Channel' ? 'text-left' : 'text-right'}`} style={{ color: colors.textSecondary }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.meta.spend > 0 && (
-                      <ChannelRow channel="Meta" {...data.meta} colors={{ ...colors, theme }} />
-                    )}
-                    {data.google.spend > 0 && (
-                      <ChannelRow channel="Google" {...data.google} colors={{ ...colors, theme }} />
-                    )}
-                    <tr style={{ borderTop: `2px solid ${colors.border}` }}>
-                      <td className="py-3 px-4 text-sm font-bold" style={{ color: colors.text }}>Total</td>
-                      <td className="py-3 px-4 text-right text-sm font-bold font-mono" style={{ color: colors.text }}>{formatCurrency(data.totalSpend)}</td>
-                      <td className="py-3 px-4 text-right text-sm font-bold font-mono" style={{ color: colors.text }}>{formatCurrency(data.totalRevenue)}</td>
-                      <td className="py-3 px-4 text-right">
-                        <span className="text-sm font-bold">{data.blendedRoas.toFixed(2)}x</span>
-                      </td>
-                      <td className="py-3 px-4 text-right text-sm font-bold font-mono" style={{ color: colors.text }}>{formatNumber(data.totalClicks)}</td>
-                      <td className="py-3 px-4 text-right text-sm font-bold font-mono" style={{ color: colors.text }}>{formatNumber(data.totalImpressions)}</td>
-                      <td className="py-3 px-4 text-right text-sm font-bold font-mono" style={{ color: colors.text }}>{data.blendedCtr.toFixed(2)}%</td>
-                      <td className="py-3 px-4 text-right text-sm font-bold font-mono" style={{ color: colors.text }}>{formatCurrency(data.blendedCpc)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+            <div className="rounded-2xl p-6" style={{ background: colors.bgCard, border: `1px solid ${colors.border}` }}>
+              <h3 className="font-semibold mb-4" style={{ color: colors.text }}>Daily ROAS by Channel</h3>
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={data.dailyTrend} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-chart-grid)" strokeOpacity={0.5} vertical={false} />
+                  <XAxis dataKey="date" tick={{ fill: colors.textSecondary, fontSize: 11 }} />
+                  <YAxis tick={{ fill: colors.textSecondary, fontSize: 11 }} tickFormatter={v => `${v.toFixed(1)}x`} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Line type="monotone" dataKey="metaROAS" name="Meta ROAS" stroke="#1877F2" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="googleROAS" name="Google ROAS" stroke="#EA4335" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Channel Comparison Table */}
+          <div className="rounded-2xl p-6 overflow-x-auto" style={{ background: colors.bgCard, border: `1px solid ${colors.border}` }}>
+            <h3 className="font-semibold mb-4" style={{ color: colors.text }}>Channel Comparison</h3>
+            <table className="w-full">
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
+                  {['Channel', 'Spend', 'Revenue', 'ROAS', 'Clicks', 'Impressions', 'CTR', 'CPC'].map(h => (
+                    <th key={h} className={`py-2 px-4 text-xs font-semibold ${h === 'Channel' ? 'text-left' : 'text-right'}`} style={{ color: colors.textSecondary }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {data.meta.spend > 0 && (
+                  <ChannelRow channel="Meta" {...data.meta} colors={{ ...colors, theme }} />
+                )}
+                {data.google.spend > 0 && (
+                  <ChannelRow channel="Google" {...data.google} colors={{ ...colors, theme }} />
+                )}
+                <tr style={{ borderTop: `2px solid ${colors.border}` }}>
+                  <td className="py-3 px-4 text-sm font-bold" style={{ color: colors.text }}>Total</td>
+                  <td className="py-3 px-4 text-right text-sm font-bold font-mono" style={{ color: colors.text }}>{formatCurrency(data.totalSpend)}</td>
+                  <td className="py-3 px-4 text-right text-sm font-bold font-mono" style={{ color: colors.text }}>{formatCurrency(data.totalRevenue)}</td>
+                  <td className="py-3 px-4 text-right">
+                    <span className="text-sm font-bold">{data.blendedRoas.toFixed(2)}x</span>
+                  </td>
+                  <td className="py-3 px-4 text-right text-sm font-bold font-mono" style={{ color: colors.text }}>{formatNumber(data.totalClicks)}</td>
+                  <td className="py-3 px-4 text-right text-sm font-bold font-mono" style={{ color: colors.text }}>{formatNumber(data.totalImpressions)}</td>
+                  <td className="py-3 px-4 text-right text-sm font-bold font-mono" style={{ color: colors.text }}>{data.blendedCtr.toFixed(2)}%</td>
+                  <td className="py-3 px-4 text-right text-sm font-bold font-mono" style={{ color: colors.text }}>{formatCurrency(data.blendedCpc)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
             </>
           )}
         </>
