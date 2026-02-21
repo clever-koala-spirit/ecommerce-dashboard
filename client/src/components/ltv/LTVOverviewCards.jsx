@@ -8,7 +8,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { formatCurrency, formatNumber, formatPercent } from '../../utils/formatters';
 import { COLORS } from '../../utils/colors';
 import {
-  TrendingUpIcon,
+  ArrowTrendingUpIcon,
   UsersIcon,
   CurrencyDollarIcon,
   ShoppingCartIcon,
@@ -41,7 +41,7 @@ export default function LTVOverviewCards({ data }) {
       title: 'LTV:CAC Ratio',
       value: `${(data.ltvCacRatio || 0).toFixed(1)}x`,
       subtitle: `Target: 3.0x+`,
-      icon: TrendingUpIcon,
+      icon: ArrowTrendingUpIcon,
       color: data.ltvCacRatio >= 3 ? COLORS.GREEN[500] : data.ltvCacRatio >= 1 ? COLORS.YELLOW[600] : COLORS.RED[500],
       background: data.ltvCacRatio >= 3 
         ? `linear-gradient(135deg, ${COLORS.GREEN[500]}20, ${COLORS.GREEN[500]}10)`

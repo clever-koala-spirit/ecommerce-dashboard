@@ -8,7 +8,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { formatCurrency } from '../../utils/formatters';
 import { COLORS } from '../../utils/colors';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { TrendingUpIcon } from '@heroicons/react/24/outline';
+import { ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
 
 export default function LTVTrendsChart({ data }) {
   const { colors } = useTheme();
@@ -21,7 +21,7 @@ export default function LTVTrendsChart({ data }) {
         </h3>
         <div className="h-64 flex items-center justify-center" style={{ color: colors.textSecondary }}>
           <div className="text-center">
-            <TrendingUpIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+            <ArrowTrendingUpIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
             <p>Insufficient data for trend analysis</p>
           </div>
         </div>
@@ -80,7 +80,7 @@ export default function LTVTrendsChart({ data }) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: colors.text }}>
-            <TrendingUpIcon className="h-5 w-5" style={{ color: COLORS.GREEN[500] }} />
+            <ArrowTrendingUpIcon className="h-5 w-5" style={{ color: COLORS.GREEN[500] }} />
             LTV Trends Over Time
           </h3>
           <p className="text-sm mt-1" style={{ color: colors.textSecondary }}>
