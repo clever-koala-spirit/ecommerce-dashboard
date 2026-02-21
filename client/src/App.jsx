@@ -40,6 +40,7 @@ const PredictionsDashboard = lazy(() => import('./components/predictions/Predict
 const PaintlyDashboard = lazy(() => import('./components/predictions/PaintlyDashboard'));
 const AttributionPage = lazy(() => import('./pages/AttributionPage'));
 const NewProfitLossPage = lazy(() => import('./pages/NewProfitLossPage'));
+const QuickDashboardPage = lazy(() => import('./pages/QuickDashboardPage'));
 
 function LoadingScreen() {
   return (
@@ -146,7 +147,7 @@ function App() {
           }>
             <Route path="/dashboard" element={
               <ErrorBoundary>
-                <DashboardPage />
+                <QuickDashboardPage />
               </ErrorBoundary>
             } />
             <Route path="/orders" element={
