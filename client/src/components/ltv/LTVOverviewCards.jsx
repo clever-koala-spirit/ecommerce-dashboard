@@ -10,9 +10,9 @@ import { COLORS } from '../../utils/colors';
 import {
   TrendingUpIcon,
   UsersIcon,
-  DollarSignIcon,
-  ShoppingCartIcon,
   CurrencyDollarIcon,
+  ShoppingCartIcon,
+  BanknotesIcon,
   ArrowUpIcon,
   ArrowDownIcon
 } from '@heroicons/react/24/outline';
@@ -28,7 +28,7 @@ export default function LTVOverviewCards({ data }) {
       title: 'Average LTV',
       value: formatCurrency(data.avgPredictedLTV || 0),
       subtitle: `Historical: ${formatCurrency(data.avgHistoricalLTV || 0)}`,
-      icon: DollarSignIcon,
+      icon: CurrencyDollarIcon,
       color: COLORS.GREEN[500],
       background: `linear-gradient(135deg, ${COLORS.GREEN[500]}20, ${COLORS.GREEN[500]}10)`,
       change: data.avgPredictedLTV > data.avgHistoricalLTV ? 'up' : 'neutral',
