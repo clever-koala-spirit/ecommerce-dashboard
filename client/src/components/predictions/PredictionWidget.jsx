@@ -16,7 +16,7 @@ import {
   AlertCircle,
   ArrowRight,
   RefreshCw,
-  DragDropVertical
+  GripVertical
 } from 'lucide-react';
 
 const iconMap = {
@@ -143,7 +143,7 @@ export default function PredictionWidget({
       {/* Drag Handle */}
       {draggable && (
         <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-30 transition-opacity">
-          <DragDropVertical size={20} className="text-gray-500" />
+          <GripVertical size={20} className="text-gray-500" />
         </div>
       )}
 

@@ -8,3 +8,4 @@ dist2/
 .cache/
 .vite/
 *.db
+.vercel
