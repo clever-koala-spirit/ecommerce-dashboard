@@ -36,12 +36,11 @@ import LTVPredictionChart from '../components/ltv/LTVPredictionChart';
 import CustomerLTVExplorer from '../components/ltv/CustomerLTVExplorer';
 
 import {
-  TrendingUpIcon,
+  ArrowArrowTrendingUpIcon,
   UsersIcon,
-  DollarSignIcon,
-  AlertTriangleIcon,
+  CurrencyDollarIcon,
+  ExclamationTriangleIcon,
   SparklesIcon,
-  TargetIcon,
   ChartBarIcon,
   CalendarIcon
 } from '@heroicons/react/24/outline';
@@ -132,8 +131,8 @@ export default function CustomerLTVPage() {
     { id: 'overview', name: 'Overview', icon: ChartBarIcon },
     { id: 'cohorts', name: 'Cohort Analysis', icon: UsersIcon },
     { id: 'predictions', name: 'Predictions', icon: SparklesIcon },
-    { id: 'customers', name: 'Customer Explorer', icon: TargetIcon },
-    { id: 'segments', name: 'Segmentation', icon: TrendingUpIcon }
+    { id: 'customers', name: 'Customer Explorer', icon: ChartBarIcon },
+    { id: 'segments', name: 'Segmentation', icon: ArrowTrendingUpIcon }
   ];
 
   // Error state
@@ -142,7 +141,7 @@ export default function CustomerLTVPage() {
       <div className="p-6 lg:p-8" style={{ maxWidth: '1440px', margin: '0 auto' }}>
         <SEO title="LTV Calculator" path="/ltv" />
         <div className="rounded-2xl p-8 text-center" style={{ background: colors.bgCard, border: `1px solid ${colors.border}` }}>
-          <AlertTriangleIcon className="h-12 w-12 mx-auto mb-4" style={{ color: COLORS.RED[500] }} />
+          <ExclamationTriangleIcon className="h-12 w-12 mx-auto mb-4" style={{ color: COLORS.RED[500] }} />
           <h3 className="text-lg font-semibold mb-2" style={{ color: colors.text }}>Unable to Load LTV Data</h3>
           <p className="text-sm mb-4" style={{ color: colors.textSecondary }}>{error}</p>
           <button
@@ -281,7 +280,7 @@ export default function CustomerLTVPage() {
               {/* LTV vs CAC Chart */}
               <div className="rounded-2xl p-6" style={{ background: colors.bgCard, border: `1px solid ${colors.border}` }}>
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: colors.text }}>
-                  <TrendingUpIcon className="h-5 w-5" style={{ color: COLORS.GREEN[500] }} />
+                  <ArrowTrendingUpIcon className="h-5 w-5" style={{ color: COLORS.GREEN[500] }} />
                   LTV vs CAC Performance
                 </h3>
                 <div className="space-y-4">
