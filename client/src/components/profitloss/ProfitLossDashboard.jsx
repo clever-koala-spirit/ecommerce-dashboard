@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   CurrencyDollarIcon,
-  TrendingUpIcon,
-  TrendingDownIcon,
+  UserGroupIcon,
   ChartBarIcon,
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,

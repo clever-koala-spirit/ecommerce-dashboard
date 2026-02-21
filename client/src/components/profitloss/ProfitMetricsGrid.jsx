@@ -2,7 +2,7 @@ import React from 'react';
 import {
   CurrencyDollarIcon,
   CalculatorIcon,
-  TrendingUpIcon,
+  UserGroupIcon,
   ChartBarIcon,
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
