@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import EcommerceMetrics from '../components/quick-ui/EcommerceMetrics';
 import MonthlySalesChart from '../components/quick-ui/MonthlySalesChart';
 import RecentOrders from '../components/quick-ui/RecentOrders';
+import TripleWhaleStyle from '../components/quick-ui/TripleWhaleStyle';
 
 const QuickDashboardPage = () => {
   return (
@@ -13,13 +14,15 @@ const QuickDashboardPage = () => {
       </Helmet>
       
       <div className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Dashboard
-          </h1>
+        {/* Triple Whale Style Dashboard */}
+        <TripleWhaleStyle />
+        
+        <div className="mt-12 mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Store Overview
+          </h2>
           <p className="text-gray-600 dark:text-gray-400">
-            Welcome back! Here's what's happening with your store today.
+            Additional metrics and detailed analysis
           </p>
         </div>
 
