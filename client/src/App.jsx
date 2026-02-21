@@ -35,7 +35,7 @@ const GdprPage = lazy(() => import('./pages/GdprPage'));
 const AcademyPage = lazy(() => import('./pages/AcademyPage'));
 const ProfitLossPage = lazy(() => import('./pages/ProfitLossPage'));
 const MarketingPage = lazy(() => import('./pages/MarketingPage'));
-const LtvCohortPage = lazy(() => import('./pages/LtvCohortPage'));
+const CustomerLTVPage = lazy(() => import('./pages/CustomerLTVPage'));
 const PredictionsDashboard = lazy(() => import('./components/predictions/PredictionsDashboard'));
 const PaintlyDashboard = lazy(() => import('./components/predictions/PaintlyDashboard'));
 const AttributionPage = lazy(() => import('./pages/AttributionPage'));
@@ -187,7 +187,7 @@ function App() {
             } />
             <Route path="/ltv" element={
               <ErrorBoundary>
-                <LtvCohortPage />
+                <CustomerLTVPage />
               </ErrorBoundary>
             } />
             <Route path="/forecast" element={

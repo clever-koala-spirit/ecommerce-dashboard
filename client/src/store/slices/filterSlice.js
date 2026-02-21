@@ -34,14 +34,26 @@ export const createFilterSlice = (set) => ({
 
   // Actions
   setDateRange: (preset, customStart = null, customEnd = null) => {
-    set((state) => ({
-      dateRange: {
+    set((state) => {
+      const newDateRange = {
         ...state.dateRange,
         preset,
         customStart,
         customEnd,
-      },
-    }));
+      };
+      
+      // Store the actual start/end dates for consistent filtering
+      if (customStart && customEnd) {
+        newDateRange.start = customStart;
+        newDateRange.end = customEnd;
+      } else {
+        // Clear custom dates when using presets
+        newDateRange.start = null;
+        newDateRange.end = null;
+      }
+      
+      return { dateRange: newDateRange };
+    });
   },
 
   toggleComparison: (enabled) => {

@@ -48,6 +48,7 @@ import contactRouter from './routes/contact.js';
 import newsletterRouter from './routes/newsletter.js';
 import predictionsRouter from './routes/predictions.js';
 import analyticsRouter from './routes/analytics.js';
+import ltvRouter from './routes/ltv.js';
 
 // Note: Consolidated security is integrated into existing security.js middleware
 
@@ -225,6 +226,7 @@ app.use('/api/data', apiRateLimiter, requireShopAuth, dataRouter);
 app.use('/api/ai', apiRateLimiter, aiRouter); // Temporarily removed requireShopAuth for demo
 app.use('/api/predictions', apiRateLimiter, predictionsRouter);
 app.use('/api/analytics', apiRateLimiter, analyticsRouter);
+app.use('/api/ltv', apiRateLimiter, requireShopAuth, ltvRouter);
 // OAuth routes need auth but shop context is optional (loadShopData already ran)
 app.use('/api/oauth', (req, res, next) => {
   if (req.path.includes('/callback') && process.env.NODE_ENV !== 'production') {

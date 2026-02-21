@@ -339,6 +339,54 @@ export async function initDB() {
     );
   `);
 
+  // Shopify orders — for detailed LTV calculations
+  db.run(`
+    CREATE TABLE IF NOT EXISTS shopify_orders (
+      id INTEGER PRIMARY KEY,
+      shop_domain TEXT NOT NULL,
+      customer_id TEXT,
+      customer_email TEXT,
+      total_price REAL NOT NULL,
+      financial_status TEXT,
+      fulfillment_status TEXT,
+      order_number INTEGER,
+      currency TEXT DEFAULT 'USD',
+      created_at TEXT NOT NULL,
+      updated_at TEXT,
+      processed_at TEXT,
+      cancelled_at TEXT,
+      tags TEXT,
+      line_items_json TEXT,
+      shipping_address_json TEXT,
+      customer_json TEXT,
+      discount_codes_json TEXT,
+      source_name TEXT,
+      checkout_id TEXT,
+      reference TEXT,
+      total_tax REAL,
+      total_discounts REAL,
+      subtotal_price REAL,
+      total_weight INTEGER,
+      gateway TEXT,
+      landing_site TEXT,
+      referring_site TEXT,
+      source_identifier TEXT,
+      source_url TEXT,
+      processing_method TEXT,
+      checkout_token TEXT,
+      contact_email TEXT,
+      order_status_url TEXT,
+      note TEXT,
+      app_id TEXT,
+      browser_ip TEXT,
+      landing_site_ref TEXT,
+      order_risk_level TEXT,
+      test_order BOOLEAN DEFAULT 0,
+      synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(shop_domain, id)
+    );
+  `);
+
   // Contact form submissions
   db.run(`
     CREATE TABLE IF NOT EXISTS contact_submissions (

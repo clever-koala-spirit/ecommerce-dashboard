@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useStore } from '../store/useStore';
 import SEO from '../components/common/SEO';
+import DateRangePicker from '../components/common/DateRangePicker';
 import { formatCurrency, formatPercent, filterDataByDateRange, getPreviousPeriod } from '../utils/formatters';
 import { COLORS } from '../utils/colors';
 import {
@@ -134,10 +135,15 @@ export default function ProfitLossPage() {
     <div className="p-6 lg:p-8 space-y-6 page-content" style={{ maxWidth: '1440px' }}>
       <SEO title="Profit & Loss" description="Detailed profit and loss breakdown" path="/profit-loss" />
 
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold" style={{ color: colors.text }}>Profit & Loss</h1>
-        <p className="text-sm mt-1" style={{ color: colors.textSecondary }}>Complete financial breakdown of your business</p>
+      {/* Header with Date Range Picker */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: colors.text }}>Profit & Loss</h1>
+          <p className="text-sm mt-1" style={{ color: colors.textSecondary }}>Complete financial breakdown of your business</p>
+        </div>
+        <div className="lg:w-80">
+          <DateRangePicker />
+        </div>
       </div>
 
       {/* Summary Cards */}
