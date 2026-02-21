@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Touch Attribution Engine - Demo</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/recharts@2.8.0/lib/index.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #1e1b4b 0%, #3730a3 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .hero-section {
+            text-align: center;
+            padding: 3rem 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            margin-bottom: 3rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        .hero-title {
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 0 0 1rem 0;
+            background: linear-gradient(135deg, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.25rem;
+            opacity: 0.8;
+            margin: 0 0 2rem 0;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+        }
+        
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #60a5fa, #34d399);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0 0 1rem 0;
+        }
+        
+        .feature-desc {
+            opacity: 0.8;
+            line-height: 1.6;
+            margin: 0;
+        }
+        
+        .demo-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 2rem 0;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 0 0 1.5rem 0;
+            background: linear-gradient(135deg, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .metric-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 0;
+            color: #34d399;
+        }
+        
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin: 0.5rem 0 0 0;
+        }
+        
+        .journey-path {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+        }
+        
+        .touchpoint {
+            background: linear-gradient(135deg, #1877f2, #42a5f5);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .touchpoint.meta { background: linear-gradient(135deg, #1877f2, #42a5f5); }
+        .touchpoint.google { background: linear-gradient(135deg, #ea4335, #ff6b6b); }
+        .touchpoint.email { background: linear-gradient(135deg, #34d399, #10b981); }
+        .touchpoint.organic { background: linear-gradient(135deg, #8b5cf6, #a855f7); }
+        
+        .arrow {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1.2rem;
+        }
+        
+        .attribution-table {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            overflow-x: auto;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table th,
+        .table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .table th {
+            font-weight: 600;
+            opacity: 0.8;
+        }
+        
+        .channel-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .channel-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .roas-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .roas-good { background: rgba(52, 211, 153, 0.2); color: #34d399; }
+        .roas-ok { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .roas-bad { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        
+        .cta-section {
+            text-align: center;
+            padding: 3rem 0;
+            margin: 3rem 0;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #60a5fa, #34d399);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(96, 165, 250, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <h1 class="hero-title">🧠 Multi-Touch Attribution Engine</h1>
+            <p class="hero-subtitle">
+                Advanced attribution modeling that tracks every customer touchpoint across all channels
+            </p>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value">$2.4M</div>
+                    <div class="metric-label">Attributed Revenue</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">4.7</div>
+                    <div class="metric-label">Avg Path Length</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">1,847</div>
+                    <div class="metric-label">Customer Journeys</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">12.3d</div>
+                    <div class="metric-label">Avg Time to Convert</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Features Grid -->
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3 class="feature-title">6 Attribution Models</h3>
+                <p class="feature-desc">
+                    First-click, last-click, linear, time-decay, position-based, and data-driven attribution models to understand true channel impact.
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🗺️</div>
+                <h3 class="feature-title">Customer Journey Mapping</h3>
+                <p class="feature-desc">
+                    Visualize individual customer paths from first touch to conversion with detailed touchpoint analysis and timing.
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3 class="feature-title">Real-Time Processing</h3>
+                <p class="feature-desc">
+                    Process thousands of touchpoints in real-time with advanced algorithms that scale with your business growth.
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3 class="feature-title">Cross-Channel Insights</h3>
+                <p class="feature-desc">
+                    Track attribution across Meta, Google, Email, Organic, Direct, SMS, TikTok, and all other marketing channels.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Attribution Results Demo -->
+        <div class="demo-section">
+            <h2 class="section-title">Live Attribution Results</h2>
+            <div class="attribution-table">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Channel</th>
+                            <th>Touchpoints</th>
+                            <th>Attributed Revenue</th>
+                            <th>ROAS</th>
+                            <th>Conversions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="channel-indicator">
+                                    <div class="channel-dot" style="background: #1877f2;"></div>
+                                    Meta Ads
+                                </div>
+                            </td>
+                            <td>2,847</td>
+                            <td>$847,392</td>
+                            <td><span class="roas-badge roas-good">3.24x</span></td>
+                            <td>412</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="channel-indicator">
+                                    <div class="channel-dot" style="background: #ea4335;"></div>
+                                    Google Ads
+                                </div>
+                            </td>
+                            <td>1,923</td>
+                            <td>$623,871</td>
+                            <td><span class="roas-badge roas-good">2.87x</span></td>
+                            <td>287</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="channel-indicator">
+                                    <div class="channel-dot" style="background: #34d399;"></div>
+                                    Email
+                                </div>
+                            </td>
+                            <td>4,612</td>
+                            <td>$398,247</td>
+                            <td><span class="roas-badge roas-good">8.92x</span></td>
+                            <td>189</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="channel-indicator">
+                                    <div class="channel-dot" style="background: #8b5cf6;"></div>
+                                    Organic
+                                </div>
+                            </td>
+                            <td>3,187</td>
+                            <td>$524,918</td>
+                            <td><span class="roas-badge roas-good">∞</span></td>
+                            <td>234</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Customer Journey Examples -->
+        <div class="demo-section">
+            <h2 class="section-title">Example Customer Journeys</h2>
+            
+            <div style="margin-bottom: 2rem;">
+                <h4 style="margin: 0 0 1rem 0; opacity: 0.9;">High-Value Journey: $4,287 Revenue</h4>
+                <div class="journey-path">
+                    <div class="touchpoint google">Google Search</div>
+                    <div class="arrow">→</div>
+                    <div class="touchpoint email">Email Open</div>
+                    <div class="arrow">→</div>
+                    <div class="touchpoint meta">Meta Retargeting</div>
+                    <div class="arrow">→</div>
+                    <div class="touchpoint organic">Direct Visit</div>
+                    <div class="arrow">→</div>
+                    <div class="touchpoint" style="background: linear-gradient(135deg, #34d399, #10b981);">💳 Purchase</div>
+                </div>
+                <p style="opacity: 0.7; font-size: 0.9rem; margin: 0.5rem 0;">23 days journey • 5 touchpoints • Linear attribution model</p>
+            </div>
+            
+            <div style="margin-bottom: 2rem;">
+                <h4 style="margin: 0 0 1rem 0; opacity: 0.9;">Quick Converter: $892 Revenue</h4>
+                <div class="journey-path">
+                    <div class="touchpoint meta">Meta Video Ad</div>
+                    <div class="arrow">→</div>
+                    <div class="touchpoint" style="background: linear-gradient(135deg, #34d399, #10b981);">💳 Purchase</div>
+                </div>
+                <p style="opacity: 0.7; font-size: 0.9rem; margin: 0.5rem 0;">2 hours journey • 2 touchpoints • Last-click attribution</p>
+            </div>
+            
+            <div>
+                <h4 style="margin: 0 0 1rem 0; opacity: 0.9;">Complex Journey: $1,247 Revenue</h4>
+                <div class="journey-path">
+                    <div class="touchpoint organic">Organic Search</div>
+                    <div class="arrow">→</div>
+                    <div class="touchpoint email">Newsletter</div>
+                    <div class="arrow">→</div>
+                    <div class="touchpoint google">Google Shopping</div>
+                    <div class="arrow">→</div>
+                    <div class="touchpoint meta">Instagram Story</div>
+                    <div class="arrow">→</div>
+                    <div class="touchpoint email">Cart Abandonment</div>
+                    <div class="arrow">→</div>
+                    <div class="touchpoint meta">Meta Retargeting</div>
+                    <div class="arrow">→</div>
+                    <div class="touchpoint" style="background: linear-gradient(135deg, #34d399, #10b981);">💳 Purchase</div>
+                </div>
+                <p style="opacity: 0.7; font-size: 0.9rem; margin: 0.5rem 0;">18 days journey • 7 touchpoints • Time-decay attribution</p>
+            </div>
+        </div>
+        
+        <!-- Technical Implementation -->
+        <div class="demo-section">
+            <h2 class="section-title">🛠️ Technical Implementation</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⚙️</div>
+                    <h3 class="feature-title">Attribution Engine Core</h3>
+                    <p class="feature-desc">
+                        Custom-built JavaScript engine with 6 attribution models, customer journey tracking, and real-time processing capabilities.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3 class="feature-title">Beautiful UI Components</h3>
+                    <p class="feature-desc">
+                        React components with Apple-level design, interactive charts, and seamless tab navigation for attribution vs journey views.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🔗</div>
+                    <h3 class="feature-title">Shopify Integration</h3>
+                    <p class="feature-desc">
+                        Direct integration with Shopify orders, Meta Ads API, Google Ads API, and email platforms for complete attribution tracking.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">📈</div>
+                    <h3 class="feature-title">Advanced Analytics</h3>
+                    <p class="feature-desc">
+                        Path analysis, channel transitions, conversion rates, and performance metrics that competitors like Triple Whale charge $1,200+/month for.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Competitive Advantage -->
+        <div class="demo-section">
+            <h2 class="section-title">🏆 Competitive Advantage</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 2rem 0;">
+                <div>
+                    <h3 style="color: #ef4444; margin: 0 0 1rem 0;">❌ Triple Whale ($1,200/mo)</h3>
+                    <ul style="opacity: 0.8; line-height: 1.8;">
+                        <li>Complex interface with learning curve</li>
+                        <li>Limited attribution models</li>
+                        <li>Basic customer journey visualization</li>
+                        <li>Expensive pricing tiers</li>
+                        <li>Limited customization options</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="color: #34d399; margin: 0 0 1rem 0;">✅ Our Solution (Free)</h3>
+                    <ul style="opacity: 0.8; line-height: 1.8;">
+                        <li>Apple-level intuitive design</li>
+                        <li>6 advanced attribution models</li>
+                        <li>Detailed customer journey mapping</li>
+                        <li>Zero monthly costs</li>
+                        <li>Fully customizable and extensible</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Call to Action -->
+        <div class="cta-section">
+            <h2 style="font-size: 2.5rem; margin: 0 0 1rem 0;">Ready to See Your True Marketing ROI?</h2>
+            <p style="font-size: 1.2rem; opacity: 0.8; margin: 0 0 2rem 0;">
+                Get advanced multi-touch attribution that would cost $1,200+/month elsewhere — completely free
+            </p>
+            <a href="http://localhost:3000/marketing" class="cta-button">
+                🚀 Launch Attribution Engine
+            </a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   ArrowTrendingUpIcon, 
-  TrendingDownIcon,
+  ArrowTrendingDownIcon,
   MinusIcon,
   SparklesIcon
 } from '@heroicons/react/24/outline';
@@ -39,7 +39,7 @@ const TouchpointAnalysis = () => {
 
   const getTrendIcon = (change) => {
     if (change > 0) return ArrowTrendingUpIcon;
-    if (change < 0) return TrendingDownIcon;
+    if (change < 0) return ArrowTrendingDownIcon;
     return MinusIcon;
   };
 

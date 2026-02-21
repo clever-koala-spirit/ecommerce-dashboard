@@ -4,7 +4,7 @@ import {
   AdjustmentsHorizontalIcon,
   ArrowsUpDownIcon,
   ArrowTrendingUpIcon,
-  TrendingDownIcon,
+  ArrowTrendingDownIcon,
   EyeIcon
 } from '@heroicons/react/24/outline';
 
@@ -333,7 +333,7 @@ const ProductProfitabilityTable = () => {
                     {product.trend >= 0 ? (
                       <ArrowTrendingUpIcon className="h-4 w-4 text-green-500" />
                     ) : (
-                      <TrendingDownIcon className="h-4 w-4 text-red-500" />
+                      <ArrowTrendingDownIcon className="h-4 w-4 text-red-500" />
                     )}
                     <span 
                       className="text-sm font-medium"
