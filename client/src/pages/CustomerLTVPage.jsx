@@ -17,7 +17,13 @@ import SEO from '../components/common/SEO';
 import { formatCurrency, formatNumber, formatPercent } from '../utils/formatters';
 import { COLORS } from '../utils/colors';
 import EmptyState from '../components/common/EmptyState';
-import LoadingSpinner from '../components/common/LoadingSpinner';
+// LoadingSpinner component - inline definition
+const LoadingSpinner = ({ size = "lg", message = "Loading..." }) => (
+  <div className="flex flex-col items-center justify-center py-12">
+    <div className={`animate-spin rounded-full border-4 border-gray-300 border-t-blue-600 ${size === 'lg' ? 'h-12 w-12' : 'h-8 w-8'}`}></div>
+    <p className="mt-4 text-sm text-gray-600">{message}</p>
+  </div>
+);
 
 // Import LTV components
 import LTVOverviewCards from '../components/ltv/LTVOverviewCards';
