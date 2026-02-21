@@ -101,7 +101,7 @@ except Exception as e:
         shop_domain
       } = inputData;
 
-      log(`⏰ Predicting customer timing for ${shop_domain} (${customer_data.length} customers)`);
+      log.info(`⏰ Predicting customer timing for ${shop_domain} (${customer_data.length} customers)`);
 
       // Try Python model first
       let prediction;
@@ -118,7 +118,7 @@ except Exception as e:
       // Enhance with actionable insights
       const enhancedPrediction = this.enhanceTiming(prediction, inputData);
 
-      log(`✅ Customer timing prediction complete: ${enhancedPrediction.confidence} confidence`);
+      log.info(`✅ Customer timing prediction complete: ${enhancedPrediction.confidence} confidence`);
       return enhancedPrediction;
 
     } catch (error) {

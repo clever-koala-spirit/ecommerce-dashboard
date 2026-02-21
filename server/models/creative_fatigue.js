@@ -106,7 +106,7 @@ except Exception as e:
         shop_domain
       } = inputData;
 
-      log(`🎨 Predicting creative fatigue for ${creative_id}`);
+      log.info(`🎨 Predicting creative fatigue for ${creative_id}`);
 
       // Try Python model first
       let prediction;
@@ -124,7 +124,7 @@ except Exception as e:
       // Enhance with confidence scoring
       const enhancedPrediction = this.enhancePrediction(prediction, inputData);
 
-      log(`✅ Creative fatigue prediction complete: ${enhancedPrediction.confidence} confidence`);
+      log.info(`✅ Creative fatigue prediction complete: ${enhancedPrediction.confidence} confidence`);
       return enhancedPrediction;
 
     } catch (error) {

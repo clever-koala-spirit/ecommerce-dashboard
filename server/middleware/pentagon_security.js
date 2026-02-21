@@ -32,21 +32,21 @@ class PentagonSecurity {
       if (fs.existsSync(keyPath)) {
         const keyData = fs.readFileSync(keyPath);
         if (keyData.length === KEY_LENGTH) {
-          log('🔐 Pentagon: Master key loaded');
+          log.info('🔐 Pentagon: Master key loaded');
           return keyData;
         }
       }
     } catch (error) {
-      log.warn('Pentagon: Error loading existing key:', error);
+      log.warn('Pentagon: Error loading existing key', error);
     }
 
     // Generate new master key
     const newKey = crypto.randomBytes(KEY_LENGTH);
     try {
       fs.writeFileSync(keyPath, newKey, { mode: 0o600 });
-      log('🔐 Pentagon: New master key generated and secured');
+      log.info('🔐 Pentagon: New master key generated and secured');
     } catch (error) {
-      log.error('Pentagon: Failed to save master key:', error);
+      log.error('Pentagon: Failed to save master key', error);
       // Continue with in-memory key for this session
     }
 
@@ -84,7 +84,7 @@ class PentagonSecurity {
         `);
 
         this.auditDb = db;
-        log('🛡️  Pentagon: Audit logging initialized');
+        log.info('🛡️  Pentagon: Audit logging initialized');
       }
     } catch (error) {
       log.error('Pentagon: Failed to initialize audit logging:', error);
@@ -122,7 +122,7 @@ class PentagonSecurity {
         encrypted_at: new Date().toISOString()
       };
 
-      log('🔐 Pentagon: Data encrypted successfully');
+      log.info('🔐 Pentagon: Data encrypted successfully');
       return encryptedData;
 
     } catch (error) {
@@ -472,5 +472,5 @@ export const signData = (data) => {
   return pentagonSecurity.signData(data);
 };
 
-log('🛡️  Pentagon Security initialized - AES-256-GCM encryption active');
+log.info('🛡️  Pentagon Security initialized - AES-256-GCM encryption active');
 export default pentagonSecurity;

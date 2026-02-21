@@ -78,7 +78,7 @@ class JARVISRouter {
       });
     });
 
-    log('🤖 JARVIS: Multi-AI services initialized');
+    log.info('🤖 JARVIS: Multi-AI services initialized');
   }
 
   /**
@@ -89,7 +89,7 @@ class JARVISRouter {
       this.performHealthChecks();
     }, 30000); // Check every 30 seconds
 
-    log('🤖 JARVIS: Health monitoring started');
+    log.info('🤖 JARVIS: Health monitoring started');
   }
 
   /**
@@ -538,5 +538,5 @@ export const getHealthCheckData = () => {
   return jarvisRouter.getSystemStatus();
 };
 
-log('🤖 JARVIS Multi-AI Failover Router initialized');
+log.info('🤖 JARVIS Multi-AI Failover Router initialized');
 export default jarvisRouter;

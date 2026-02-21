@@ -102,7 +102,7 @@ except Exception as e:
         shop_domain
       } = inputData;
 
-      log(`🚀 Predicting product velocity for ${shop_domain} (${product_data.length} products)`);
+      log.info(`🚀 Predicting product velocity for ${shop_domain} (${product_data.length} products)`);
 
       // Try Python model first
       let prediction;
@@ -120,7 +120,7 @@ except Exception as e:
       // Enhance with actionable insights
       const enhancedPrediction = this.enhanceVelocity(prediction, inputData);
 
-      log(`✅ Product velocity prediction complete: ${enhancedPrediction.confidence} confidence`);
+      log.info(`✅ Product velocity prediction complete: ${enhancedPrediction.confidence} confidence`);
       return enhancedPrediction;
 
     } catch (error) {

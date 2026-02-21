@@ -102,7 +102,7 @@ except Exception as e:
         shop_domain
       } = inputData;
 
-      log(`💰 Optimizing budget allocation for ${shop_domain}`);
+      log.info(`💰 Optimizing budget allocation for ${shop_domain}`);
 
       // Try Python model first
       let optimization;
@@ -120,7 +120,7 @@ except Exception as e:
       // Enhance with actionable recommendations
       const enhancedOptimization = this.enhanceOptimization(optimization, inputData);
 
-      log(`✅ Budget optimization complete: ${enhancedOptimization.confidence} confidence`);
+      log.info(`✅ Budget optimization complete: ${enhancedOptimization.confidence} confidence`);
       return enhancedOptimization;
 
     } catch (error) {

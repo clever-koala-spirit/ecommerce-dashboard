@@ -56,7 +56,12 @@ export default function LtvCohortPage() {
       monthMap[month].revenue += d.grossRevenue || d.revenue || 0;
       monthMap[month].orders += d.orders || 0;
     });
-    const cohorts = Object.values(monthMap).sort((a, b) => a.month.localeCompare(b.month));
+    const cohorts = Object.values(monthMap)
+      .filter(c => c.month)
+      .sort((a, b) => {
+        if (!a.month || !b.month) return 0;
+        return a.month.localeCompare(b.month);
+      });
 
     // Daily new vs returning
     const dailyCustomers = filtered.map(d => ({

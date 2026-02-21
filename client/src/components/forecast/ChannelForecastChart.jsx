@@ -57,7 +57,13 @@ export default function ChannelForecastChart() {
       dateMap[d.date].organic_actual = d.organicSessions * (d.revenue / d.sessions);
     });
 
-    const combined_data = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date));
+    const combined_data = Object.values(dateMap)
+      .filter(d => d.date) // Remove entries without valid dates
+      .sort((a, b) => {
+        // Safe date comparison with null checks
+        if (!a.date || !b.date) return 0;
+        return a.date.localeCompare(b.date);
+      });
 
     // Run forecasts for each channel
     const forecastResults = {};

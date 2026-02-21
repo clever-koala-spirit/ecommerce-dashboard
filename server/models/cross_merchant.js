@@ -101,7 +101,7 @@ except Exception as e:
         shop_domain
       } = inputData;
 
-      log(`🔍 Cross-merchant analysis for ${shop_domain} in ${market_segment}`);
+      log.info(`🔍 Cross-merchant analysis for ${shop_domain} in ${market_segment}`);
 
       // Try Python model first
       let analysis;
@@ -118,7 +118,7 @@ except Exception as e:
       // Enhance with strategic insights
       const enhancedAnalysis = this.enhanceAnalysis(analysis, inputData);
 
-      log(`✅ Cross-merchant analysis complete: ${enhancedAnalysis.confidence} confidence`);
+      log.info(`✅ Cross-merchant analysis complete: ${enhancedAnalysis.confidence} confidence`);
       return enhancedAnalysis;
 
     } catch (error) {
@@ -182,7 +182,7 @@ except Exception as e:
       const score = (
         (competitor.market_share * 0.4) +
         (competitor.customer_rating / 5 * 0.3) +
-        (Math.log(competitor.social_following + 1) / 10 * 0.2) +
+        (Math.log.info(competitor.social_following + 1) / 10 * 0.2) +
         (competitor.product_count / 1000 * 0.1)
       );
       return { ...competitor, composite_score: score };
