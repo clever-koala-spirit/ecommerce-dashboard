@@ -46,10 +46,7 @@ class AttributionEngine {
         conversion_type TEXT,
         order_id TEXT,
         product_ids TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX(shop_domain, customer_id, timestamp),
-        INDEX(shop_domain, session_id),
-        INDEX(conversion_type)
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
@@ -83,11 +80,16 @@ class AttributionEngine {
         touchpoint_count INTEGER,
         conversion_time_hours REAL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX(shop_domain, attribution_date),
-        INDEX(order_id),
         UNIQUE(shop_domain, order_id, model_type)
       );
     `);
+
+    // Create indexes for better performance
+    db.run(`CREATE INDEX IF NOT EXISTS idx_touchpoints_shop_customer_time ON customer_touchpoints(shop_domain, customer_id, timestamp)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_touchpoints_shop_session ON customer_touchpoints(shop_domain, session_id)`); 
+    db.run(`CREATE INDEX IF NOT EXISTS idx_touchpoints_conversion_type ON customer_touchpoints(conversion_type)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_attribution_shop_date ON attribution_results(shop_domain, attribution_date)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_attribution_order ON attribution_results(order_id)`);
 
     log.info('Attribution engine tables initialized');
   }

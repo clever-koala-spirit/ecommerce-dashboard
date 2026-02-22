@@ -9,6 +9,7 @@ import attributionEngine from '../services/attributionEngine.js';
 import realTimePL from '../services/realTimePL.js';
 import customerJourney from '../services/customerJourney.js';
 import revenueAnalytics from '../services/revenueAnalytics.js';
+import customerSegmentation from '../services/customerSegmentation.js';
 
 const router = express.Router();
 
@@ -475,6 +476,103 @@ router.get('/dashboard/operational', async (req, res) => {
   }
 });
 
+// --- Customer Segmentation Analytics (NEW vs RETURNING) ---
+
+/**
+ * GET /api/analytics/customer-segments
+ * Get comprehensive customer segmentation P&L analysis
+ * Features that make Triple Whale weep: 
+ * - Real-time customer segmentation with ML
+ * - Cohort analysis with predictive LTV modeling
+ * - Acquisition cost attribution with channel breakdown
+ */
+router.get('/customer-segments', async (req, res) => {
+  try {
+    const { 
+      startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      endDate = new Date().toISOString().split('T')[0],
+      currency = 'USD'
+    } = req.query;
+    
+    const shopDomain = req.shopDomain;
+
+    if (!shopDomain) {
+      return res.status(401).json({ error: 'Shop authentication required' });
+    }
+
+    const segmentationData = await customerSegmentation.getCustomerSegmentation(shopDomain, {
+      startDate,
+      endDate,
+      currency
+    });
+
+    res.json({
+      success: true,
+      message: 'Customer segmentation analysis complete',
+      ...segmentationData,
+      metadata: {
+        competitiveAdvantage: 'Triple Whale could never',
+        features: [
+          'Real-time P&L by customer segment',
+          'Advanced cohort analysis with retention prediction',
+          'Acquisition funnel optimization insights',
+          'Customer lifecycle profitability tracking'
+        ]
+      }
+    });
+  } catch (error) {
+    log.error('Customer segmentation error', error);
+    res.status(500).json({ 
+      error: 'Failed to get customer segmentation analysis',
+      details: error.message 
+    });
+  }
+});
+
+/**
+ * GET /api/analytics/new-vs-returning
+ * Get time-based trends for new vs returning customer performance
+ * Advanced insights that competitors wish they had
+ */
+router.get('/new-vs-returning', async (req, res) => {
+  try {
+    const {
+      startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      endDate = new Date().toISOString().split('T')[0],
+      granularity = 'daily' // daily, weekly, monthly
+    } = req.query;
+    
+    const shopDomain = req.shopDomain;
+
+    if (!shopDomain) {
+      return res.status(401).json({ error: 'Shop authentication required' });
+    }
+
+    const trendsData = await customerSegmentation.getNewVsReturningTrends(shopDomain, {
+      startDate,
+      endDate,
+      granularity
+    });
+
+    res.json({
+      success: true,
+      message: 'New vs returning customer trends analysis complete',
+      ...trendsData,
+      metadata: {
+        granularity,
+        dateRange: { startDate, endDate },
+        competitiveEdge: 'Time-based customer profitability insights that Triple Whale can only dream of'
+      }
+    });
+  } catch (error) {
+    log.error('New vs returning trends error', error);
+    res.status(500).json({ 
+      error: 'Failed to get new vs returning trends',
+      details: error.message 
+    });
+  }
+});
+
 // --- Initialization Endpoint ---
 
 /**
@@ -494,6 +592,7 @@ router.post('/initialize', async (req, res) => {
     realTimePL.initializeTables();
     customerJourney.initializeTables();
     revenueAnalytics.initializeTables();
+    // Customer segmentation doesn't need table initialization - uses existing orders/customers tables
 
     res.json({ 
       success: true, 
@@ -503,7 +602,9 @@ router.post('/initialize', async (req, res) => {
         'Multi-touch Attribution Engine',
         'Real-time P&L Calculations',
         'Advanced Customer Journey Tracking',
-        'Predictive Revenue Analytics'
+        'Predictive Revenue Analytics',
+        'Customer Segmentation P&L Analysis (NEW vs RETURNING)',
+        'Advanced Cohort Analysis with LTV Prediction'
       ]
     });
   } catch (error) {

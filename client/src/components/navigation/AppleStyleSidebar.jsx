@@ -19,7 +19,7 @@ import {
 const AppleStyleSidebar = ({ isCollapsed, onToggle }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [expandedSections, setExpandedSections] = useState(['analytics', 'business']);
+  const [expandedSections, setExpandedSections] = useState(['analytics', 'business', 'setup']);
 
   const menuSections = [
     {
@@ -93,6 +93,15 @@ const AppleStyleSidebar = ({ isCollapsed, onToggle }) => {
           icon: BoltIcon,
           path: '/marketing',
           color: 'var(--color-red)'
+        },
+        {
+          id: 'inventory',
+          label: 'Inventory',
+          icon: ShoppingBagIcon,
+          path: '/inventory',
+          color: 'var(--color-indigo)',
+          badge: 'NEW',
+          description: 'Advanced inventory tracking and analytics'
         }
       ]
     },
@@ -121,6 +130,22 @@ const AppleStyleSidebar = ({ isCollapsed, onToggle }) => {
           icon: DocumentTextIcon,
           path: '/orders',
           color: 'var(--color-orange)'
+        }
+      ]
+    },
+    {
+      id: 'setup',
+      title: 'Setup',
+      expandable: true,
+      items: [
+        {
+          id: 'integrations',
+          label: 'Integrations',
+          icon: BoltIcon,
+          path: '/settings#integrations',
+          color: 'var(--color-accent)',
+          badge: 'SETUP',
+          description: 'Connect Shopify, Meta Ads, Google Ads & more'
         }
       ]
     }

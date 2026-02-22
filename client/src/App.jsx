@@ -41,6 +41,10 @@ const PaintlyDashboard = lazy(() => import('./components/predictions/PaintlyDash
 const AttributionPage = lazy(() => import('./pages/AttributionPage'));
 const NewProfitLossPage = lazy(() => import('./pages/NewProfitLossPage'));
 const QuickDashboardPage = lazy(() => import('./pages/QuickDashboardPage'));
+const CustomerSegmentationPage = lazy(() => import('./pages/CustomerSegmentationPage'));
+const InventoryManagementPage = lazy(() => import('./pages/InventoryManagementPage'));
+const MultiStoreManagementPage = lazy(() => import('./pages/MultiStoreManagementPage'));
+const RevenueOptimizerPage = lazy(() => import('./pages/RevenueOptimizerPage'));
 
 function LoadingScreen() {
   return (
@@ -188,6 +192,26 @@ function App() {
             <Route path="/ltv" element={
               <ErrorBoundary>
                 <CustomerLTVPage />
+              </ErrorBoundary>
+            } />
+            <Route path="/customer-segments" element={
+              <ErrorBoundary>
+                <CustomerSegmentationPage />
+              </ErrorBoundary>
+            } />
+            <Route path="/inventory" element={
+              <ErrorBoundary>
+                <InventoryManagementPage />
+              </ErrorBoundary>
+            } />
+            <Route path="/multi-store" element={
+              <ErrorBoundary>
+                <MultiStoreManagementPage />
+              </ErrorBoundary>
+            } />
+            <Route path="/revenue-optimizer" element={
+              <ErrorBoundary>
+                <RevenueOptimizerPage />
               </ErrorBoundary>
             } />
             <Route path="/forecast" element={

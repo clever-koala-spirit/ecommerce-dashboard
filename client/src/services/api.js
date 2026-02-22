@@ -410,3 +410,261 @@ export async function invalidateCache(source = null) {
     return { error: error.message };
   }
 }
+
+// Multi-Store Management API
+export const multiStoreAPI = {
+  // Get overview of all connected stores
+  async getOverview(options = {}) {
+    try {
+      const available = await isBackendAvailable();
+      if (!available) {
+        return { success: false, error: 'Backend unavailable' };
+      }
+
+      const queryParams = new URLSearchParams({
+        timeRange: options.timeRange || '30d',
+        metrics: options.metrics ? options.metrics.join(',') : 'all'
+      }).toString();
+
+      const response = await apiFetch(`/multi-store/overview?${queryParams}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[API] Error fetching multi-store overview:', error);
+      }
+      throw error;
+    }
+  },
+
+  // Compare performance across stores
+  async compareStores(options = {}) {
+    try {
+      const available = await isBackendAvailable();
+      if (!available) {
+        return { success: false, error: 'Backend unavailable' };
+      }
+
+      const queryParams = new URLSearchParams({
+        stores: options.stores || '',
+        metrics: options.metrics || 'revenue,orders,conversion',
+        timeRange: options.timeRange || '30d'
+      }).toString();
+
+      const response = await apiFetch(`/multi-store/compare?${queryParams}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[API] Error comparing stores:', error);
+      }
+      throw error;
+    }
+  },
+
+  // Get consolidated metrics across all stores
+  async getConsolidated(options = {}) {
+    try {
+      const available = await isBackendAvailable();
+      if (!available) {
+        return { success: false, error: 'Backend unavailable' };
+      }
+
+      const queryParams = new URLSearchParams({
+        timeRange: options.timeRange || '30d',
+        includeBreakdown: options.includeBreakdown ? 'true' : 'false',
+        currency: options.currency || 'USD'
+      }).toString();
+
+      const response = await apiFetch(`/multi-store/consolidated?${queryParams}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[API] Error fetching consolidated metrics:', error);
+      }
+      throw error;
+    }
+  },
+
+  // Get store performance rankings
+  async getRankings(options = {}) {
+    try {
+      const available = await isBackendAvailable();
+      if (!available) {
+        return { success: false, error: 'Backend unavailable' };
+      }
+
+      const queryParams = new URLSearchParams({
+        metric: options.metric || 'revenue',
+        timeRange: options.timeRange || '30d',
+        order: options.order || 'desc'
+      }).toString();
+
+      const response = await apiFetch(`/multi-store/rankings?${queryParams}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[API] Error fetching store rankings:', error);
+      }
+      throw error;
+    }
+  },
+
+  // Get inventory optimization recommendations
+  async getInventoryOptimization(options = {}) {
+    try {
+      const available = await isBackendAvailable();
+      if (!available) {
+        return { success: false, error: 'Backend unavailable' };
+      }
+
+      const queryParams = new URLSearchParams({
+        includeTransferRecommendations: options.includeTransferRecommendations ? 'true' : 'false'
+      }).toString();
+
+      const response = await apiFetch(`/multi-store/inventory-optimization?${queryParams}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[API] Error fetching inventory optimization:', error);
+      }
+      throw error;
+    }
+  },
+
+  // Connect a new store
+  async connectStore(storeData) {
+    try {
+      const available = await isBackendAvailable();
+      if (!available) {
+        return { success: false, error: 'Backend unavailable' };
+      }
+
+      const response = await apiFetch('/multi-store/connect', {
+        method: 'POST',
+        body: JSON.stringify(storeData)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[API] Error connecting store:', error);
+      }
+      throw error;
+    }
+  },
+
+  // Disconnect a store
+  async disconnectStore(storeId) {
+    try {
+      const available = await isBackendAvailable();
+      if (!available) {
+        return { success: false, error: 'Backend unavailable' };
+      }
+
+      const response = await apiFetch(`/multi-store/disconnect/${storeId}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[API] Error disconnecting store:', error);
+      }
+      throw error;
+    }
+  },
+
+  // Get detailed analytics for a specific store
+  async getStoreAnalytics(storeId, options = {}) {
+    try {
+      const available = await isBackendAvailable();
+      if (!available) {
+        return { success: false, error: 'Backend unavailable' };
+      }
+
+      const queryParams = new URLSearchParams({
+        timeRange: options.timeRange || '30d',
+        metrics: options.metrics ? options.metrics.join(',') : 'all'
+      }).toString();
+
+      const response = await apiFetch(`/multi-store/analytics/${storeId}?${queryParams}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[API] Error fetching store analytics:', error);
+      }
+      throw error;
+    }
+  },
+
+  // Export multi-store data
+  async exportData(options = {}) {
+    try {
+      const available = await isBackendAvailable();
+      if (!available) {
+        throw new Error('Backend unavailable');
+      }
+
+      const queryParams = new URLSearchParams({
+        format: options.format || 'csv',
+        timeRange: options.timeRange || '30d',
+        includeStores: options.includeStores || 'all'
+      }).toString();
+
+      const response = await apiFetch(`/multi-store/export?${queryParams}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      // For CSV export, return text directly
+      if (options.format === 'csv') {
+        return await response.text();
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[API] Error exporting data:', error);
+      }
+      throw error;
+    }
+  }
+};

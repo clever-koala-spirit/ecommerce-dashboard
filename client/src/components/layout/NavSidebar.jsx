@@ -39,6 +39,7 @@ const navSections = [
       { path: '/profit-loss', label: 'Profit & Loss', icon: DollarSign },
       { path: '/marketing', label: 'Marketing', icon: Megaphone },
       { path: '/ltv', label: 'LTV & Cohorts', icon: Heart },
+      { path: '/customer-segments', label: 'Customer Segments', icon: Users },
       { path: '/reports', label: 'Reports', icon: BarChart3 },
       { path: '/forecast', label: 'Forecast', icon: TrendingUp },
     ],

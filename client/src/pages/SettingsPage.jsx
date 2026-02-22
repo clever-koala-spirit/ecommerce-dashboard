@@ -339,6 +339,18 @@ export default function SettingsPage() {
     checkConnections();
   }, [shop?.shopifyDomain]);
 
+  // Handle hash navigation for direct links to sections
+  React.useEffect(() => {
+    if (window.location.hash === '#integrations') {
+      setTimeout(() => {
+        const element = document.getElementById('integrations');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, []);
+
   // Check for OAuth callback params
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -481,7 +493,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Platform Connections Section */}
-        <section style={styles.section}>
+        <section id="integrations" style={styles.section}>
           <div style={styles.sectionHeader}>
             <Link size={24} style={styles.sectionIcon} />
             <div>

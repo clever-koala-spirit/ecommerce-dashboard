@@ -4,6 +4,7 @@ import EcommerceMetrics from '../components/quick-ui/EcommerceMetrics';
 import MonthlySalesChart from '../components/quick-ui/MonthlySalesChart';
 import RecentOrders from '../components/quick-ui/RecentOrders';
 import TripleWhaleStyle from '../components/quick-ui/TripleWhaleStyle';
+import DateRangePicker from '../components/common/DateRangePicker';
 
 const QuickDashboardPage = () => {
   return (
@@ -14,6 +15,19 @@ const QuickDashboardPage = () => {
       </Helmet>
       
       <div className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
+        {/* Dashboard Header with Date Picker */}
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              Overview of your store's performance
+            </p>
+          </div>
+          <div className="mt-4 sm:mt-0">
+            <DateRangePicker />
+          </div>
+        </div>
+        
         {/* Triple Whale Style Dashboard */}
         <TripleWhaleStyle />
         

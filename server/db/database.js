@@ -414,6 +414,20 @@ export async function initDB() {
     );
   `);
 
+  // Product costs table — stores cost data for inventory analytics
+  db.run(`
+    CREATE TABLE IF NOT EXISTS product_costs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      shop_id TEXT NOT NULL,
+      variant_id TEXT NOT NULL,
+      cost_per_item REAL NOT NULL,
+      currency TEXT DEFAULT 'USD',
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(shop_id, variant_id)
+    );
+  `);
+
   // Indexes for performance
   db.run(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_reset_tokens_token ON reset_tokens(token);`);
@@ -431,6 +445,7 @@ export async function initDB() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_contact_submissions_created ON contact_submissions(created_at);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_daily_metrics_lookup ON daily_metrics(platform, shop_domain, date);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_newsletter_subscribers_email ON newsletter_subscribers(email);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_product_costs_shop_variant ON product_costs(shop_id, variant_id);`);
 
   // Save initial schema to file and start auto-save
   saveDatabaseToFile();

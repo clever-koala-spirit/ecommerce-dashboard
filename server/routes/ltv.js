@@ -12,7 +12,7 @@
  */
 
 import express from 'express';
-import { getDatabase } from '../db/database.js';
+import { getDB } from '../db/database.js';
 import { log } from '../utils/logger.js';
 
 const router = express.Router();
@@ -208,7 +208,7 @@ router.get('/overview', async (req, res) => {
       return res.status(400).json({ error: 'Shop domain required' });
     }
     
-    const db = await getDatabase();
+    const db = getDB();
     
     // Get all customer orders from Shopify data
     const dateFilter = startDate && endDate 
@@ -371,7 +371,7 @@ router.get('/cohorts', async (req, res) => {
       return res.status(400).json({ error: 'Shop domain required' });
     }
     
-    const db = await getDatabase();
+    const db = getDB();
     
     // Get customer cohort data by first purchase period
     const periodFormat = period === 'week' ? '%Y-W%W' : '%Y-%m';
@@ -465,7 +465,7 @@ router.get('/customer/:customerId', async (req, res) => {
       return res.status(400).json({ error: 'Shop domain required' });
     }
     
-    const db = await getDatabase();
+    const db = getDB();
     
     // Get customer order history
     const orderQuery = `
@@ -598,7 +598,7 @@ router.get('/trends', async (req, res) => {
       return res.status(400).json({ error: 'Shop domain required' });
     }
     
-    const db = await getDatabase();
+    const db = getDB();
     
     // Get historical LTV data by period
     const periodFormat = period === 'week' ? '%Y-W%W' : period === 'day' ? '%Y-%m-%d' : '%Y-%m';
@@ -697,7 +697,7 @@ router.get('/segments', async (req, res) => {
       return res.status(400).json({ error: 'Shop domain required' });
     }
     
-    const db = await getDatabase();
+    const db = getDB();
     
     // Get all customers for segmentation
     const customersQuery = `

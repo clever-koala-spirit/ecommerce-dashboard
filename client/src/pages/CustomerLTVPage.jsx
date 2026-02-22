@@ -36,7 +36,7 @@ import LTVPredictionChart from '../components/ltv/LTVPredictionChart';
 import CustomerLTVExplorer from '../components/ltv/CustomerLTVExplorer';
 
 import {
-  ArrowArrowTrendingUpIcon,
+  ArrowTrendingUpIcon,
   UsersIcon,
   CurrencyDollarIcon,
   ExclamationTriangleIcon,
